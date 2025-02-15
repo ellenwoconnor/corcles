@@ -16,16 +16,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const itemArray = Array.isArray(items) ? items : [];
     // Only send the actual item data, not the table structure
     res.json(itemArray.map(item => ({
-      id: item.id,
-      title: item.title,
-      description: item.description,
-      price: item.price,
-      isGift: item.isGift,
-      imageUrl: item.imageUrl,
-      userId: item.userId,
-      community: item.community,
-      createdAt: item.createdAt.toISOString(), //Convert to ISO string to avoid time value error
-      favorites: item.favorites
+      ...item,
+      createdAt: new Date(item.createdAt).toISOString(), // Ensure proper date formatting
     })));
   });
 
@@ -36,10 +28,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ error: "Item not found" });
     }
 
-    // Convert createdAt to ISO string for consistent date handling
     res.json({
       ...item,
-      createdAt: item.createdAt.toISOString()
+      createdAt: new Date(item.createdAt).toISOString() // Ensure proper date formatting
     });
   });
 
@@ -61,7 +52,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ...parseResult.data,
       userId: req.user.id,
     });
-    res.status(201).json(item);
+
+    res.status(201).json({
+      ...item,
+      createdAt: new Date(item.createdAt).toISOString() // Ensure proper date formatting
+    });
   });
 
   app.post("/api/items/:id/favorite", async (req, res) => {
