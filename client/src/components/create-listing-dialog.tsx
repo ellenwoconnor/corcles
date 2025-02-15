@@ -57,9 +57,14 @@ export default function CreateListingDialog() {
   const createItemMutation = useMutation({
     mutationFn: async (data: z.infer<typeof insertItemSchema>) => {
       const formData = new FormData();
+      // Handle file and other form data separately
       Object.entries(data).forEach(([key, value]) => {
         if (value !== undefined) {
-          formData.append(key, value);
+          if (key === 'imageFile' && value instanceof File) {
+            formData.append('imageFile', value, value.name);
+          } else if (key !== 'imageFile') {
+            formData.append(key, String(value));
+          }
         }
       });
       await apiRequest("POST", "/api/items", formData);
