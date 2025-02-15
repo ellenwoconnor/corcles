@@ -1,6 +1,6 @@
 import { users, items, type User, type InsertUser, type Item, type InsertItem } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -67,14 +67,18 @@ export class DatabaseStorage implements IStorage {
   async favoriteItem(id: number): Promise<void> {
     await db
       .update(items)
-      .set({ favorites: items.favorites + 1 })
+      .set({ 
+        favorites: sql`${items.favorites} + 1` 
+      })
       .where(eq(items.id, id));
   }
 
   async unfavoriteItem(id: number): Promise<void> {
     await db
       .update(items)
-      .set({ favorites: items.favorites - 1 })
+      .set({ 
+        favorites: sql`${items.favorites} - 1` 
+      })
       .where(eq(items.id, id));
   }
 }
