@@ -1,4 +1,4 @@
-import { users, items, type User, type InsertUser, type Item, type InsertItem } from "@shared/schema";
+import { users, items, favoriteTable, type User, type InsertUser, type Item, type InsertItem } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
 import session from "express-session";
