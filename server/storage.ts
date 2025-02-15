@@ -1,6 +1,6 @@
 import { users, items, favoriteTable, type User, type InsertUser, type Item, type InsertItem } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -57,7 +57,7 @@ export class DatabaseStorage implements IStorage {
       createdAt: items.createdAt,
       favorites: items.favorites,
       userHasFavorited: db
-        .select({ value: db.fn.count("*") })
+        .select({ value: sql`count(*)` })
         .from(favoriteTable)
         .where(
           and(
