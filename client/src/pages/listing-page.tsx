@@ -63,9 +63,9 @@ export default function ListingPage() {
               <div>
                 <p className="font-medium">Listed by Anonymous</p>
                 <p className="text-sm text-muted-foreground">
-                  {formatDistanceToNow(new Date(item.createdAt), {
+                  {item.createdAt ? formatDistanceToNow(new Date(item.createdAt), {
                     addSuffix: true,
-                  })}
+                  }) : 'Just now'}
                 </p>
               </div>
             </div>
