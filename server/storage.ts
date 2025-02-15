@@ -11,13 +11,11 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-
   getItems(community: string, userId?: number): Promise<(Item & { userHasFavorited: boolean })[]>;
   getItem(id: number): Promise<Item | undefined>;
   createItem(item: InsertItem & { userId: number }): Promise<Item>;
   favoriteItem(id: number, userId: number): Promise<void>;
   unfavoriteItem(id: number, userId: number): Promise<void>;
-
   sessionStore: session.Store;
 }
 
@@ -47,24 +45,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getItems(community: string, userId?: number): Promise<(Item & { userHasFavorited: boolean })[]> {
-    const results = await db
-      .select({
-        ...items,
-        userHasFavorited: db
-          .select()
-          .from(favoriteTable)
-          .where(
-            and(
-              eq(favoriteTable.itemId, items.id),
-              eq(favoriteTable.userId, userId ?? 0)
-            )
+    const results = await db.select({
+      id: items.id,
+      title: items.title,
+      description: items.description,
+      price: items.price,
+      isGift: items.isGift,
+      imageUrl: items.imageUrl,
+      userId: items.userId,
+      community: items.community,
+      createdAt: items.createdAt,
+      favorites: items.favorites,
+      userHasFavorited: db
+        .select({ value: db.fn.count("*") })
+        .from(favoriteTable)
+        .where(
+          and(
+            eq(favoriteTable.itemId, items.id),
+            eq(favoriteTable.userId, userId ?? 0)
           )
-          .limit(1)
-          .then(rows => rows.length > 0)
-      })
-      .from(items)
-      .where(eq(items.community, community))
-      .orderBy(desc(items.createdAt));
+        )
+        .then(rows => rows[0].value > 0)
+    })
+    .from(items)
+    .where(eq(items.community, community))
+    .orderBy(desc(items.createdAt));
 
     return results as (Item & { userHasFavorited: boolean })[];
   }
