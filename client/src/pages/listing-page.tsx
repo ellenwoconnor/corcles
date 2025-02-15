@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Item } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import { useRoute } from "wouter";
@@ -7,14 +7,30 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { Heart, Loader2 } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function ListingPage() {
   const [, params] = useRoute("/item/:id");
   const itemId = params?.id;
+  const { user } = useAuth();
 
-  const { data: item, isLoading } = useQuery<Item>({
+  const { data: item, isLoading, error } = useQuery<Item>({
     queryKey: [`/api/items/${itemId}`],
     enabled: !!itemId,
+  });
+
+  const favoriteMutation = useMutation({
+    mutationFn: async () => {
+      if (!item) return;
+      await apiRequest(
+        "POST",
+        `/api/items/${item.id}/favorite`
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${user?.community}`] });
+    },
   });
 
   if (isLoading) {
@@ -25,8 +41,18 @@ export default function ListingPage() {
     );
   }
 
-  if (!item) {
-    return <div>Item not found</div>;
+  if (error || !item) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container py-12">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">Item not found</h1>
+            <p className="text-muted-foreground">The item you're looking for doesn't exist or has been removed.</p>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   return (
@@ -38,7 +64,7 @@ export default function ListingPage() {
             <img
               src={item.imageUrl}
               alt={item.title}
-              className="w-full rounded-lg"
+              className="w-full rounded-lg object-cover aspect-square"
             />
           </div>
           <div className="space-y-6">
@@ -63,21 +89,26 @@ export default function ListingPage() {
               <div>
                 <p className="font-medium">Listed by Anonymous</p>
                 <p className="text-sm text-muted-foreground">
-                  {item.createdAt ? formatDistanceToNow(new Date(item.createdAt.toString()), {
+                  {formatDistanceToNow(new Date(item.createdAt), {
                     addSuffix: true,
-                  }) : 'Just now'}
+                  })}
                 </p>
               </div>
             </div>
 
             <div>
               <h2 className="text-xl font-semibold mb-2">Description</h2>
-              <p className="text-muted-foreground">{item.description}</p>
+              <p className="text-muted-foreground whitespace-pre-wrap">{item.description}</p>
             </div>
 
             <div className="flex gap-4">
               <Button className="flex-1">Contact Seller</Button>
-              <Button variant="outline" size="icon">
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={() => favoriteMutation.mutate()}
+                disabled={!user || favoriteMutation.isPending}
+              >
                 <Heart
                   className={`h-4 w-4 ${item.favorites > 0 ? "fill-primary" : ""}`}
                 />
