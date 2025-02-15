@@ -8,7 +8,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
   app.get("/api/items/:community", async (req, res) => {
-    const items = await storage.getItems(req.params.community);
+    const items = await storage.getItems(req.params.community, req.user?.id);
     res.json(items);
   });
 
