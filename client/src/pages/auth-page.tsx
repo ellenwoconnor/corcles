@@ -1,3 +1,4 @@
+import React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/hooks/use-auth";
@@ -37,12 +38,13 @@ const loginSchema = insertUserSchema.pick({
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
+  const { user, loginMutation, registerMutation } = useAuth();
+
   React.useEffect(() => {
     if (user) {
       setLocation("/");
     }
   }, [user, setLocation]);
-  const { user, loginMutation, registerMutation } = useAuth();
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -63,7 +65,6 @@ export default function AuthPage() {
   });
 
   if (user) {
-    setLocation("/");
     return null;
   }
 
