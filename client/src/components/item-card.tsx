@@ -7,30 +7,31 @@ import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 
 type ItemCardProps = {
   item: Item;
 };
 
 export default function ItemCard({ item }: ItemCardProps) {
+  const { user } = useAuth();
+
   const favoriteMutation = useMutation({
     mutationFn: async () => {
       await apiRequest(
         "POST",
-        `/api/items/${item.id}/${
-          item.favorites > 0 ? "unfavorite" : "favorite"
-        }`,
+        `/api/items/${item.id}/${item.favorites > 0 ? "unfavorite" : "favorite"}`,
       );
     },
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: [`/api/items/${item.community}`] });
-      const previousItems = queryClient.getQueryData([`/api/items/${item.community}`]);
-      
-      queryClient.setQueryData([`/api/items/${item.community}`], (old: Item[] | undefined) => {
+      const previousItems = queryClient.getQueryData<Item[]>([`/api/items/${item.community}`]);
+
+      queryClient.setQueryData<Item[]>([`/api/items/${item.community}`], (old) => {
         if (!old) return [];
         return old.map(oldItem => 
           oldItem.id === item.id 
-            ? { ...oldItem, favorites: item.favorites > 0 ? 0 : 1 }
+            ? { ...oldItem, favorites: oldItem.favorites > 0 ? 0 : 1 }
             : oldItem
         );
       });
@@ -38,7 +39,9 @@ export default function ItemCard({ item }: ItemCardProps) {
       return { previousItems };
     },
     onError: (_err, _variables, context) => {
-      queryClient.setQueryData([`/api/items/${item.community}`], context?.previousItems);
+      if (context?.previousItems) {
+        queryClient.setQueryData([`/api/items/${item.community}`], context.previousItems);
+      }
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/items/${item.community}`] });
@@ -69,18 +72,16 @@ export default function ItemCard({ item }: ItemCardProps) {
             <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
               {item.description}
             </p>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6">
-                  <AvatarImage src="/avatar.jpg" />
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-                <span className="text-sm text-muted-foreground">
-                  {formatDistanceToNow(new Date(item.createdAt), {
-                    addSuffix: true,
-                  })}
-                </span>
-              </div>
+            <div className="flex items-center gap-2">
+              <Avatar className="h-6 w-6">
+                <AvatarImage src="/avatar.jpg" />
+                <AvatarFallback>U</AvatarFallback>
+              </Avatar>
+              <span className="text-sm text-muted-foreground">
+                {formatDistanceToNow(new Date(item.createdAt), {
+                  addSuffix: true,
+                })}
+              </span>
             </div>
           </div>
         </CardContent>
@@ -92,8 +93,11 @@ export default function ItemCard({ item }: ItemCardProps) {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              favoriteMutation.mutate();
+              if (user) {
+                favoriteMutation.mutate();
+              }
             }}
+            disabled={!user || favoriteMutation.isPending}
           >
             <Heart
               className={`h-4 w-4 mr-1 ${
