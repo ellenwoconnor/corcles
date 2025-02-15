@@ -4,8 +4,8 @@ import { motion } from "framer-motion";
 export default function RobotLogo() {
   return (
     <motion.svg
-      width="120"
-      height="120"
+      width="48"
+      height="48"
       viewBox="0 0 120 120"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
