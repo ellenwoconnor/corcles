@@ -22,7 +22,25 @@ export default function ItemCard({ item }: ItemCardProps) {
         }`,
       );
     },
-    onSuccess: () => {
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: [`/api/items/${item.community}`] });
+      const previousItems = queryClient.getQueryData([`/api/items/${item.community}`]);
+      
+      queryClient.setQueryData([`/api/items/${item.community}`], (old: Item[] | undefined) => {
+        if (!old) return [];
+        return old.map(oldItem => 
+          oldItem.id === item.id 
+            ? { ...oldItem, favorites: item.favorites > 0 ? 0 : 1 }
+            : oldItem
+        );
+      });
+
+      return { previousItems };
+    },
+    onError: (_err, _variables, context) => {
+      queryClient.setQueryData([`/api/items/${item.community}`], context?.previousItems);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/items/${item.community}`] });
     },
   });
