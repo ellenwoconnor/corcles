@@ -1,5 +1,7 @@
+
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
+import { sql } from 'drizzle-orm';
 import ws from "ws";
 import * as schema from "@shared/schema";
 
@@ -10,6 +12,9 @@ if (!process.env.DATABASE_URL) {
     "DATABASE_URL must be set. Did you forget to provision a database?",
   );
 }
+
+export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle(pool, { schema });
 
 // Run initial migration
 async function migrate() {
@@ -37,20 +42,16 @@ async function migrate() {
     )`,
     `CREATE TABLE IF NOT EXISTS favorites (
       id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL,
-      item_id INTEGER NOT NULL
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      item_id INTEGER NOT NULL REFERENCES items(id),
+      UNIQUE(user_id, item_id)
     )`
   ];
 
   for (const migration of migrations) {
-    await db.execute(sql.raw(migration));
+    await pool.query(migration);
   }
 }
 
 // Run migrations on startup
 migrate().catch(console.error);
-
-
-
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
