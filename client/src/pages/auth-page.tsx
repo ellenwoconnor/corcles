@@ -55,6 +55,7 @@ export default function AuthPage() {
       password: "",
       displayName: "",
       community: "",
+      address: "", // Added default value for address
     },
   });
 
@@ -150,6 +151,19 @@ export default function AuthPage() {
                         <FormLabel>Display Name</FormLabel>
                         <FormControl>
                           <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={registerForm.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Address</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="123 Main St" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

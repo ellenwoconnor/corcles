@@ -10,6 +10,7 @@ const PostgresSessionStore = connectPg(session);
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByAddress(address: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getItems(community: string, userId?: number): Promise<(Item & { userHasFavorited: boolean })[]>;
   getItem(id: number): Promise<Item | undefined>;
@@ -39,6 +40,11 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getUserByAddress(address: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.address, address));
+    return user;
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
     return user;
@@ -62,9 +68,9 @@ export class DatabaseStorage implements IStorage {
         AND ${favoriteTable.userId} = ${userId ?? 0}
       )`.as("userHasFavorited")
     })
-    .from(items)
-    .where(eq(items.community, community))
-    .orderBy(desc(items.createdAt));
+      .from(items)
+      .where(eq(items.community, community))
+      .orderBy(desc(items.createdAt));
   }
 
   async getItem(id: number): Promise<Item | undefined> {

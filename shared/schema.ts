@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   displayName: text("display_name").notNull(),
   avatarUrl: text("avatar_url"),
+  address: text("address").notNull().unique(),
   community: text("community").notNull(),
 });
 
@@ -33,6 +34,13 @@ export const items = pgTable("items", {
 export const insertUserSchema = createInsertSchema(users).extend({
   password: z.string().min(6, "Password must be at least 6 characters"),
   displayName: z.string().min(2, "Display name must be at least 2 characters"),
+  address: z.string()
+    .min(5, "Address must be at least 5 characters")
+    .refine((val) => {
+      const hasNumber = /\d/.test(val);
+      const hasStreet = /[a-zA-Z]/.test(val);
+      return hasNumber && hasStreet;
+    }, "Address must contain both numbers and street name"),
   community: z.string().min(2, "Community name must be at least 2 characters"),
 });
 
