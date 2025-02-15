@@ -1,6 +1,6 @@
 import { users, items, favoriteTable, type User, type InsertUser, type Item, type InsertItem } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql, desc } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -12,7 +12,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
-  getItems(community: string): Promise<Item[]>;
+  getItems(community: string, userId?: number): Promise<(Item & { userHasFavorited: boolean })[]>;
   getItem(id: number): Promise<Item | undefined>;
   createItem(item: InsertItem & { userId: number }): Promise<Item>;
   favoriteItem(id: number, userId: number): Promise<void>;
@@ -46,12 +46,20 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getItems(community: string): Promise<Item[]> {
-    return await db
-      .select()
+  async getItems(community: string, userId?: number): Promise<(Item & { userHasFavorited: boolean })[]> {
+    const results = await db
+      .select({
+        ...items,
+        userHasFavorited: sql`EXISTS (
+          SELECT 1 FROM favorites 
+          WHERE item_id = items.id AND user_id = ${userId ?? 0}
+        )`
+      })
       .from(items)
       .where(eq(items.community, community))
-      .orderBy(items.createdAt);
+      .orderBy(desc(items.createdAt));
+
+    return results;
   }
 
   async getItem(id: number): Promise<Item | undefined> {

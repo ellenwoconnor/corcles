@@ -41,6 +41,8 @@ export const insertItemSchema = createInsertSchema(items).omit({
   userId: true,
   createdAt: true,
   favorites: true
+}).extend({
+  imageFile: z.instanceof(File).optional(),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
