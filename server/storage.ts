@@ -56,16 +56,11 @@ export class DatabaseStorage implements IStorage {
       community: items.community,
       createdAt: items.createdAt,
       favorites: items.favorites,
-      userHasFavorited: db.exists(
-        db.select()
-          .from(favoriteTable)
-          .where(
-            and(
-              eq(favoriteTable.itemId, items.id),
-              eq(favoriteTable.userId, userId ?? 0)
-            )
-          )
-      ).as("userHasFavorited")
+      userHasFavorited: sql`EXISTS (
+        SELECT 1 FROM ${favoriteTable}
+        WHERE ${favoriteTable.itemId} = ${items.id}
+        AND ${favoriteTable.userId} = ${userId ?? 0}
+      )`.as("userHasFavorited")
     })
     .from(items)
     .where(eq(items.community, community))
