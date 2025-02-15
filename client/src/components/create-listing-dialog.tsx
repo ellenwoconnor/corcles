@@ -50,14 +50,19 @@ export default function CreateListingDialog() {
       description: "",
       price: 0,
       isGift: false,
-      imageUrl: MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)],
       community: user?.community ?? "",
     },
   });
 
   const createItemMutation = useMutation({
     mutationFn: async (data: z.infer<typeof insertItemSchema>) => {
-      await apiRequest("POST", "/api/items", data);
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, value]) => {
+        if (value !== undefined) {
+          formData.append(key, value);
+        }
+      });
+      await apiRequest("POST", "/api/items", formData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/items/${user?.community}`] });
@@ -104,6 +109,29 @@ export default function CreateListingDialog() {
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="imageFile"
+              render={({ field: { onChange, ...field } }) => (
+                <FormItem>
+                  <FormLabel>Image</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          onChange(file);
+                        }
+                      }}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -1,8 +1,11 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import multer from "multer";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertItemSchema } from "@shared/schema";
+
+const upload = multer();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -12,10 +15,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(items);
   });
 
-  app.post("/api/items", async (req, res) => {
+  app.post("/api/items", upload.single('imageFile'), async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
-    const parseResult = insertItemSchema.safeParse(req.body);
+    const data = {
+      ...req.body,
+      price: Number(req.body.price),
+      isGift: req.body.isGift === 'true',
+      imageUrl: req.file ? `/api/uploads/${req.file.originalname}` : MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)]
+    };
+    
+    const parseResult = insertItemSchema.safeParse(data);
     if (!parseResult.success) {
       return res.status(400).json(parseResult.error);
     }
