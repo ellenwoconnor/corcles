@@ -30,14 +30,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/items/:id/favorite", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
-    await storage.favoriteItem(parseInt(req.params.id));
+    await storage.favoriteItem(parseInt(req.params.id), req.user.id);
     res.sendStatus(200);
   });
 
   app.post("/api/items/:id/unfavorite", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
-    await storage.unfavoriteItem(parseInt(req.params.id));
+    await storage.unfavoriteItem(parseInt(req.params.id), req.user.id);
     res.sendStatus(200);
   });
 
