@@ -37,6 +37,11 @@ const loginSchema = insertUserSchema.pick({
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
+  React.useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
   const { user, loginMutation, registerMutation } = useAuth();
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
