@@ -86,7 +86,7 @@ export default function CreateListingDialog() {
       <DialogTrigger asChild>
         <Button>Create Listing</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Listing</DialogTitle>
           <DialogDescription>
