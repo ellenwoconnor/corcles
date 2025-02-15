@@ -122,7 +122,7 @@ export default function CreateListingDialog() {
             <FormField
               control={form.control}
               name="imageFile"
-              render={({ field: { onChange, ...field } }) => (
+              render={({ field: { onChange, value, ...field } }) => (
                 <FormItem>
                   <FormLabel>Image</FormLabel>
                   <FormControl>
@@ -136,6 +136,7 @@ export default function CreateListingDialog() {
                         }
                       }}
                       {...field}
+                      value={undefined}
                     />
                   </FormControl>
                   <FormMessage />
