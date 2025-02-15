@@ -50,23 +50,18 @@ export default function CreateListingDialog() {
       description: "",
       price: 0,
       isGift: false,
+      imageUrl: MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)],
       community: user?.community ?? "",
     },
   });
 
   const createItemMutation = useMutation({
     mutationFn: async (data: z.infer<typeof insertItemSchema>) => {
-      try {
-        // Add a mock image URL since we removed image upload
-        const itemData = {
-          ...data,
-          imageUrl: "https://images.unsplash.com/photo-1523194258983-4ef0203f0c47"
-        };
-        return await apiRequest("POST", "/api/items", itemData);
-      } catch (error) {
-        console.error('Error creating item:', error);
-        throw error;
-      }
+      const response = await apiRequest("POST", "/api/items", {
+        ...data,
+        price: data.isGift ? null : data.price,
+      });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/items/${user?.community}`] });
@@ -89,14 +84,8 @@ export default function CreateListingDialog() {
         </DialogHeader>
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(async (data) => {
-              try {
-                await createItemMutation.mutateAsync(data);
-                form.reset();
-                setOpen(false);
-              } catch (error) {
-                console.error('Form submission error:', error);
-              }
+            onSubmit={form.handleSubmit((data) => {
+              createItemMutation.mutate(data);
             })}
             className="space-y-4"
           >
@@ -121,30 +110,6 @@ export default function CreateListingDialog() {
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="imageFile"
-              render={({ field: { onChange, value, ...field } }) => (
-                <FormItem>
-                  <FormLabel>Image</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="file" 
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          onChange(file);
-                        }
-                      }}
-                      {...field}
-                      value={undefined}
-                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -181,9 +146,7 @@ export default function CreateListingDialog() {
                       <Input
                         type="number"
                         {...field}
-                        onChange={(e) =>
-                          field.onChange(parseInt(e.target.value, 10))
-                        }
+                        onChange={(e) => field.onChange(Number(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />
