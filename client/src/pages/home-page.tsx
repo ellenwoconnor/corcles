@@ -17,10 +17,10 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="container py-6">
-        <div className="flex justify-between items-center mb-6">
+      <main className="container py-12 px-8">
+        <div className="flex justify-between items-center mb-12">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Marketplace</h1>
+            <h1 className="text-4xl font-bold tracking-tight">Marketplace</h1>
             <p className="text-muted-foreground">
               Browse items in {user?.community}
             </p>
