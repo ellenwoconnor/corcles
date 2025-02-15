@@ -35,7 +35,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!item) {
       return res.status(404).json({ error: "Item not found" });
     }
-    
+
     // Convert createdAt to ISO string for consistent date handling
     res.json({
       ...item,
