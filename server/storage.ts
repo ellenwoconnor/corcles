@@ -1,94 +1,82 @@
-import createMemoryStore from "memorystore";
+import { users, items, type User, type InsertUser, type Item, type InsertItem } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 import session from "express-session";
-import { InsertUser, User, Item, InsertItem } from "@shared/schema";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
+
   getItems(community: string): Promise<Item[]>;
   getItem(id: number): Promise<Item | undefined>;
   createItem(item: InsertItem & { userId: number }): Promise<Item>;
   favoriteItem(id: number): Promise<void>;
   unfavoriteItem(id: number): Promise<void>;
-  
+
   sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private items: Map<number, Item>;
+export class DatabaseStorage implements IStorage {
   public sessionStore: session.Store;
-  private currentUserId: number;
-  private currentItemId: number;
 
   constructor() {
-    this.users = new Map();
-    this.items = new Map();
-    this.currentUserId = 1;
-    this.currentItemId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
     });
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   async getItems(community: string): Promise<Item[]> {
-    return Array.from(this.items.values())
-      .filter(item => item.community === community)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return await db
+      .select()
+      .from(items)
+      .where(eq(items.community, community))
+      .orderBy(desc(items.createdAt));
   }
 
   async getItem(id: number): Promise<Item | undefined> {
-    return this.items.get(id);
+    const [item] = await db.select().from(items).where(eq(items.id, id));
+    return item;
   }
 
   async createItem(item: InsertItem & { userId: number }): Promise<Item> {
-    const id = this.currentItemId++;
-    const newItem: Item = {
-      ...item,
-      id,
-      createdAt: new Date(),
-      favorites: 0
-    };
-    this.items.set(id, newItem);
+    const [newItem] = await db.insert(items).values(item).returning();
     return newItem;
   }
 
   async favoriteItem(id: number): Promise<void> {
-    const item = this.items.get(id);
-    if (item) {
-      item.favorites++;
-      this.items.set(id, item);
-    }
+    await db
+      .update(items)
+      .set({ favorites: items.favorites + 1 })
+      .where(eq(items.id, id));
   }
 
   async unfavoriteItem(id: number): Promise<void> {
-    const item = this.items.get(id);
-    if (item && item.favorites > 0) {
-      item.favorites--;
-      this.items.set(id, item);
-    }
+    await db
+      .update(items)
+      .set({ favorites: items.favorites - 1 })
+      .where(eq(items.id, id));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
