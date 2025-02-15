@@ -12,7 +12,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/items/:community", async (req, res) => {
     const items = await storage.getItems(req.params.community, req.user?.id);
-    res.json(items);
+    // Only send the actual item data, not the table structure
+    res.json(items.map(item => ({
+      id: item.id,
+      title: item.title,
+      description: item.description,
+      price: item.price,
+      isGift: item.isGift,
+      imageUrl: item.imageUrl,
+      userId: item.userId,
+      community: item.community,
+      createdAt: item.createdAt,
+      favorites: item.favorites
+    })));
   });
 
   app.post("/api/items", upload.single('imageFile'), async (req, res) => {
