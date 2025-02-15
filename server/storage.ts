@@ -1,6 +1,6 @@
 import { users, items, favoriteTable, type User, type InsertUser, type Item, type InsertItem } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, sql, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -50,16 +50,23 @@ export class DatabaseStorage implements IStorage {
     const results = await db
       .select({
         ...items,
-        userHasFavorited: sql`EXISTS (
-          SELECT 1 FROM favorites 
-          WHERE item_id = items.id AND user_id = ${userId ?? 0}
-        )`
+        userHasFavorited: db
+          .select()
+          .from(favoriteTable)
+          .where(
+            and(
+              eq(favoriteTable.itemId, items.id),
+              eq(favoriteTable.userId, userId ?? 0)
+            )
+          )
+          .limit(1)
+          .then(rows => rows.length > 0)
       })
       .from(items)
       .where(eq(items.community, community))
       .orderBy(desc(items.createdAt));
 
-    return results;
+    return results as (Item & { userHasFavorited: boolean })[];
   }
 
   async getItem(id: number): Promise<Item | undefined> {
@@ -87,11 +94,10 @@ export class DatabaseStorage implements IStorage {
       );
 
     if (!favorite) {
-      item.favorites += 1;
       await db.insert(favoriteTable).values({ itemId: id, userId });
       await db
         .update(items)
-        .set({ favorites: item.favorites })
+        .set({ favorites: item.favorites + 1 })
         .where(eq(items.id, id));
     }
   }
@@ -111,7 +117,6 @@ export class DatabaseStorage implements IStorage {
       );
 
     if (favorite) {
-      item.favorites = Math.max(0, item.favorites - 1);
       await db
         .delete(favoriteTable)
         .where(
@@ -122,7 +127,7 @@ export class DatabaseStorage implements IStorage {
         );
       await db
         .update(items)
-        .set({ favorites: item.favorites })
+        .set({ favorites: Math.max(0, item.favorites - 1) })
         .where(eq(items.id, id));
     }
   }

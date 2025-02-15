@@ -10,7 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 
 type ItemCardProps = {
-  item: Item;
+  item: Item & { userHasFavorited: boolean };
 };
 
 export default function ItemCard({ item }: ItemCardProps) {
@@ -20,31 +20,45 @@ export default function ItemCard({ item }: ItemCardProps) {
     mutationFn: async () => {
       await apiRequest(
         "POST",
-        `/api/items/${item.id}/${item.favorites > 0 ? "unfavorite" : "favorite"}`,
+        `/api/items/${item.id}/${item.userHasFavorited ? "unfavorite" : "favorite"}`,
       );
     },
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: [`/api/items/${item.community}`] });
-      const previousItems = queryClient.getQueryData<Item[]>([`/api/items/${item.community}`]);
+      await queryClient.cancelQueries({ queryKey: [`/api/items/${user?.community}`] });
+      const previousItems = queryClient.getQueryData<(Item & { userHasFavorited: boolean })[]>([
+        `/api/items/${user?.community}`,
+      ]);
 
-      queryClient.setQueryData<Item[]>([`/api/items/${item.community}`], (old) => {
-        if (!old) return [];
-        return old.map(oldItem => 
-          oldItem.id === item.id 
-            ? { ...oldItem, favorites: oldItem.favorites > 0 ? 0 : 1 }
-            : oldItem
-        );
-      });
+      queryClient.setQueryData<(Item & { userHasFavorited: boolean })[]>(
+        [`/api/items/${user?.community}`],
+        (old) => {
+          if (!old) return [];
+          return old.map((oldItem) =>
+            oldItem.id === item.id
+              ? {
+                  ...oldItem,
+                  favorites: oldItem.userHasFavorited
+                    ? oldItem.favorites - 1
+                    : oldItem.favorites + 1,
+                  userHasFavorited: !oldItem.userHasFavorited,
+                }
+              : oldItem
+          );
+        }
+      );
 
       return { previousItems };
     },
     onError: (_err, _variables, context) => {
       if (context?.previousItems) {
-        queryClient.setQueryData([`/api/items/${item.community}`], context.previousItems);
+        queryClient.setQueryData(
+          [`/api/items/${user?.community}`],
+          context.previousItems
+        );
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/items/${item.community}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${user?.community}`] });
     },
   });
 

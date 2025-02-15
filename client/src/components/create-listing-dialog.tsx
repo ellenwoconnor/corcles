@@ -56,13 +56,23 @@ export default function CreateListingDialog() {
 
   const createItemMutation = useMutation({
     mutationFn: async (data: z.infer<typeof insertItemSchema>) => {
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        if (value !== undefined) {
-          formData.append(key, value);
+      try {
+        const formData = new FormData();
+        formData.append('title', data.title);
+        formData.append('description', data.description);
+        formData.append('price', String(data.price));
+        formData.append('isGift', String(data.isGift));
+        formData.append('community', data.community);
+        
+        if (data.imageFile instanceof File) {
+          formData.append('imageFile', data.imageFile);
         }
-      });
-      await apiRequest("POST", "/api/items", formData);
+        
+        return await apiRequest("POST", "/api/items", formData);
+      } catch (error) {
+        console.error('Error creating item:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/items/${user?.community}`] });
@@ -85,7 +95,15 @@ export default function CreateListingDialog() {
         </DialogHeader>
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit((data) => createItemMutation.mutate(data))}
+            onSubmit={form.handleSubmit(async (data) => {
+              try {
+                await createItemMutation.mutateAsync(data);
+                form.reset();
+                setOpen(false);
+              } catch (error) {
+                console.error('Form submission error:', error);
+              }
+            })}
             className="space-y-4"
           >
             <FormField
@@ -117,7 +135,7 @@ export default function CreateListingDialog() {
             <FormField
               control={form.control}
               name="imageFile"
-              render={({ field: { onChange, ...field } }) => (
+              render={({ field: { onChange, value, ...field } }) => (
                 <FormItem>
                   <FormLabel>Image</FormLabel>
                   <FormControl>
@@ -131,6 +149,7 @@ export default function CreateListingDialog() {
                         }
                       }}
                       {...field}
+                      value={undefined}
                     />
                   </FormControl>
                   <FormMessage />
