@@ -115,7 +115,7 @@ export default function ItemCard({ item }: ItemCardProps) {
           >
             <Heart
               className={`h-4 w-4 mr-1 ${
-                item.userHasFavorited ? "fill-primary" : ""
+                item.userHasFavorited ? "fill-black" : ""
               }`}
             />
             {item.favorites}
