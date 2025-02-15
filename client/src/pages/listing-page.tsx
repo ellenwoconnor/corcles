@@ -14,9 +14,13 @@ export default function ListingPage() {
   const itemId = params?.id;
   const { user } = useAuth();
 
-  const { data: item, isLoading, error } = useQuery<Item>({
+  const { data: item, isLoading, error } = useQuery<Item & { userHasFavorited?: boolean }>({
     queryKey: [`/api/items/${itemId}`],
     enabled: !!itemId,
+    select: (data) => ({
+      ...data,
+      createdAt: new Date(data.createdAt)
+    })
   });
 
   const favoriteMutation = useMutation({
@@ -89,7 +93,7 @@ export default function ListingPage() {
               <div>
                 <p className="font-medium">Listed by Anonymous</p>
                 <p className="text-sm text-muted-foreground">
-                  {formatDistanceToNow(new Date(item.createdAt), {
+                  {formatDistanceToNow(item.createdAt, {
                     addSuffix: true,
                   })}
                 </p>
