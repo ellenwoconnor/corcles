@@ -1,4 +1,12 @@
-import { users, items, favoriteTable, type User, type InsertUser, type Item, type InsertItem } from "@shared/schema";
+import {
+  users,
+  items,
+  favoriteTable,
+  type User,
+  type InsertUser,
+  type Item,
+  type InsertItem,
+} from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql } from "drizzle-orm";
 import session from "express-session";
@@ -12,7 +20,10 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByAddress(address: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  getItems(community: string, userId?: number): Promise<(Item & { userHasFavorited: boolean })[]>;
+  getItems(
+    community: string,
+    userId?: number,
+  ): Promise<(Item & { userHasFavorited: boolean })[]>;
   getItem(id: number): Promise<Item | undefined>;
   createItem(item: InsertItem & { userId: number }): Promise<Item>;
   favoriteItem(id: number, userId: number): Promise<void>;
@@ -36,12 +47,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
     return user;
   }
 
   async getUserByAddress(address: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.address, address));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.address, address));
     return user;
   }
 
@@ -50,32 +67,51 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getItems(community: string, userId?: number): Promise<(Item & { userHasFavorited: boolean })[]> {
-    return await db.select({
-      id: items.id,
-      title: items.title,
-      description: items.description,
-      price: items.price,
-      isGift: items.isGift,
-      imageUrl: items.imageUrl,
-      userId: items.userId,
-      community: items.community,
-      createdAt: items.createdAt,
-      favorites: items.favorites,
-      userHasFavorited: sql`EXISTS (
+  async getItems(
+    community: string,
+    userId?: number,
+  ): Promise<(Item & { userHasFavorited: boolean })[]> {
+    return await db
+      .select({
+        id: items.id,
+        title: items.title,
+        description: items.description,
+        price: items.price,
+        isGift: items.isGift,
+        imageUrl: items.imageUrl,
+        userId: items.userId,
+        community: items.community,
+        createdAt: items.createdAt,
+        favorites: items.favorites,
+        userHasFavorited: sql`EXISTS (
         SELECT 1 FROM ${favoriteTable}
         WHERE ${favoriteTable.itemId} = ${items.id}
         AND ${favoriteTable.userId} = ${userId ?? 0}
-      )`.as("userHasFavorited")
-    })
+      )`.as("userHasFavorited"),
+      })
       .from(items)
       .where(eq(items.community, community))
       .orderBy(desc(items.createdAt));
   }
 
   async getItem(id: number): Promise<Item | undefined> {
-    const [item] = await db.select().from(items).where(eq(items.id, id));
-    return item;
+    const [result] = await db
+      .select({
+        id: items.id,
+        title: items.title,
+        description: items.description,
+        price: items.price,
+        isGift: items.isGift,
+        imageUrl: items.imageUrl,
+        userId: items.userId,
+        community: items.community,
+        createdAt: items.createdAt,
+        favorites: items.favorites,
+      })
+      .from(items)
+      .where(eq(items.id, id));
+
+    return result;
   }
 
   async createItem(item: InsertItem & { userId: number }): Promise<Item> {
@@ -91,10 +127,7 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(favoriteTable)
       .where(
-        and(
-          eq(favoriteTable.itemId, id),
-          eq(favoriteTable.userId, userId)
-        )
+        and(eq(favoriteTable.itemId, id), eq(favoriteTable.userId, userId)),
       );
 
     if (!favorite) {
@@ -114,20 +147,14 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(favoriteTable)
       .where(
-        and(
-          eq(favoriteTable.itemId, id),
-          eq(favoriteTable.userId, userId)
-        )
+        and(eq(favoriteTable.itemId, id), eq(favoriteTable.userId, userId)),
       );
 
     if (favorite) {
       await db
         .delete(favoriteTable)
         .where(
-          and(
-            eq(favoriteTable.itemId, id),
-            eq(favoriteTable.userId, userId)
-          )
+          and(eq(favoriteTable.itemId, id), eq(favoriteTable.userId, userId)),
         );
       await db
         .update(items)

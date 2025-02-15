@@ -24,20 +24,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       imageUrl: item.imageUrl,
       userId: item.userId,
       community: item.community,
-      createdAt: item.createdAt,
+      createdAt: item.createdAt.toISOString(), //Convert to ISO string to avoid time value error
       favorites: item.favorites
     })));
   });
 
+  app.get("/api/items/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    const item = await storage.getItem(id);
+    if (!item) {
+      return res.status(404).json({ error: "Item not found" });
+    }
+    
+    // Convert createdAt to ISO string for consistent date handling
+    res.json({
+      ...item,
+      createdAt: item.createdAt.toISOString()
+    });
+  });
+
   app.post("/api/items", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     const data = {
       ...req.body,
       price: Number(req.body.price),
       isGift: !!req.body.isGift
     };
-    
+
     const parseResult = insertItemSchema.safeParse(data);
     if (!parseResult.success) {
       return res.status(400).json(parseResult.error);
@@ -52,14 +66,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/items/:id/favorite", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     await storage.favoriteItem(parseInt(req.params.id), req.user.id);
     res.sendStatus(200);
   });
 
   app.post("/api/items/:id/unfavorite", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     await storage.unfavoriteItem(parseInt(req.params.id), req.user.id);
     res.sendStatus(200);
   });
