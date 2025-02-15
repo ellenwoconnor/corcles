@@ -14,22 +14,29 @@ export default function ListingPage() {
   const itemId = params?.id;
   const { user } = useAuth();
 
-  const { data: item, isLoading, error } = useQuery<Item & { userHasFavorited: boolean }>({
+  const {
+    data: item,
+    isLoading,
+    error,
+  } = useQuery<Item & { userHasFavorited?: boolean }>({
     queryKey: [`/api/items/${itemId}`],
     enabled: !!itemId,
+    select: (data) => ({
+      ...data,
+      createdAt: new Date(),
+    }),
   });
 
   const favoriteMutation = useMutation({
     mutationFn: async () => {
       if (!item) return;
-      await apiRequest(
-        "POST",
-        `/api/items/${item.id}/${item.userHasFavorited ? "unfavorite" : "favorite"}`
-      );
+      await apiRequest("POST", `/api/items/${item.id}/favorite`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/items/${user?.community}`] });
+      queryClient.invalidateQueries({
+        queryKey: [`/api/items/${user?.community}`],
+      });
     },
   });
 
@@ -48,7 +55,9 @@ export default function ListingPage() {
         <main className="container py-12">
           <div className="text-center">
             <h1 className="text-2xl font-bold">Item not found</h1>
-            <p className="text-muted-foreground">The item you're looking for doesn't exist or has been removed.</p>
+            <p className="text-muted-foreground">
+              The item you're looking for doesn't exist or has been removed.
+            </p>
           </div>
         </main>
       </div>
@@ -89,7 +98,7 @@ export default function ListingPage() {
               <div>
                 <p className="font-medium">Listed by Anonymous</p>
                 <p className="text-sm text-muted-foreground">
-                  {formatDistanceToNow(new Date(item.createdAt), {
+                  {formatDistanceToNow(item.createdAt, {
                     addSuffix: true,
                   })}
                 </p>
@@ -98,25 +107,21 @@ export default function ListingPage() {
 
             <div>
               <h2 className="text-xl font-semibold mb-2">Description</h2>
-              <p className="text-muted-foreground whitespace-pre-wrap">{item.description}</p>
+              <p className="text-muted-foreground whitespace-pre-wrap">
+                {item.description}
+              </p>
             </div>
 
             <div className="flex gap-4">
               <Button className="flex-1">Contact Seller</Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="icon"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  favoriteMutation.mutate();
-                }}
+                onClick={() => favoriteMutation.mutate()}
                 disabled={!user || favoriteMutation.isPending}
               >
                 <Heart
-                  className={`h-4 w-4 ${
-                    item.userHasFavorited ? "fill-primary" : ""
-                  }`}
+                  className={`h-4 w-4 ${item.favorites > 0 ? "fill-primary" : ""}`}
                 />
               </Button>
             </div>
