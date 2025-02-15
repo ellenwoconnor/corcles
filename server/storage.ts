@@ -45,7 +45,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getItems(community: string, userId?: number): Promise<(Item & { userHasFavorited: boolean })[]> {
-    const items = await db.select({
+    const result = await db.select({
       id: items.id,
       title: items.title,
       description: items.description,
