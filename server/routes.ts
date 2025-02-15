@@ -12,17 +12,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/items/:community", async (req, res) => {
     const items = await storage.getItems(req.params.community, req.user?.id);
-    res.json(items);
+    // Handle case where items is null or undefined
+    const itemArray = Array.isArray(items) ? items : [];
+    // Only send the actual item data, not the table structure
+    res.json(itemArray.map(item => ({
+      id: item.id,
+      title: item.title,
+      description: item.description,
+      price: item.price,
+      isGift: item.isGift,
+      imageUrl: item.imageUrl,
+      userId: item.userId,
+      community: item.community,
+      createdAt: item.createdAt,
+      favorites: item.favorites
+    })));
   });
 
-  app.post("/api/items", upload.single('imageFile'), async (req, res) => {
+  app.post("/api/items", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     const data = {
       ...req.body,
       price: Number(req.body.price),
-      isGift: req.body.isGift === 'true',
-      imageUrl: req.file ? `/api/uploads/${req.file.originalname}` : MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)]
+      isGift: !!req.body.isGift
     };
     
     const parseResult = insertItemSchema.safeParse(data);
