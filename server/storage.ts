@@ -45,7 +45,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getItems(community: string, userId?: number): Promise<(Item & { userHasFavorited: boolean })[]> {
-    const results = await db.select({
+    const items = await db.select({
       id: items.id,
       title: items.title,
       description: items.description,
@@ -56,22 +56,16 @@ export class DatabaseStorage implements IStorage {
       community: items.community,
       createdAt: items.createdAt,
       favorites: items.favorites,
-      userHasFavorited: db
-        .select({ value: sql`count(*)` })
-        .from(favoriteTable)
-        .where(
-          and(
-            eq(favoriteTable.itemId, items.id),
-            eq(favoriteTable.userId, userId ?? 0)
-          )
-        )
-        .then(rows => rows[0].value > 0)
+      userHasFavorited: sql<boolean>`EXISTS (
+        SELECT 1 FROM ${favoriteTable} 
+        WHERE item_id = ${items.id} 
+        AND user_id = ${userId ?? 0}
+      )`
     })
     .from(items)
-    .where(eq(items.community, community))
-    .orderBy(desc(items.createdAt));
+    .where(eq(items.community, community));
 
-    return results as (Item & { userHasFavorited: boolean })[];
+    return items;
   }
 
   async getItem(id: number): Promise<Item | undefined> {
