@@ -1,4 +1,5 @@
 import React from "react";
+import RobotLogo from "@/components/robot-logo";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useAuth } from "@/hooks/use-auth";
@@ -64,7 +65,10 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
-        <h1 className="text-5xl font-bold text-center mb-8">CORCLES</h1>
+        <div className="flex flex-col items-center mb-8">
+          <RobotLogo />
+          <h1 className="text-5xl font-bold mt-4">CORCLES</h1>
+        </div>
         <div className="p-6 bg-card rounded-lg shadow-lg">
           <Tabs defaultValue="login">
             <TabsList className="grid w-full grid-cols-2 mb-6">
