@@ -37,10 +37,11 @@ export const insertUserSchema = createInsertSchema(users).extend({
   address: z.string()
     .min(5, "Address must be at least 5 characters")
     .refine((val) => {
+      // Basic format validation (street number + street name)
       const hasNumber = /\d/.test(val);
       const hasStreet = /[a-zA-Z]/.test(val);
       return hasNumber && hasStreet;
-    }, "Address must contain both numbers and street name"),
+    }, "Please enter a complete street address"),
   community: z.string().min(2, "Community name must be at least 2 characters"),
 });
 

@@ -59,20 +59,32 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/register", async (req, res, next) => {
-    const existingUser = await storage.getUserByUsername(req.body.username);
-    if (existingUser) {
-      return res.status(400).send("Username already exists");
-    }
-
-    // Check for existing address
-    const existingAddress = await storage.getUserByAddress(req.body.address);
-    if (existingAddress) {
-      return res.status(400).send("Address is already registered to another user");
-    }
-
     try {
+      const existingUser = await storage.getUserByUsername(req.body.username);
+      if (existingUser) {
+        return res.status(400).send("Username already exists");
+      }
+
+      // Validate and normalize the address
+      const isValidAddress = await validateAddress(req.body.address);
+      if (!isValidAddress) {
+        return res.status(400).send("Please enter a valid street address");
+      }
+
+      const normalizedAddress = await normalizeAddress(req.body.address);
+      if (!normalizedAddress) {
+        return res.status(400).send("Unable to verify the address. Please try again.");
+      }
+
+      // Check for existing address
+      const existingAddress = await storage.getUserByAddress(normalizedAddress);
+      if (existingAddress) {
+        return res.status(400).send("Address is already registered to another user");
+      }
+
       const user = await storage.createUser({
         ...req.body,
+        address: normalizedAddress,
         password: await hashPassword(req.body.password),
       });
 
