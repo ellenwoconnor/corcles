@@ -12,8 +12,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/items/:community", async (req, res) => {
     const items = await storage.getItems(req.params.community, req.user?.id);
+    // Handle case where items is null or undefined
+    const itemArray = Array.isArray(items) ? items : [];
     // Only send the actual item data, not the table structure
-    res.json(items.map(item => ({
+    res.json(itemArray.map(item => ({
       id: item.id,
       title: item.title,
       description: item.description,
