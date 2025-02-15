@@ -51,8 +51,8 @@ export class DatabaseStorage implements IStorage {
       .select({
         ...items,
         userHasFavorited: sql`EXISTS (
-          SELECT 1 FROM favoriteTable 
-          WHERE itemId = items.id AND userId = ${userId ?? 0}
+          SELECT 1 FROM favorites 
+          WHERE item_id = items.id AND user_id = ${userId ?? 0}
         )`
       })
       .from(items)
