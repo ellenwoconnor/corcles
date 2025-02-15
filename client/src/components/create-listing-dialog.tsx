@@ -57,18 +57,12 @@ export default function CreateListingDialog() {
   const createItemMutation = useMutation({
     mutationFn: async (data: z.infer<typeof insertItemSchema>) => {
       try {
-        const formData = new FormData();
-        formData.append('title', data.title);
-        formData.append('description', data.description);
-        formData.append('price', String(data.price));
-        formData.append('isGift', String(data.isGift));
-        formData.append('community', data.community);
-        
-        if (data.imageFile instanceof File) {
-          formData.append('imageFile', data.imageFile);
-        }
-        
-        return await apiRequest("POST", "/api/items", formData);
+        // Add a mock image URL since we removed image upload
+        const itemData = {
+          ...data,
+          imageUrl: "https://images.unsplash.com/photo-1523194258983-4ef0203f0c47"
+        };
+        return await apiRequest("POST", "/api/items", itemData);
       } catch (error) {
         console.error('Error creating item:', error);
         throw error;

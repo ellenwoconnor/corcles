@@ -29,14 +29,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     })));
   });
 
-  app.post("/api/items", upload.single('imageFile'), async (req, res) => {
+  app.post("/api/items", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     
     const data = {
       ...req.body,
       price: Number(req.body.price),
-      isGift: req.body.isGift === 'true',
-      imageUrl: req.file ? `/api/uploads/${req.file.originalname}` : MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)]
+      isGift: !!req.body.isGift
     };
     
     const parseResult = insertItemSchema.safeParse(data);
