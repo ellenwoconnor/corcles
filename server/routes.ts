@@ -23,14 +23,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/items/:id", async (req, res) => {
     const id = parseInt(req.params.id);
-    const item = await storage.getItem(id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid item ID" });
+    }
+
+    const item = await storage.getItem(id, req.user?.id);
     if (!item) {
       return res.status(404).json({ error: "Item not found" });
     }
 
+    // Convert dates to ISO strings for consistent handling
     res.json({
       ...item,
-      createdAt: new Date(item.createdAt).toISOString() // Ensure proper date formatting
+      createdAt: new Date(item.createdAt).toISOString()
     });
   });
 
