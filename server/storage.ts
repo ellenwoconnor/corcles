@@ -74,7 +74,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getItem(id: number): Promise<(Item & { userHasFavorited?: boolean }) | undefined> {
-    const [item] = await db.select({
+    const result = await db.select({
       id: items.id,
       title: items.title,
       description: items.description,
@@ -87,8 +87,10 @@ export class DatabaseStorage implements IStorage {
       favorites: items.favorites
     })
     .from(items)
-    .where(eq(items.id, id));
-    return item;
+    .where(eq(items.id, id))
+    .execute();
+    
+    return result[0];
   }
 
   async createItem(item: InsertItem & { userId: number }): Promise<Item> {
