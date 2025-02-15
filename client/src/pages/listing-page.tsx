@@ -14,9 +14,9 @@ export default function ListingPage() {
   const itemId = params?.id;
   const { user } = useAuth();
 
-  const { data: item, isLoading, error } = useQuery<Item>({
+  const { data: item, isLoading, error } = useQuery<Item & { userHasFavorited?: boolean }>({
     queryKey: [`/api/items/${itemId}`],
-    enabled: !!itemId,
+    enabled: !!itemId
   });
 
   const favoriteMutation = useMutation({
@@ -55,6 +55,9 @@ export default function ListingPage() {
     );
   }
 
+  // Parse the ISO date string to a Date object
+  const createdAtDate = new Date(item.createdAt);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -89,9 +92,7 @@ export default function ListingPage() {
               <div>
                 <p className="font-medium">Listed by Anonymous</p>
                 <p className="text-sm text-muted-foreground">
-                  {formatDistanceToNow(new Date(item.createdAt), {
-                    addSuffix: true,
-                  })}
+                  {formatDistanceToNow(createdAtDate, { addSuffix: true })}
                 </p>
               </div>
             </div>
