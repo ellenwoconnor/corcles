@@ -73,8 +73,21 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(items.createdAt));
   }
 
-  async getItem(id: number): Promise<Item | undefined> {
-    const [item] = await db.select().from(items).where(eq(items.id, id));
+  async getItem(id: number): Promise<(Item & { userHasFavorited?: boolean }) | undefined> {
+    const [item] = await db.select({
+      id: items.id,
+      title: items.title,
+      description: items.description,
+      price: items.price,
+      isGift: items.isGift,
+      imageUrl: items.imageUrl,
+      userId: items.userId,
+      community: items.community,
+      createdAt: items.createdAt,
+      favorites: items.favorites
+    })
+    .from(items)
+    .where(eq(items.id, id));
     return item;
   }
 
