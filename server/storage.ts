@@ -24,7 +24,10 @@ export interface IStorage {
     community: string,
     userId?: number,
   ): Promise<(Item & { userHasFavorited: boolean })[]>;
-  getItem(id: number, userId?: number): Promise<(Item & { userHasFavorited: boolean }) | undefined>;
+  getItem(
+    id: number,
+    userId?: number,
+  ): Promise<(Item & { userHasFavorited: boolean }) | undefined>;
   createItem(item: InsertItem & { userId: number }): Promise<Item>;
   favoriteItem(id: number, userId: number): Promise<void>;
   unfavoriteItem(id: number, userId: number): Promise<void>;
@@ -94,7 +97,10 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(items.createdAt));
   }
 
-  async getItem(id: number, userId?: number): Promise<(Item & { userHasFavorited: boolean }) | undefined> {
+  async getItem(
+    id: number,
+    userId?: number,
+  ): Promise<(Item & { userHasFavorited: boolean }) | undefined> {
     const [result] = await db
       .select({
         id: items.id,
@@ -115,7 +121,6 @@ export class DatabaseStorage implements IStorage {
       })
       .from(items)
       .where(eq(items.id, id));
-
     return result;
   }
 
