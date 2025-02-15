@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/use-auth";
+import RobotLogo from "@/components/robot-logo";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -19,7 +20,8 @@ export default function Navbar() {
       <div className="container flex h-24 items-center px-8">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <span className="hidden text-xl font-bold uppercase tracking-wide sm:inline-block">CORCLES</span>
+            <RobotLogo />
+            <span className="hidden text-2xl font-bold uppercase tracking-wide sm:inline-block">CORCLES</span>
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
