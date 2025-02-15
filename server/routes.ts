@@ -30,11 +30,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/items/:id", async (req, res) => {
-    const item = await storage.getItem(parseInt(req.params.id));
+    const id = parseInt(req.params.id);
+    const item = await storage.getItem(id);
     if (!item) {
       return res.status(404).json({ error: "Item not found" });
     }
-    res.json(item);
+    
+    // Convert createdAt to ISO string for consistent date handling
+    res.json({
+      ...item,
+      createdAt: item.createdAt.toISOString()
+    });
   });
 
   app.post("/api/items", async (req, res) => {
