@@ -24,7 +24,7 @@ export interface IStorage {
     community: string,
     userId?: number,
   ): Promise<(Item & { userHasFavorited: boolean })[]>;
-  getItem(id: number): Promise<Item | undefined>;
+  getItem(id: number, userId?: number): Promise<(Item & { userHasFavorited: boolean }) | undefined>;
   createItem(item: InsertItem & { userId: number }): Promise<Item>;
   favoriteItem(id: number, userId: number): Promise<void>;
   unfavoriteItem(id: number, userId: number): Promise<void>;
@@ -94,7 +94,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(items.createdAt));
   }
 
-  async getItem(id: number): Promise<Item | undefined> {
+  async getItem(id: number, userId?: number): Promise<(Item & { userHasFavorited: boolean }) | undefined> {
     const [result] = await db
       .select({
         id: items.id,
@@ -107,6 +107,11 @@ export class DatabaseStorage implements IStorage {
         community: items.community,
         createdAt: items.createdAt,
         favorites: items.favorites,
+        userHasFavorited: sql`EXISTS (
+          SELECT 1 FROM ${favoriteTable}
+          WHERE ${favoriteTable.itemId} = ${items.id}
+          AND ${favoriteTable.userId} = ${userId ?? 0}
+        )`.as("userHasFavorited"),
       })
       .from(items)
       .where(eq(items.id, id));
@@ -120,7 +125,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async favoriteItem(id: number, userId: number): Promise<void> {
-    const item = await this.getItem(id);
+    const item = await this.getItem(id, userId);
     if (!item) return;
 
     const [favorite] = await db
@@ -140,7 +145,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async unfavoriteItem(id: number, userId: number): Promise<void> {
-    const item = await this.getItem(id);
+    const item = await this.getItem(id, userId);
     if (!item) return;
 
     const [favorite] = await db
