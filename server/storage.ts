@@ -1,4 +1,4 @@
-import { users, items, type User, type InsertUser, type Item, type InsertItem } from "@shared/schema";
+import { users, items, favoriteTable, type User, type InsertUser, type Item, type InsertItem } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
 import session from "express-session";
@@ -15,8 +15,8 @@ export interface IStorage {
   getItems(community: string): Promise<Item[]>;
   getItem(id: number): Promise<Item | undefined>;
   createItem(item: InsertItem & { userId: number }): Promise<Item>;
-  favoriteItem(id: number): Promise<void>;
-  unfavoriteItem(id: number): Promise<void>;
+  favoriteItem(id: number, userId: number): Promise<void>;
+  unfavoriteItem(id: number, userId: number): Promise<void>;
 
   sessionStore: session.Store;
 }
@@ -64,22 +64,41 @@ export class DatabaseStorage implements IStorage {
     return newItem;
   }
 
-  async favoriteItem(id: number): Promise<void> {
-    await db
-      .update(items)
-      .set({ 
-        favorites: sql`${items.favorites} + 1` 
-      })
-      .where(eq(items.id, id));
+  async favoriteItem(id: number, userId: number): Promise<void> {
+    const item = await this.getItem(id);
+    if (!item) return;
+
+    const favorite = await db.query.favoriteTable.findFirst({
+      where: eq(favoriteTable.itemId, id) && eq(favoriteTable.userId, userId)
+    });
+
+    if (!favorite) {
+      item.favorites += 1;
+      await db.insert(favoriteTable).values({ itemId: id, userId });
+      await db.insert(items).values(item).onConflictDoUpdate({
+        target: items.id,
+        set: { favorites: item.favorites },
+      });
+    }
   }
 
-  async unfavoriteItem(id: number): Promise<void> {
-    await db
-      .update(items)
-      .set({ 
-        favorites: sql`${items.favorites} - 1` 
-      })
-      .where(eq(items.id, id));
+  async unfavoriteItem(id: number, userId: number): Promise<void> {
+    const item = await this.getItem(id);
+    if (!item) return;
+
+    const favorite = await db.query.favoriteTable.findFirst({
+      where: eq(favoriteTable.itemId, id) && eq(favoriteTable.userId, userId)
+    });
+
+    if (favorite) {
+      item.favorites = Math.max(0, item.favorites - 1);
+      await db.delete(favoriteTable)
+        .where(eq(favoriteTable.itemId, id) && eq(favoriteTable.userId, userId));
+      await db.insert(items).values(item).onConflictDoUpdate({
+        target: items.id,
+        set: { favorites: item.favorites },
+      });
+    }
   }
 }
 

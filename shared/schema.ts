@@ -11,6 +11,12 @@ export const users = pgTable("users", {
   community: text("community").notNull(),
 });
 
+export const favoriteTable = pgTable("favorites", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  itemId: integer("item_id").notNull(),
+});
+
 export const items = pgTable("items", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
