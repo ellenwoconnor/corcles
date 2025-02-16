@@ -176,7 +176,7 @@ export default function ListingPage() {
               </p>
             </div>
 
-            {!isOwner && item.status === 'available' && (
+            {!isOwner && (
               <div className="flex gap-4">
                 {item.isGift ? (
                   <Dialog>

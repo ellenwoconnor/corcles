@@ -174,6 +174,7 @@ export class DatabaseStorage implements IStorage {
           community: items.community,
           createdAt: items.createdAt,
           favorites: items.favorites,
+          status: items.status,
           userHasFavorited: sql<boolean>`
             CASE WHEN EXISTS (
               SELECT 1 FROM ${favoriteTable}
