@@ -31,6 +31,9 @@ export const items = pgTable("items", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   favorites: integer("favorites").notNull().default(0),
   status: text("status").notNull().default('available'),
+  recipientId: integer("recipient_id"),
+  pickupStart: timestamp("pickup_start"),
+  pickupEnd: timestamp("pickup_end"),
 });
 
 export const itemRequests = pgTable("item_requests", {
@@ -75,7 +78,10 @@ export const insertItemSchema = createInsertSchema(items).omit({
   userId: true,
   createdAt: true,
   favorites: true,
-  status: true
+  status: true,
+  recipientId: true,
+  pickupStart: true,
+  pickupEnd: true
 }).extend({
   imageFile: z.instanceof(File).optional(),
 });
