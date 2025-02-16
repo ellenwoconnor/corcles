@@ -92,11 +92,11 @@ export class DatabaseStorage implements IStorage {
         community: items.community,
         createdAt: items.createdAt,
         favorites: items.favorites,
-        userHasFavorited: sql`EXISTS (
-        SELECT 1 FROM ${favoriteTable}
-        WHERE ${favoriteTable.itemId} = ${items.id}
-        AND ${favoriteTable.userId} = ${userId ?? 0}
-      )`.as("userHasFavorited"),
+        userHasFavorited: sql<boolean>`EXISTS (
+          SELECT 1 FROM ${favoriteTable}
+          WHERE ${favoriteTable.itemId} = ${items.id}
+          AND ${favoriteTable.userId} = ${userId ?? 0}
+        )::boolean`.as("userHasFavorited"),
       })
       .from(items)
       .where(eq(items.community, community))
