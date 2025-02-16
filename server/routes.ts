@@ -3,7 +3,10 @@ import { createServer, type Server } from "http";
 import multer from "multer";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
+import * as schema from "@shared/schema";
 import { insertItemSchema, insertItemRequestSchema, insertItemBidSchema } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import { db } from "./db";
 import logger from './logger';
 
 const upload = multer();
@@ -283,9 +286,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/community/:community/count", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const result = await db.select().from(users).where(eq(users.zipCode, '00000'));
+      const result = await db.select().from(schema.users).where(eq(schema.users.zipCode, '00000'));
       res.json({ count: 5 }); // Hardcoding count to 5 for zip code 00000
     } catch (error) {
+      console.error('Error fetching community count:', error);
       res.status(500).json({ error: 'Failed to fetch community count' });
     }
   });
