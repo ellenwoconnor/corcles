@@ -19,6 +19,20 @@ export const favoriteTable = pgTable("favorites", {
   itemId: integer("item_id").notNull(),
 });
 
+export const ITEM_STATUS = {
+  AVAILABLE: 'available',
+  PENDING_PICKUP: 'pending_pickup',
+  COMPLETED: 'completed'
+} as const;
+
+export const REQUEST_STATUS = {
+  PENDING: 'pending',
+  READY_FOR_DRAWING: 'ready_for_drawing',
+  AWAITING_PICKUP_CONFIRMATION: 'awaiting_pickup_confirmation',
+  ACCEPTED: 'accepted',
+  REJECTED: 'rejected'
+} as const;
+
 export const items = pgTable("items", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -30,7 +44,7 @@ export const items = pgTable("items", {
   community: text("community").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   favorites: integer("favorites").notNull().default(0),
-  status: text("status").notNull().default('available'),
+  status: text("status").notNull().default(ITEM_STATUS.AVAILABLE),
   recipientId: integer("recipient_id"),
   pickupStart: timestamp("pickup_start"),
   pickupEnd: timestamp("pickup_end"),
@@ -40,7 +54,7 @@ export const itemRequests = pgTable("item_requests", {
   id: serial("id").primaryKey(),
   itemId: integer("item_id").notNull(),
   requesterId: integer("requester_id").notNull(),
-  status: text("status").notNull().default('pending'), // pending, awaiting_pickup_confirmation, accepted, rejected
+  status: text("status").notNull().default(REQUEST_STATUS.PENDING),
   message: text("message"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -106,7 +120,7 @@ export const insertItemBidSchema = createInsertSchema(itemBids).omit({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertItem = z.infer<typeof insertItemSchema>;
-export type Item = typeof items.$inferSelect;
+export type Item = typeof items.$inferSelect & { userDisplayName?: string };
 export type InsertItemRequest = z.infer<typeof insertItemRequestSchema>;
 export type ItemRequest = typeof itemRequests.$inferSelect;
 export type InsertItemBid = z.infer<typeof insertItemBidSchema>;
