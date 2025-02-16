@@ -53,10 +53,7 @@ export default function ProfilePage() {
       <main className="container py-12">
         <div className="mb-8 space-y-4">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight mb-1">My Profile</h1>
-            <p className="text-muted-foreground">
-              Manage your listings, requests, and bids
-            </p>
+            <h1 className="text-4xl font-bold tracking-tight">{user.username}</h1>
           </div>
           
           <Card>
