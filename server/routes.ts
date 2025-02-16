@@ -180,9 +180,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       logger.error('Error fetching requests:', error);
       res.status(500).json({ error: 'Failed to fetch requests' });
     }
-      logger.error('Error fetching user requests:', error);
-      res.status(500).json({ error: 'Failed to fetch requests' });
-    }
   });
 
   app.get("/api/items/:id/requests", async (req, res) => {
