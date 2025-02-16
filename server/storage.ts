@@ -76,7 +76,7 @@ export class DatabaseStorage implements IStorage {
     userId?: number,
   ): Promise<(Item & { userHasFavorited: boolean })[]> {
     try {
-      const items = await db
+      const itemResults = await db
         .select({
           id: items.id,
           title: items.title,
@@ -98,8 +98,8 @@ export class DatabaseStorage implements IStorage {
         .where(eq(items.community, community))
         .orderBy(desc(items.createdAt));
 
-      logger.debug('Retrieved items:', { community, count: items.length });
-      return items;
+      logger.debug('Retrieved items:', { community, count: itemResults.length });
+      return itemResults;
     } catch (error) {
       logger.error('Error retrieving items:', { error, community });
       throw error;
@@ -127,7 +127,7 @@ export class DatabaseStorage implements IStorage {
             SELECT 1 FROM ${favoriteTable}
             WHERE ${favoriteTable.itemId} = ${id}
             AND ${favoriteTable.userId} = ${userId ?? 0}
-          )::boolean`,
+          )::boolean`.as("userHasFavorited"),
         })
         .from(items)
         .where(eq(items.id, id));
