@@ -667,6 +667,7 @@ export default function ListingPage() {
                         A recipient has been selected through random drawing
                       </p>
                     </div>
+
                     {item.pickupStart && item.pickupEnd ? (
                       <div className="space-y-2">
                         <h3 className="font-medium">Pickup Window</h3>
@@ -677,53 +678,45 @@ export default function ListingPage() {
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        <p className="text-sm font-medium">
-                          Pickup window: {format(new Date(item.pickupStart), "PPP p")} -{" "}
-                          {format(new Date(item.pickupEnd), "p")}
+                        <h3 className="font-medium">Schedule Pickup</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Set a one-hour window for the recipient to pick up the item
                         </p>
+                        <PickupScheduler
+                          itemId={item.id}
+                          onScheduled={() => {
+                            queryClient.invalidateQueries({
+                              queryKey: [`/api/items/${itemId}`],
+                            });
+                          }}
+                        />
                       </div>
                     )}
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {!item.recipientId &&
-                      requests &&
-                      requests.length >
-                        0 && (
-                        <>
-                          {!item.pickupStart ? (
-                            <div className="space-y-2">
-                              <p className="text-sm text-muted-foreground">
-                                Set a pickup window to select a recipient
-                              </p>
-                              <PickupScheduler
-                                itemId={item.id}
-                                onScheduled={() => {
-                                  queryClient.invalidateQueries({
-                                    queryKey: [`/api/items/${itemId}`],
-                                  });
-                                }}
-                              />
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              <p className="text-sm text-muted-foreground">
-                                A recipient has been selected
-                              </p>
-                              <p className="text-sm font-medium">
-                                Pickup window:{" "}
-                                {format(new Date(item.pickupStart), "PPP p")} -{" "}
-                                {format(new Date(item.pickupEnd), "p")}
-                              </p>
-                            </div>
-                          )}
-                        </>
+                    {requests &&
+                      requests.filter((r) => r.status === "pending").length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">
+                            {requests.filter((r) => r.status === "pending").length}{" "}
+                            pending requests
+                          </p>
+                          <Button
+                            onClick={() => drawingMutation.mutate()}
+                            disabled={drawingMutation.isPending}
+                          >
+                            {drawingMutation.isPending ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Drawing...
+                              </>
+                            ) : (
+                              "Start Random Drawing"
+                            )}
+                          </Button>
+                        </div>
                       )}
-                    {item.recipientId && (
-                      <p className="text-sm font-medium text-primary">
-                        A recipient has been selected for this item
-                      </p>
-                    )}
                   </div>
                 )}
               </div>
