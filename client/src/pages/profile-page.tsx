@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Package, Gift, Tag, Clock } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
+import { Link } from "wouter";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -116,7 +117,11 @@ export default function ProfilePage() {
                       <CardHeader>
                         <div className="flex items-start justify-between">
                           <div>
-                            <CardTitle>{item.title}</CardTitle>
+                            <CardTitle>
+                              <Link href={`/item/${item.id}`} className="hover:underline">
+                                {item.title}
+                              </Link>
+                            </CardTitle>
                             <CardDescription>
                               Listed {formatDistanceToNow(new Date(item.createdAt), {
                                 addSuffix: true,
