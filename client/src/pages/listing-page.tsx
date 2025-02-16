@@ -73,7 +73,7 @@ function RequestsList({ itemId }: { itemId: number }) {
           variant={
             request.status === "pending"
               ? "secondary"
-              : request.status === "awaiting_pickup_confirmation"
+              : request.status === "ready_for_drawing"
               ? "default"
               : request.status === "accepted"
               ? "default"
@@ -81,7 +81,7 @@ function RequestsList({ itemId }: { itemId: number }) {
           }
           className="text-xs"
         >
-          {request.status === "awaiting_pickup_confirmation" ? "Confirm Pickup" : request.status}
+          {request.status === "ready_for_drawing" ? "Ready for Drawing" : request.status}
         </Badge>
       </div>
     </Card>

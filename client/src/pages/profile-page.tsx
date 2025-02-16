@@ -132,8 +132,6 @@ export default function ProfilePage() {
                           variant={
                             request.status === "pending"
                               ? "secondary"
-                              : request.status === "awaiting_pickup_confirmation"
-                              ? "default"
                               : request.status === "accepted"
                               ? "default"
                               : "destructive"
