@@ -105,6 +105,12 @@ export default function ListingPage() {
               </div>
             </div>
 
+            <div className="border-t border-border pt-4">
+              <p className="text-muted-foreground whitespace-pre-wrap">
+                {item.description}
+              </p>
+            </div>
+
             <div className="flex gap-4">
               <Button className="flex-1">Contact Seller</Button>
             </div>
