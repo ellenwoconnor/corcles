@@ -442,7 +442,7 @@ export default function ListingPage() {
             </div>
 
             <div>
-              <p className="font-medium">Listed by Anonymous</p>
+              <p className="font-medium">Listed by {item.userDisplayName || 'Anonymous'}</p>
               <p className="text-sm text-muted-foreground">
                 {formatDistanceToNow(item.createdAt, {
                   addSuffix: true,

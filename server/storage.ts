@@ -128,6 +128,9 @@ export class DatabaseStorage implements IStorage {
           createdAt: items.createdAt,
           favorites: items.favorites,
           status: items.status,
+          userDisplayName: sql<string>`(
+            SELECT display_name FROM ${users} WHERE ${users.id} = ${items.userId}
+          )`.as("userDisplayName"),
           userHasFavorited: sql<boolean>`EXISTS (
             SELECT 1 FROM ${favoriteTable}
             WHERE ${favoriteTable.itemId} = ${items.id}
@@ -187,6 +190,9 @@ export class DatabaseStorage implements IStorage {
           createdAt: items.createdAt,
           favorites: items.favorites,
           status: items.status,
+          userDisplayName: sql<string>`(
+            SELECT display_name FROM ${users} WHERE ${users.id} = ${items.userId}
+          )`.as("userDisplayName"),
           userHasFavorited: sql<boolean>`
             CASE WHEN EXISTS (
               SELECT 1 FROM ${favoriteTable}
