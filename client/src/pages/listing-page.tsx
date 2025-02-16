@@ -476,13 +476,17 @@ export default function ListingPage() {
                 </h3>
                 <div className="space-y-2">
                   {item.isGift ? (
-                    requests ? (
-                      <p className="text-muted-foreground">
-                        {requests.length} {requests.length === 1 ? 'request' : 'requests'} received
+                    <>
+                      <p className="text-muted-foreground mb-2">
+                        {requests?.length} {requests?.length === 1 ? 'request' : 'requests'} received
                       </p>
-                    ) : (
-                      <p className="text-muted-foreground">No requests yet.</p>
-                    )
+                      {item.pickupStart && (
+                        <p className="text-sm text-muted-foreground">
+                          Pickup window: {format(new Date(item.pickupStart), "PPP p")} -{" "}
+                          {format(new Date(item.pickupEnd!), "p")}
+                        </p>
+                      )}
+                    </>
                   ) : (
                     <BidsList itemId={item.id} />
                   )}
