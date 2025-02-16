@@ -17,19 +17,25 @@ export default function HomePage() {
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
 
-  const { data: items, isLoading } = useQuery<(Item & { userHasFavorited: boolean })[]>({
+  const { data: items, isLoading } = useQuery<
+    (Item & { userHasFavorited: boolean })[]
+  >({
     queryKey: [`/api/items/${user?.community}`, debouncedSearch, showFreeOnly],
     queryFn: async () => {
       const searchParams = new URLSearchParams();
       if (debouncedSearch) {
-        searchParams.append('search', debouncedSearch);
+        searchParams.append("search", debouncedSearch);
       }
-      const response = await fetch(`/api/items/${user?.community}?${searchParams.toString()}`);
+      const response = await fetch(
+        `/api/items/${user?.community}?${searchParams.toString()}`,
+      );
       if (!response.ok) {
-        throw new Error('Failed to fetch items');
+        throw new Error("Failed to fetch items");
       }
       const allItems = await response.json();
-      return showFreeOnly ? allItems.filter((item: Item) => item.isGift) : allItems;
+      return showFreeOnly
+        ? allItems.filter((item: Item) => item.isGift)
+        : allItems;
     },
     enabled: !!user?.community,
   });
@@ -42,7 +48,7 @@ export default function HomePage() {
           <div>
             <h1 className="text-4xl font-bold tracking-tight">Marketplace</h1>
             <p className="text-muted-foreground">
-              Browse items in your circles
+              Browse items in your communities
             </p>
           </div>
           <CreateListingDialog />
@@ -80,7 +86,7 @@ export default function HomePage() {
           <div className="text-center py-12">
             <h2 className="text-xl font-semibold mb-2">No items found</h2>
             <p className="text-muted-foreground">
-              {search 
+              {search
                 ? "Try adjusting your search terms"
                 : showFreeOnly
                   ? "No free items available in your community yet"
