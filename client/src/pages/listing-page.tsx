@@ -27,6 +27,92 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+
+function RequestsList({ itemId }: { itemId: number }) {
+  const { data: requests } = useQuery<ItemRequest[]>({
+    queryKey: [`/api/items/${itemId}/requests`],
+    enabled: !!itemId,
+  });
+
+  if (!requests?.length) {
+    return <p className="text-muted-foreground">No requests yet.</p>;
+  }
+
+  return requests.map((request) => (
+    <Card key={request.id}>
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle>Request from Anonymous</CardTitle>
+            <CardDescription>
+              {formatDistanceToNow(new Date(request.createdAt), {
+                addSuffix: true,
+              })}
+            </CardDescription>
+          </div>
+          <Badge
+            variant={
+              request.status === "pending"
+                ? "secondary"
+                : request.status === "accepted"
+                ? "default"
+                : "destructive"
+            }
+          >
+            {request.status}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <p className="text-muted-foreground">{request.message}</p>
+      </CardContent>
+    </Card>
+  ));
+}
+
+function BidsList({ itemId }: { itemId: number }) {
+  const { data: bids } = useQuery<ItemBid[]>({
+    queryKey: [`/api/items/${itemId}/bids`],
+    enabled: !!itemId,
+  });
+
+  if (!bids?.length) {
+    return <p className="text-muted-foreground">No bids yet.</p>;
+  }
+
+  return bids.map((bid) => (
+    <Card key={bid.id}>
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle>Bid from Anonymous</CardTitle>
+            <CardDescription>
+              {formatDistanceToNow(new Date(bid.createdAt), {
+                addSuffix: true,
+              })}
+            </CardDescription>
+          </div>
+          <Badge
+            variant={
+              bid.status === "pending"
+                ? "secondary"
+                : bid.status === "accepted"
+                ? "default"
+                : "destructive"
+            }
+          >
+            {bid.status}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <p className="font-medium mb-2">${bid.amount}</p>
+        <p className="text-muted-foreground">{bid.message}</p>
+      </CardContent>
+    </Card>
+  ));
+}
+
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -195,7 +281,22 @@ export default function ListingPage() {
               </p>
             </div>
 
-            {!isOwner && (
+            {isOwner ? (
+              <div className="space-y-6 border-t border-border pt-4">
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">
+                    {item.isGift ? "Requests" : "Bids"}
+                  </h2>
+                  <div className="space-y-4">
+                    {item.isGift ? (
+                      <RequestsList itemId={item.id} />
+                    ) : (
+                      <BidsList itemId={item.id} />
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
               <div className="flex gap-4">
                 {item.isGift ? (
                   <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
