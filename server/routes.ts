@@ -174,10 +174,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid item ID" });
       }
 
-      const requests = await db
-        .select()
-        .from(itemRequests)
-        .where(and(
+      const requests = await storage.getItemRequests(itemId);
+      res.json(requests.filter(request => request.requesterId === req.user.id));
+    } catch (error) {
           eq(itemRequests.itemId, itemId),
           eq(itemRequests.requesterId, req.user.id)
         ));
