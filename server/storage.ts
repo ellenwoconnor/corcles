@@ -102,7 +102,29 @@ export class DatabaseStorage implements IStorage {
     }
   ): Promise<(Item & { userHasFavorited: boolean })[]> {
     try {
-      const baseQuery = db
+      // Build the where conditions array
+      const whereConditions = [eq(items.community, community)];
+
+      if (options?.searchQuery) {
+        whereConditions.push(
+          or(
+            ilike(items.title, `%${options.searchQuery}%`),
+            ilike(items.description, `%${options.searchQuery}%`)
+          )
+        );
+      }
+
+      if (options?.showFreeOnly) {
+        whereConditions.push(
+          or(
+            eq(items.isGift, true),
+            isNull(items.price),
+            eq(items.price, 0)
+          )
+        );
+      }
+
+      const itemResults = await db
         .select({
           id: items.id,
           title: items.title,
@@ -121,42 +143,15 @@ export class DatabaseStorage implements IStorage {
           )::boolean`.as("userHasFavorited"),
         })
         .from(items)
-        .where(eq(items.community, community));
-
-      let finalQuery = baseQuery;
-
-      if (options?.searchQuery) {
-        finalQuery = finalQuery.$dynamic().where(
-          or(
-            ilike(items.title, `%${options.searchQuery}%`),
-            ilike(items.description, `%${options.searchQuery}%`)
-          )
-        );
-      }
-
-      if (options?.showFreeOnly) {
-        finalQuery = finalQuery.$dynamic().where(
-          or(
-            eq(items.isGift, true),
-            and(
-              eq(items.isGift, false),
-              or(
-                eq(items.price, 0),
-                isNull(items.price)
-              )
-            )
-          )
-        );
-      }
-
-      const itemResults = await finalQuery.orderBy(desc(items.createdAt));
+        .where(and(...whereConditions))
+        .orderBy(desc(items.createdAt));
 
       logger.debug('Retrieved items:', { 
         community, 
         count: itemResults.length,
         searchQuery: options?.searchQuery,
         showFreeOnly: options?.showFreeOnly,
-        freeItemsCount: itemResults.filter(item => item.isGift || item.price === 0 || item.price === null).length
+        freeItemsCount: itemResults.filter(item => item.isGift || !item.price || item.price === 0).length
       });
 
       return itemResults;
