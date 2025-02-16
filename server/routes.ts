@@ -11,6 +11,25 @@ const upload = multer();
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
+  app.get("/api/items/:id([0-9]+)", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const item = await storage.getItem(id, req.user?.id);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      res.json(item);
+    } catch (error) {
+      logger.error('Error fetching item:', error);
+      res.status(500).json({ error: 'Failed to fetch item' });
+    }
+  });
+
   app.get("/api/items/:community", async (req, res) => {
     try {
       const { search } = req.query;
@@ -22,18 +41,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         searchTerm
       );
 
-      // Handle case where items is null or undefined
-      res.json(items.map(item => ({
-        ...item,
-        createdAt: new Date(item.createdAt).toISOString(),
-      })));
+      res.json(items);
     } catch (error) {
       logger.error('Error fetching items:', error);
       res.status(500).json({ error: 'Failed to fetch items' });
     }
   });
-
-  app.get("/api/items/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
