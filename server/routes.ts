@@ -5,7 +5,7 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import * as schema from "@shared/schema";
 import { insertItemSchema, insertItemRequestSchema, insertItemBidSchema } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db } from "./db";
 import logger from './logger';
 import { addHours, isAfter, isBefore, addDays } from "date-fns";
@@ -388,41 +388,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Pickup window cannot exceed 1 hour" });
       }
 
-      // Update item status and pickup window
+      // Update item with pickup window
       await db
         .update(schema.items)
         .set({ 
           pickupStart: startDate,
           pickupEnd: endDate,
-          status: 'pending_recipient'
+          status: schema.ITEM_STATUS.PENDING_PICKUP 
         })
         .where(eq(schema.items.id, itemId));
 
-      // Get all pending requests and perform random drawing
-      const requests = await storage.getItemRequests(itemId);
-      const pendingRequests = requests.filter(r => r.status === 'pending');
+      // Update all pending requests to awaiting_pickup_confirmation
+      await db
+        .update(schema.itemRequests)
+        .set({ status: schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
+        .where(
+          and(
+            eq(schema.itemRequests.itemId, itemId),
+            eq(schema.itemRequests.status, schema.REQUEST_STATUS.PENDING)
+          )
+        );
 
-      if (pendingRequests.length > 0) {
-        // Randomly select a recipient
-        const winningRequest = pendingRequests[Math.floor(Math.random() * pendingRequests.length)];
-
-        // Update item with recipient
-        await db
-          .update(schema.items)
-          .set({ 
-            recipientId: winningRequest.requesterId,
-            status: 'pending_pickup'
-          })
-          .where(eq(schema.items.id, itemId));
-
-        // Update request statuses
-        for (const request of requests) {
-          await storage.updateItemRequestStatus(
-            request.id,
-            request.id === winningRequest.id ? 'awaiting_pickup_confirmation' : 'rejected'
-          );
-        }
-      }
+      logger.debug('Updated item and request statuses for pickup:', { 
+        itemId,
+        newStatus: schema.ITEM_STATUS.PENDING_PICKUP,
+        requestStatus: schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION
+      });
 
       res.json({ success: true });
     } catch (error) {

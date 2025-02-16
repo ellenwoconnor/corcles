@@ -12,6 +12,8 @@ import {
   type InsertItemRequest,
   type ItemBid,
   type InsertItemBid,
+  ITEM_STATUS,
+  REQUEST_STATUS
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, ilike } from "drizzle-orm";
@@ -39,17 +41,15 @@ export interface IStorage {
     userId?: number,
   ): Promise<(Item & { userHasFavorited: boolean }) | undefined>;
   createItem(item: InsertItem & { userId: number }): Promise<Item>;
-
-  // New methods for requests and bids
   createItemRequest(request: InsertItemRequest): Promise<ItemRequest>;
   getItemRequests(itemId: number): Promise<ItemRequest[]>;
   getUserRequests(userId: number): Promise<(ItemRequest & { item: Item })[]>;
   updateItemRequestStatus(id: number, status: string): Promise<ItemRequest>;
-
   createItemBid(bid: InsertItemBid): Promise<ItemBid>;
   getItemBids(itemId: number): Promise<ItemBid[]>;
   getUserBids(userId: number): Promise<(ItemBid & { item: Item })[]>;
   updateItemBidStatus(id: number, status: string): Promise<ItemBid>;
+  updateItemStatusAfterPickupSchedule(itemId: number): Promise<void>;
 
   sessionStore: session.Store;
 }
@@ -117,19 +117,9 @@ export class DatabaseStorage implements IStorage {
     try {
       const query = db
         .select({
-          id: items.id,
-          title: items.title,
-          description: items.description,
-          price: items.price,
-          isGift: items.isGift,
-          imageUrl: items.imageUrl,
-          userId: items.userId,
-          community: items.community,
-          createdAt: items.createdAt,
-          favorites: items.favorites,
-          status: items.status,
+          ...items,
           userDisplayName: sql<string>`(
-            SELECT display_name FROM ${users} WHERE ${users.id} = ${items.userId}
+            SELECT username FROM ${users} WHERE ${users.id} = ${items.userId}
           )`.as("userDisplayName"),
           userHasFavorited: sql<boolean>`EXISTS (
             SELECT 1 FROM ${favoriteTable}
@@ -139,15 +129,12 @@ export class DatabaseStorage implements IStorage {
         })
         .from(items);
 
-      // If fetching user's own items, only filter by userId
       if (userItemsOnly && userId) {
         query.where(eq(items.userId, userId));
       } else {
-        // Otherwise use community filter for normal item browsing
         query.where(eq(items.community, community));
       }
 
-      // Add search condition if search term is provided
       if (search) {
         const searchTerm = `%${search}%`;
         query.where(
@@ -179,19 +166,9 @@ export class DatabaseStorage implements IStorage {
     try {
       const [item] = await db
         .select({
-          id: items.id,
-          title: items.title,
-          description: items.description,
-          price: items.price,
-          isGift: items.isGift,
-          imageUrl: items.imageUrl,
-          userId: items.userId,
-          community: items.community,
-          createdAt: items.createdAt,
-          favorites: items.favorites,
-          status: items.status,
+          ...items,
           userDisplayName: sql<string>`(
-            SELECT display_name FROM ${users} WHERE ${users.id} = ${items.userId}
+            SELECT username FROM ${users} WHERE ${users.id} = ${items.userId}
           )`.as("userDisplayName"),
           userHasFavorited: sql<boolean>`
             CASE WHEN EXISTS (
@@ -309,6 +286,13 @@ export class DatabaseStorage implements IStorage {
         .from(itemRequests)
         .where(eq(itemRequests.itemId, itemId))
         .orderBy(desc(itemRequests.createdAt));
+
+      logger.debug('Retrieved item requests:', {
+        itemId,
+        count: requests.length,
+        statuses: requests.map(r => r.status)
+      });
+
       return requests;
     } catch (error) {
       logger.error('Error getting item requests:', { error, itemId });
@@ -409,6 +393,31 @@ export class DatabaseStorage implements IStorage {
       return updatedBid;
     } catch (error) {
       logger.error('Error updating item bid status:', { error, id, status });
+      throw error;
+    }
+  }
+
+  async updateItemStatusAfterPickupSchedule(itemId: number): Promise<void> {
+    try {
+      await db
+        .update(items)
+        .set({ status: 'pending_pickup' })
+        .where(eq(items.id, itemId));
+
+      // Update all requests for this item to awaiting_pickup_confirmation
+      await db
+        .update(itemRequests)
+        .set({ status: 'awaiting_pickup_confirmation' })
+        .where(
+          and(
+            eq(itemRequests.itemId, itemId),
+            eq(itemRequests.status, 'ready_for_drawing')
+          )
+        );
+
+      logger.debug('Updated item and request statuses after pickup schedule:', { itemId });
+    } catch (error) {
+      logger.error('Error updating item status after pickup schedule:', { error, itemId });
       throw error;
     }
   }

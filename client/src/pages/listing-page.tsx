@@ -85,9 +85,9 @@ function RequestsList({ itemId }: { itemId: number }) {
           }
           className="text-xs"
         >
-          {request.status === "ready_for_drawing" ? "Ready for Drawing" : 
-           request.status === "awaiting_pickup_confirmation" ? "Awaiting Confirmation" :
-           request.status}
+          {request.status === "ready_for_drawing" ? "Ready for Drawing" :
+            request.status === "awaiting_pickup_confirmation" ? "Awaiting Confirmation" :
+              request.status}
         </Badge>
       </div>
     </Card>
@@ -188,6 +188,8 @@ function PickupScheduler({
         title: "Pickup scheduled!",
         description: "The recipient has been notified of the pickup window.",
       });
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/requests`] });
     },
     onError: (error: Error) => {
       toast({
@@ -278,10 +280,8 @@ export default function ListingPage() {
     }),
   });
 
-  // Define isOwner once
   const isOwner = item?.userId === user?.id;
 
-  // Use different queries for owner vs requester
   const { data: requests } = useQuery<ItemRequest[]>({
     queryKey: [isOwner ? `/api/items/${itemId}/requests` : `/api/items/${itemId}/my-requests`],
     enabled: !!itemId && !!user,
@@ -632,7 +632,7 @@ export default function ListingPage() {
                         <div>
                           <p className="text-sm text-muted-foreground">
                             {format(new Date(item.pickupStart), "PPP p")} -{" "}
-                            {format(new Date(item.pickupEnd!), "p")}
+                            {format(new Date(item.pickupEnd || new Date()), "p")}
                           </p>
                           {requests?.some(r => r.status === "awaiting_pickup_confirmation") && (
                             <Alert className="mt-2">
