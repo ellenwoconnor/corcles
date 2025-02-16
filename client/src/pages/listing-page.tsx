@@ -606,26 +606,28 @@ export default function ListingPage() {
                     )}
                   </>
                 ) : (
-                  requests?.length > 0 && (
-                    <div className="space-y-4">
-                      <p className="text-sm text-muted-foreground">
-                        You have {requests.length} pending requests for this item
-                      </p>
-                      <Button
-                        onClick={() => drawingMutation.mutate()}
-                        disabled={drawingMutation.isPending}
-                      >
-                        {drawingMutation.isPending ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Drawing...
-                          </>
-                        ) : (
-                          "Start Random Drawing"
-                        )}
-                      </Button>
-                    </div>
-                  )
+                  <div className="space-y-4">
+                    {requests && requests.filter(r => r.status === 'pending').length > 0 && (
+                      <>
+                        <p className="text-sm text-muted-foreground">
+                          You have {requests.filter(r => r.status === 'pending').length} pending requests for this item
+                        </p>
+                        <Button
+                          onClick={() => drawingMutation.mutate()}
+                          disabled={drawingMutation.isPending}
+                        >
+                          {drawingMutation.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Drawing...
+                            </>
+                          ) : (
+                            "Start Random Drawing"
+                          )}
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             )}
