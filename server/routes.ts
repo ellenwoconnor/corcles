@@ -47,7 +47,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Item not found" });
       }
 
-      // Convert dates to ISO strings for consistent handling
+      if (!item.createdAt) {
+        return res.status(500).json({ error: "Invalid item data" });
+      }
+
       res.json({
         ...item,
         createdAt: new Date(item.createdAt).toISOString()
