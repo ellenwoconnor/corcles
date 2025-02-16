@@ -105,6 +105,15 @@ export default function ProfilePage() {
 
           <TabsContent value="requests">
             <div className="grid gap-4">
+              {userRequests?.some(r => r.status === "awaiting_pickup_confirmation") && (
+                <Alert className="mb-4">
+                  <Clock className="h-4 w-4" />
+                  <AlertTitle>Pickup Confirmation Needed</AlertTitle>
+                  <AlertDescription>
+                    You have pending pickup windows that need confirmation
+                  </AlertDescription>
+                </Alert>
+              )}
               {userRequests?.length === 0 ? (
                 <Card>
                   <CardHeader>
