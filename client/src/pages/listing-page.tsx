@@ -688,7 +688,7 @@ export default function ListingPage() {
                   <div className="space-y-4">
                     {!item.recipientId &&
                       requests &&
-                      requests.filter((r) => r.status === "pending").length >
+                      requests.length >
                         0 && (
                         <>
                           {!item.pickupStart ? (
