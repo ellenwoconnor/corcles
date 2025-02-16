@@ -14,7 +14,16 @@ export default function HomePage() {
   const [showFreeOnly, setShowFreeOnly] = useState(false);
 
   const { data: items, isLoading } = useQuery<Item[]>({
-    queryKey: [`/api/items/${user?.community}`, { search: searchQuery, freeOnly: showFreeOnly }],
+    queryKey: [`/api/items/${user?.community}`],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (searchQuery) params.append('search', searchQuery);
+      if (showFreeOnly) params.append('freeOnly', 'true');
+
+      const response = await fetch(`/api/items/${user?.community}?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch items');
+      return response.json();
+    },
     enabled: !!user?.community,
   });
 
