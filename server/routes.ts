@@ -8,6 +8,7 @@ import { insertItemSchema, insertItemRequestSchema, insertItemBidSchema } from "
 import { eq } from "drizzle-orm";
 import { db } from "./db";
 import logger from './logger';
+import { addHours, isAfter, isBefore, addDays } from "date-fns";
 
 const upload = multer();
 
@@ -291,6 +292,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching community count:', error);
       res.status(500).json({ error: 'Failed to fetch community count' });
+    }
+  });
+
+  app.post("/api/items/:id/draw", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      if (item.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized to draw for this item" });
+      }
+
+      if (!item.isGift) {
+        return res.status(400).json({ error: "Can only draw for free items" });
+      }
+
+      if (item.recipientId) {
+        return res.status(400).json({ error: "Drawing already completed" });
+      }
+
+      // Get all pending requests
+      const requests = await storage.getItemRequests(itemId);
+      const pendingRequests = requests.filter(r => r.status === 'pending');
+
+      if (pendingRequests.length === 0) {
+        return res.status(400).json({ error: "No pending requests available for drawing" });
+      }
+
+      // Randomly select a recipient
+      const winningRequest = pendingRequests[Math.floor(Math.random() * pendingRequests.length)];
+
+      // Update item with recipient
+      await db
+        .update(schema.items)
+        .set({ 
+          recipientId: winningRequest.requesterId,
+          status: 'pending_pickup'
+        })
+        .where(eq(schema.items.id, itemId));
+
+      // Update request statuses
+      for (const request of requests) {
+        await storage.updateItemRequestStatus(
+          request.id,
+          request.id === winningRequest.id ? 'accepted' : 'rejected'
+        );
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error performing drawing:', error);
+      res.status(500).json({ error: 'Failed to perform drawing' });
+    }
+  });
+
+  app.post("/api/items/:id/schedule", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      if (item.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized to schedule pickup for this item" });
+      }
+
+      if (!item.recipientId) {
+        return res.status(400).json({ error: "Must select a recipient before scheduling pickup" });
+      }
+
+      const { pickupStart, pickupEnd } = req.body;
+      const startDate = new Date(pickupStart);
+      const endDate = new Date(pickupEnd);
+      const now = new Date();
+      const twoWeeksFromNow = addDays(now, 14);
+
+      if (isBefore(startDate, now) || isAfter(startDate, twoWeeksFromNow)) {
+        return res.status(400).json({ error: "Pickup window must be within the next two weeks" });
+      }
+
+      if (isAfter(endDate, addHours(startDate, 1))) {
+        return res.status(400).json({ error: "Pickup window cannot exceed 1 hour" });
+      }
+
+      await db
+        .update(schema.items)
+        .set({ 
+          pickupStart: startDate.toISOString(),
+          pickupEnd: endDate.toISOString(),
+          status: 'scheduled'
+        })
+        .where(eq(schema.items.id, itemId));
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error scheduling pickup:', error);
+      res.status(500).json({ error: 'Failed to schedule pickup' });
     }
   });
 

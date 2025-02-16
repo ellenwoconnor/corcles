@@ -29,6 +29,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import { addDays, addHours, format, isBefore, isAfter, startOfHour } from "date-fns";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import { Textarea } from "@/components/ui/textarea";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
 
 function RequestsList({ itemId }: { itemId: number }) {
   const { data: requests } = useQuery<ItemRequest[]>({
@@ -112,12 +127,6 @@ function BidsList({ itemId }: { itemId: number }) {
   ));
 }
 
-import { Textarea } from "@/components/ui/textarea";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useToast } from "@/hooks/use-toast";
-import { z } from "zod";
-
 const requestSchema = z.object({
   message: z.string().optional(),
 });
@@ -127,6 +136,113 @@ const bidSchema = z.object({
   message: z.string().optional(),
 });
 
+function PickupScheduler({
+  itemId,
+  onScheduled,
+}: {
+  itemId: number;
+  onScheduled: () => void;
+}) {
+  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedHour, setSelectedHour] = useState<number>();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const now = new Date();
+  const twoWeeksFromNow = addDays(now, 14);
+
+  const scheduleMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedDate || selectedHour === undefined) return;
+
+      const pickupStart = startOfHour(addHours(selectedDate, selectedHour));
+      const pickupEnd = addHours(pickupStart, 1);
+
+      const response = await apiRequest(
+        "POST",
+        `/api/items/${itemId}/schedule`,
+        { pickupStart, pickupEnd }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to schedule pickup");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      setIsOpen(false);
+      onScheduled();
+      toast({
+        title: "Pickup scheduled!",
+        description: "The recipient has been notified of the pickup window.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to schedule pickup",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const availableHours = Array.from({ length: 24 }, (_, i) => i).filter((hour) => {
+    if (!selectedDate) return false;
+    const date = addHours(selectedDate, hour);
+    return isAfter(date, now) && isBefore(date, twoWeeksFromNow);
+  });
+
+  return (
+    <Drawer open={isOpen} onOpenChange={setIsOpen}>
+      <DrawerTrigger asChild>
+        <Button>Schedule Pickup</Button>
+      </DrawerTrigger>
+      <DrawerContent>
+        <DrawerHeader>
+          <DrawerTitle>Schedule Item Pickup</DrawerTitle>
+          <DrawerDescription>
+            Select a one-hour window for item pickup
+          </DrawerDescription>
+        </DrawerHeader>
+        <div className="p-4 space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Select Date</label>
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              disabled={(date) => isBefore(date, now) || isAfter(date, twoWeeksFromNow)}
+            />
+          </div>
+          {selectedDate && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Select Hour</label>
+              <div className="grid grid-cols-4 gap-2">
+                {availableHours.map((hour) => (
+                  <Button
+                    key={hour}
+                    variant={selectedHour === hour ? "default" : "outline"}
+                    onClick={() => setSelectedHour(hour)}
+                  >
+                    {format(addHours(startOfHour(now), hour), "ha")}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+          <Button
+            className="w-full"
+            disabled={!selectedDate || selectedHour === undefined || scheduleMutation.isPending}
+            onClick={() => scheduleMutation.mutate()}
+          >
+            Confirm Pickup Window
+          </Button>
+        </div>
+      </DrawerContent>
+    </Drawer>
+  );
+}
+
 export default function ListingPage() {
   const [, params] = useRoute("/item/:id");
   const itemId = params?.id;
@@ -134,11 +250,7 @@ export default function ListingPage() {
   const { toast } = useToast();
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
 
-  const {
-    data: item,
-    isLoading,
-    error,
-  } = useQuery<Item & { userHasFavorited?: boolean }>({
+  const { data: item, isLoading, error } = useQuery<Item & { userHasFavorited?: boolean }>({
     queryKey: [`/api/items/${itemId}`],
     enabled: !!itemId,
     select: (data) => ({
@@ -157,8 +269,8 @@ export default function ListingPage() {
     enabled: !!itemId && !!user,
   });
 
-  const hasRequested = requests?.some(request => request.status === 'pending');
-  const hasBid = bids?.some(bid => bid.status === 'pending');
+  const hasRequested = requests?.some((request) => request.status === "pending");
+  const hasBid = bids?.some((bid) => bid.status === "pending");
 
   const requestForm = useForm<z.infer<typeof requestSchema>>({
     resolver: zodResolver(requestSchema),
@@ -180,7 +292,7 @@ export default function ListingPage() {
       const response = await apiRequest("POST", `/api/items/${itemId}/request`, data);
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to send request');
+        throw new Error(error.message || "Failed to send request");
       }
       return response.json();
     },
@@ -207,7 +319,7 @@ export default function ListingPage() {
       const response = await apiRequest("POST", `/api/items/${itemId}/bid`, data);
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to place bid');
+        throw new Error(error.message || "Failed to place bid");
       }
       return response.json();
     },
@@ -218,16 +330,38 @@ export default function ListingPage() {
       });
       bidForm.reset();
       setRequestDialogOpen(false);
-      queryClient.invalidateQueries({ 
-        queryKey: [
-          `/api/items/${itemId}/my-bids`,
-          '/api/user/bids'
-        ] 
+      queryClient.invalidateQueries({
+        queryKey: [`/api/items/${itemId}/my-bids`, "/api/user/bids"],
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Failed to place bid",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const drawingMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/items/${itemId}/draw`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to perform drawing");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Drawing complete!",
+        description: "A recipient has been randomly selected.",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to perform drawing",
         description: error.message,
         variant: "destructive",
       });
@@ -383,9 +517,9 @@ export default function ListingPage() {
                           onSubmit={bidForm.handleSubmit((data) => {
                             bidMutation.mutate(data, {
                               onSuccess: () => {
-                                queryClient.invalidateQueries({ queryKey: ['/api/user/bids'] });
+                                queryClient.invalidateQueries({ queryKey: ["/api/user/bids"] });
                                 setRequestDialogOpen(false);
-                              }
+                              },
                             });
                           })}
                           className="space-y-4"
@@ -401,9 +535,9 @@ export default function ListingPage() {
                                     type="number"
                                     placeholder="Enter bid amount"
                                     {...field}
-                                    value={field.value || ''}
+                                    value={field.value || ""}
                                     onChange={(e) =>
-                                      field.onChange(e.target.value ? Number(e.target.value) : '')
+                                      field.onChange(e.target.value ? Number(e.target.value) : "")
                                     }
                                   />
                                 </FormControl>
@@ -441,6 +575,57 @@ export default function ListingPage() {
                       </Form>
                     </DialogContent>
                   </Dialog>
+                )}
+              </div>
+            )}
+            {isOwner && item.isGift && (
+              <div className="border-t border-border pt-4 space-y-4">
+                {item.recipientId ? (
+                  <>
+                    <div className="space-y-2">
+                      <h3 className="font-medium">Selected Recipient</h3>
+                      <p className="text-sm text-muted-foreground">
+                        A recipient has been selected through random drawing
+                      </p>
+                    </div>
+                    {item.pickupStart && item.pickupEnd ? (
+                      <div className="space-y-2">
+                        <h3 className="font-medium">Pickup Window</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(item.pickupStart), "PPP p")} -{" "}
+                          {format(new Date(item.pickupEnd), "p")}
+                        </p>
+                      </div>
+                    ) : (
+                      <PickupScheduler
+                        itemId={item.id}
+                        onScheduled={() => {
+                          queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
+                        }}
+                      />
+                    )}
+                  </>
+                ) : (
+                  requests?.length > 0 && (
+                    <div className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        You have {requests.length} pending requests for this item
+                      </p>
+                      <Button
+                        onClick={() => drawingMutation.mutate()}
+                        disabled={drawingMutation.isPending}
+                      >
+                        {drawingMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Drawing...
+                          </>
+                        ) : (
+                          "Start Random Drawing"
+                        )}
+                      </Button>
+                    </div>
+                  )
                 )}
               </div>
             )}
