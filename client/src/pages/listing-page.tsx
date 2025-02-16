@@ -259,19 +259,13 @@ export default function ListingPage() {
               )}
             </div>
 
-            <div className="flex items-center gap-4">
-              <Avatar>
-                <AvatarImage src="/avatar.jpg" />
-                <AvatarFallback>U</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-medium">Listed by Anonymous</p>
-                <p className="text-sm text-muted-foreground">
-                  {formatDistanceToNow(item.createdAt, {
-                    addSuffix: true,
-                  })}
-                </p>
-              </div>
+            <div>
+              <p className="font-medium">Listed by Anonymous</p>
+              <p className="text-sm text-muted-foreground">
+                {formatDistanceToNow(item.createdAt, {
+                  addSuffix: true,
+                })}
+              </p>
             </div>
 
             <div className="border-t border-border pt-4">
