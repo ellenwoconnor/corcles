@@ -32,6 +32,7 @@ export interface IStorage {
     community: string,
     userId?: number,
     search?: string,
+    userItemsOnly?: boolean
   ): Promise<(Item & { userHasFavorited: boolean })[]>;
   getItem(
     id: number,
@@ -111,6 +112,7 @@ export class DatabaseStorage implements IStorage {
     community: string,
     userId?: number,
     search?: string,
+    userItemsOnly?: boolean
   ): Promise<(Item & { userHasFavorited: boolean })[]> {
     try {
       const query = db
@@ -125,14 +127,22 @@ export class DatabaseStorage implements IStorage {
           community: items.community,
           createdAt: items.createdAt,
           favorites: items.favorites,
+          status: items.status,
           userHasFavorited: sql<boolean>`EXISTS (
             SELECT 1 FROM ${favoriteTable}
             WHERE ${favoriteTable.itemId} = ${items.id}
             AND ${favoriteTable.userId} = ${userId ?? 0}
           )::boolean`.as("userHasFavorited"),
         })
-        .from(items)
-        .where(eq(items.community, community));
+        .from(items);
+
+      // If fetching user's own items, only filter by userId
+      if (userItemsOnly && userId) {
+        query.where(eq(items.userId, userId));
+      } else {
+        // Otherwise use community filter for normal item browsing
+        query.where(eq(items.community, community));
+      }
 
       // Add search condition if search term is provided
       if (search) {
@@ -146,6 +156,8 @@ export class DatabaseStorage implements IStorage {
 
       logger.debug('Retrieved items:', { 
         community, 
+        userId,
+        userItemsOnly,
         searchTerm: search, 
         count: itemResults.length 
       });

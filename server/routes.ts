@@ -238,7 +238,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
 
-      const userItems = await storage.getItems(req.user.community, req.user.id);
+      const userItems = await storage.getItems(
+        req.user.community,
+        req.user.id,
+        undefined,
+        true 
+      );
       res.json(userItems);
     } catch (error) {
       logger.error('Error fetching user items:', error);
