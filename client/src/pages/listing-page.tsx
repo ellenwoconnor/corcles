@@ -161,12 +161,15 @@ function PickupScheduler({
       const response = await apiRequest(
         "POST",
         `/api/items/${itemId}/schedule`,
-        { pickupStart, pickupEnd }
+        {
+          pickupStart: pickupStart.toISOString(),
+          pickupEnd: pickupEnd.toISOString(),
+        }
       );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to schedule pickup");
+        throw new Error(error.error || "Failed to schedule pickup");
       }
       return response.json();
     },
@@ -236,7 +239,14 @@ function PickupScheduler({
             disabled={!selectedDate || selectedHour === undefined || scheduleMutation.isPending}
             onClick={() => scheduleMutation.mutate()}
           >
-            Confirm Pickup Window
+            {scheduleMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Scheduling...
+              </>
+            ) : (
+              "Confirm Pickup Window"
+            )}
           </Button>
         </div>
       </DrawerContent>
