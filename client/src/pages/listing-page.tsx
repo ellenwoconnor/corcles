@@ -105,8 +105,7 @@ export default function ListingPage() {
               </div>
             </div>
 
-            <div>
-              <h2 className="text-xl font-semibold mb-2">Description</h2>
+            <div className="border-t border-border pt-4">
               <p className="text-muted-foreground whitespace-pre-wrap">
                 {item.description}
               </p>
@@ -114,16 +113,6 @@ export default function ListingPage() {
 
             <div className="flex gap-4">
               <Button className="flex-1">Contact Seller</Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => favoriteMutation.mutate()}
-                disabled={!user || favoriteMutation.isPending}
-              >
-                <Heart
-                  className={`h-4 w-4 ${item.favorites > 0 ? "fill-primary" : ""}`}
-                />
-              </Button>
             </div>
           </div>
         </div>
