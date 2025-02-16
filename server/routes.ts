@@ -177,12 +177,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const requests = await storage.getItemRequests(itemId);
       res.json(requests.filter(request => request.requesterId === req.user.id));
     } catch (error) {
-          eq(itemRequests.itemId, itemId),
-          eq(itemRequests.requesterId, req.user.id)
-        ));
-
-      res.json(requests);
-    } catch (error) {
+      logger.error('Error fetching requests:', error);
+      res.status(500).json({ error: 'Failed to fetch requests' });
+    }
       logger.error('Error fetching user requests:', error);
       res.status(500).json({ error: 'Failed to fetch requests' });
     }
