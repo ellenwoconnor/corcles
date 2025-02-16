@@ -456,7 +456,9 @@ export default function ListingPage() {
                 </h3>
                 <div className="space-y-2">
                   {item.isGift ? (
-                    <RequestsList itemId={item.id} />
+                    <p className="text-sm text-muted-foreground">
+                      {requests?.filter(r => r.status === "pending").length || 0} pending requests
+                    </p>
                   ) : (
                     <BidsList itemId={item.id} />
                   )}
