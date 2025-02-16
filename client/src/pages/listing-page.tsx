@@ -251,7 +251,7 @@ export default function ListingPage() {
                 {item.title}
               </h1>
               {item.isGift ? (
-                <div className="inline-block bg-primary text-primary-foreground px-4 py-2 rounded-full text-lg font-bold shadow-md">
+                <div className="inline-block bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
                   Free
                 </div>
               ) : (
