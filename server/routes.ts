@@ -275,6 +275,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/user", (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    res.json(req.user);
+  });
+
+  app.get("/api/community/:community/count", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const users = await db.select().from(users).where(eq(users.community, req.params.community));
+      res.json({ count: users.length });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch community count' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
