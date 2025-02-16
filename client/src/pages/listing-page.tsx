@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Item, InsertItemRequest, InsertItemBid, ItemRequest, ItemBid } from "@shared/schema";
 import Navbar from "@/components/navbar";

@@ -1,4 +1,4 @@
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Item, ItemRequest, ItemBid } from "@shared/schema";
 import Navbar from "@/components/navbar";
