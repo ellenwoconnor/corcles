@@ -398,7 +398,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.items.id, itemId));
 
-      // Update all pending requests to ready_for_drawing
+      // Update all requests to ready_for_drawing
       const requests = await storage.getItemRequests(itemId);
       for (const request of requests) {
         if (request.status === 'pending') {

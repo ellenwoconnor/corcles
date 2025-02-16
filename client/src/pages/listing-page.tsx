@@ -635,10 +635,10 @@ export default function ListingPage() {
                             {format(new Date(item.pickupEnd), "p")}
                           </p>
                         </div>
-                        {requests && requests.filter((r) => r.status === "pending").length > 0 && (
+                        {requests && requests.filter((r) => r.status === "ready_for_drawing").length > 0 && (
                           <>
                             <p className="text-sm text-muted-foreground">
-                              You have {requests.filter((r) => r.status === "pending").length} pending requests for this item
+                              Ready to select from {requests.filter((r) => r.status === "ready_for_drawing").length} requests
                             </p>
                             <Button
                               onClick={() => drawingMutation.mutate()}
