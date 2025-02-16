@@ -141,8 +141,8 @@ export default function ProfilePage() {
                             variant={
                               !item.recipientId ? "secondary" :
                               !item.pickupStart ? "default" :
-                              item.pickupStart && item.recipientId ? "outline" :
-                              "secondary"
+                              userRequests?.some(r => r.itemId === item.id && r.status === "awaiting_pickup_confirmation") ? "default" :
+                              "outline"
                             }
                           >
                             {!item.recipientId ? "Pending Requests" :
