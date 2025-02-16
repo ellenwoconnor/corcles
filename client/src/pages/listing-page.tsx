@@ -67,7 +67,13 @@ export default function ListingPage() {
     enabled: !!itemId && !!user,
   });
 
+  const { data: bids } = useQuery<ItemBid[]>({
+    queryKey: [`/api/items/${itemId}/my-bids`],
+    enabled: !!itemId && !!user,
+  });
+
   const hasRequested = requests?.some(request => request.status === 'pending');
+  const hasBid = bids?.some(bid => bid.status === 'pending');
 
   const requestForm = useForm<z.infer<typeof requestSchema>>({
     resolver: zodResolver(requestSchema),
@@ -111,6 +117,8 @@ export default function ListingPage() {
         description: "The owner will be notified of your bid.",
       });
       bidForm.reset();
+      setRequestDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/my-bids`] });
     },
   });
 
@@ -240,7 +248,9 @@ export default function ListingPage() {
                 ) : (
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button className="flex-1">Place Bid</Button>
+                      <Button className="flex-1" disabled={hasBid}>
+                        {hasBid ? "Bid Pending" : "Place Bid"}
+                      </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
