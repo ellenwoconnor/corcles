@@ -143,6 +143,7 @@ function PickupScheduler({
   itemId: number;
   onScheduled: () => void;
 }) {
+  const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedHour, setSelectedHour] = useState<number>();
   const [isOpen, setIsOpen] = useState(false);
@@ -625,7 +626,7 @@ export default function ListingPage() {
                               Drawing...
                             </>
                           ) : (
-                            "Start Random Drawing"
+                            "Gift Item"
                           )}
                         </Button>
                       </>
