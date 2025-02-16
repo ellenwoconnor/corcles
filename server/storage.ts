@@ -156,11 +156,13 @@ export class DatabaseStorage implements IStorage {
           community: items.community,
           createdAt: items.createdAt,
           favorites: items.favorites,
-          userHasFavorited: sql<boolean>`EXISTS (
-            SELECT 1 FROM ${favoriteTable}
-            WHERE ${favoriteTable.itemId} = ${id}
-            AND ${favoriteTable.userId} = ${userId ?? 0}
-          )::boolean`.as("userHasFavorited"),
+          userHasFavorited: sql<boolean>`
+            CASE WHEN EXISTS (
+              SELECT 1 FROM ${favoriteTable}
+              WHERE ${favoriteTable.itemId} = ${items.id}
+              AND ${favoriteTable.userId} = ${userId ?? 0}
+            ) THEN true ELSE false END
+          `.as("userHasFavorited"),
         })
         .from(items)
         .where(eq(items.id, id));
@@ -168,7 +170,7 @@ export class DatabaseStorage implements IStorage {
       logger.debug("getItem query result:", {
         id,
         userId,
-        resultValue: result || 'No result found',
+        result: result || 'No result found'
       });
 
       return result;

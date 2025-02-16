@@ -45,11 +45,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Item not found" });
       }
 
-      if (!item.createdAt) {
-        return res.status(500).json({ error: "Invalid item data" });
-      }
-
-      res.json(item);
+      res.json({
+        ...item,
+        createdAt: new Date(item.createdAt).toISOString()
+      });
     } catch (error) {
       logger.error('Error fetching item:', error);
       res.status(500).json({ error: 'Failed to fetch item' });
@@ -97,8 +96,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to favorite item' });
     }
   });
-
-  
 
   const httpServer = createServer(app);
   return httpServer;
