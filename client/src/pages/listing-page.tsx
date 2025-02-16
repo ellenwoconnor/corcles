@@ -252,9 +252,11 @@ export default function ListingPage() {
                                 <FormControl>
                                   <Input
                                     type="number"
+                                    placeholder="Enter bid amount"
                                     {...field}
+                                    value={field.value || ''}
                                     onChange={(e) =>
-                                      field.onChange(Number(e.target.value))
+                                      field.onChange(e.target.value ? Number(e.target.value) : '')
                                     }
                                   />
                                 </FormControl>
