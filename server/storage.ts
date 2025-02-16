@@ -129,9 +129,11 @@ export class DatabaseStorage implements IStorage {
         })
         .from(items);
 
-      if (userItemsOnly && userId) {
-        query.where(eq(items.userId, userId));
+      // When fetching user's items, only filter by userId
+      if (userItemsOnly) {
+        query.where(eq(items.userId, userId!));
       } else {
+        // For community browsing, filter by community
         query.where(eq(items.community, community));
       }
 
@@ -149,7 +151,12 @@ export class DatabaseStorage implements IStorage {
         userId,
         userItemsOnly,
         searchTerm: search, 
-        count: itemResults.length 
+        count: itemResults.length,
+        items: itemResults.map(item => ({
+          id: item.id,
+          title: item.title,
+          userId: item.userId
+        }))
       });
 
       return itemResults;
