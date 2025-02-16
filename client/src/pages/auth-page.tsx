@@ -148,6 +148,19 @@ export default function AuthPage() {
                   />
                   <FormField
                     control={registerForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={registerForm.control}
                     name="displayName"
                     render={({ field }) => (
                       <FormItem>
@@ -167,19 +180,6 @@ export default function AuthPage() {
                         <FormLabel>Address</FormLabel>
                         <FormControl>
                           <Input {...field} placeholder="123 Main St" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={registerForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input type="password" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
