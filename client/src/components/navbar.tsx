@@ -21,7 +21,7 @@ export default function Navbar() {
         <div className="mr-4">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <RobotLogo />
-            <span className="text-2xl font-bold uppercase tracking-wide">CORCLES</span>
+            <span className="text-3xl font-black uppercase tracking-wide">CORCLES</span>
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
