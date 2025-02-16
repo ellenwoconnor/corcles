@@ -345,7 +345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const request of requests) {
         await storage.updateItemRequestStatus(
           request.id,
-          request.id === winningRequest.id ? 'accepted' : 'rejected'
+          request.id === winningRequest.id ? 'awaiting_pickup_confirmation' : 'rejected'
         );
       }
 
@@ -398,11 +398,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.items.id, itemId));
 
-      // Update all requests to ready_for_drawing
+      // Update all requests to awaiting_pickup_confirmation 
       const requests = await storage.getItemRequests(itemId);
-      for (const request of requests) {
-        if (request.status === 'pending') {
-          await storage.updateItemRequestStatus(request.id, 'ready_for_drawing');
+      const randomRequest = requests.find(r => r.status === 'pending');
+      if (randomRequest) {
+        await storage.updateItemRequestStatus(randomRequest.id, 'awaiting_pickup_confirmation');
+        for (const request of requests) {
+          if (request.id !== randomRequest.id && request.status === 'pending') {
+            await storage.updateItemRequestStatus(request.id, 'rejected');
+          }
         }
       }
 

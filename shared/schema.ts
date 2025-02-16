@@ -40,7 +40,7 @@ export const itemRequests = pgTable("item_requests", {
   id: serial("id").primaryKey(),
   itemId: integer("item_id").notNull(),
   requesterId: integer("requester_id").notNull(),
-  status: text("status").notNull().default('pending'),
+  status: text("status").notNull().default('pending'), // pending, awaiting_pickup_confirmation, accepted, rejected
   message: text("message"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

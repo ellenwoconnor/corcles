@@ -6,7 +6,8 @@ import ItemGrid from "@/components/item-grid";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Package, Gift, Tag } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Package, Gift, Tag, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function ProfilePage() {
@@ -105,6 +106,15 @@ export default function ProfilePage() {
 
           <TabsContent value="requests">
             <div className="grid gap-4">
+              {userRequests?.some(r => r.status === "awaiting_pickup_confirmation") && (
+                <Alert className="mb-4">
+                  <Clock className="h-4 w-4" />
+                  <AlertTitle>Pickup Confirmation Needed</AlertTitle>
+                  <AlertDescription>
+                    You have pending pickup windows that need confirmation
+                  </AlertDescription>
+                </Alert>
+              )}
               {userRequests?.length === 0 ? (
                 <Card>
                   <CardHeader>

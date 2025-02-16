@@ -30,6 +30,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Clock } from "lucide-react";
 import { addDays, addHours, format, isBefore, isAfter, startOfHour } from "date-fns";
 import {
   Drawer,
@@ -450,6 +452,17 @@ export default function ListingPage() {
               </p>
             </div>
 
+            {requests?.some(r => r.status === "awaiting_pickup_confirmation") && (
+              <div className="mb-4">
+                <Alert>
+                  <Clock className="h-4 w-4" />
+                  <AlertTitle>Pickup Confirmation Pending</AlertTitle>
+                  <AlertDescription>
+                    Waiting for the recipient to confirm the pickup window
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
             {isOwner ? (
               <div className="border-t border-border pt-3">
                 <h3 className="text-base font-medium mb-2">
@@ -457,7 +470,13 @@ export default function ListingPage() {
                 </h3>
                 <div className="space-y-2">
                   {item.isGift ? (
-                    <RequestsList itemId={item.id} />
+                    requests ? (
+                      <p className="text-muted-foreground">
+                        {requests.length} {requests.length === 1 ? 'request' : 'requests'} received
+                      </p>
+                    ) : (
+                      <p className="text-muted-foreground">No requests yet.</p>
+                    )
                   ) : (
                     <BidsList itemId={item.id} />
                   )}
