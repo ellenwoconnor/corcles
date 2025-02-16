@@ -55,6 +55,7 @@ export default function AuthPage() {
       password: "",
       displayName: "",
       address: "",
+      zipCode: "",
     },
   });
 
@@ -184,7 +185,19 @@ export default function AuthPage() {
                       </FormItem>
                     )}
                   />
-                  
+                  <FormField
+                    control={registerForm.control}
+                    name="zipCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ZIP Code</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="00000" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <Button
                     type="submit"
                     className="w-full"
