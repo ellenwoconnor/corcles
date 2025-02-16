@@ -31,8 +31,7 @@ export interface IStorage {
     userId?: number,
   ): Promise<(Item & { userHasFavorited: boolean }) | undefined>;
   createItem(item: InsertItem & { userId: number }): Promise<Item>;
-  favoriteItem(id: number, userId: number): Promise<void>;
-  unfavoriteItem(id: number, userId: number): Promise<void>;
+  
   sessionStore: session.Store;
 }
 

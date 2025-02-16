@@ -103,17 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/items/:id/unfavorite", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
-      await storage.unfavoriteItem(parseInt(req.params.id), req.user.id);
-      res.sendStatus(200);
-    } catch (error) {
-      logger.error('Error unfavoriting item:', error);
-      res.status(500).json({ error: 'Failed to unfavorite item' });
-    }
-  });
+  
 
   const httpServer = createServer(app);
   return httpServer;

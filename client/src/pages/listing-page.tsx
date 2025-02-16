@@ -107,16 +107,6 @@ export default function ListingPage() {
 
             <div className="flex gap-4">
               <Button className="flex-1">Contact Seller</Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => favoriteMutation.mutate()}
-                disabled={!user || favoriteMutation.isPending}
-              >
-                <Heart
-                  className={`h-4 w-4 ${item.favorites > 0 ? "fill-primary" : ""}`}
-                />
-              </Button>
             </div>
           </div>
         </div>

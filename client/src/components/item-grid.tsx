@@ -2,7 +2,7 @@ import { Item } from "@shared/schema";
 import ItemCard from "./item-card";
 
 type ItemGridProps = {
-  items: (Item & { userHasFavorited: boolean })[];
+  items: Item[];
 };
 
 export default function ItemGrid({ items }: ItemGridProps) {
