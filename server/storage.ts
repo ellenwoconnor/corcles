@@ -8,7 +8,7 @@ import {
   type InsertItem,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, ilike, or, isNull } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -24,6 +24,10 @@ export interface IStorage {
   getItems(
     community: string,
     userId?: number,
+    options?: {
+      searchQuery?: string;
+      showFreeOnly?: boolean;
+    }
   ): Promise<(Item & { userHasFavorited: boolean })[]>;
   getItem(
     id: number,
@@ -92,9 +96,13 @@ export class DatabaseStorage implements IStorage {
   async getItems(
     community: string,
     userId?: number,
+    options?: {
+      searchQuery?: string;
+      showFreeOnly?: boolean;
+    }
   ): Promise<(Item & { userHasFavorited: boolean })[]> {
     try {
-      const itemResults = await db
+      let query = db
         .select({
           id: items.id,
           title: items.title,
@@ -113,10 +121,41 @@ export class DatabaseStorage implements IStorage {
           )::boolean`.as("userHasFavorited"),
         })
         .from(items)
-        .where(eq(items.community, community))
-        .orderBy(desc(items.createdAt));
+        .where(eq(items.community, community));
 
-      logger.debug('Retrieved items:', { community, count: itemResults.length });
+      if (options?.searchQuery) {
+        query = query.where(
+          or(
+            ilike(items.title, `%${options.searchQuery}%`),
+            ilike(items.description, `%${options.searchQuery}%`)
+          )
+        );
+      }
+
+      if (options?.showFreeOnly) {
+        query = query.where(
+          or(
+            eq(items.isGift, true),
+            and(
+              eq(items.isGift, false),
+              or(
+                eq(items.price, 0),
+                isNull(items.price)
+              )
+            )
+          )
+        );
+      }
+
+      const itemResults = await query.orderBy(desc(items.createdAt));
+
+      logger.debug('Retrieved items:', { 
+        community, 
+        count: itemResults.length,
+        searchQuery: options?.searchQuery,
+        showFreeOnly: options?.showFreeOnly
+      });
+
       return itemResults;
     } catch (error) {
       logger.error('Error retrieving items:', { error, community });
