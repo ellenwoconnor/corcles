@@ -398,15 +398,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.items.id, itemId));
 
-      // Update all requests to awaiting_pickup_confirmation 
+      // Get all pending requests and perform random drawing
       const requests = await storage.getItemRequests(itemId);
-      const randomRequest = requests.find(r => r.status === 'pending');
-      if (randomRequest) {
-        await storage.updateItemRequestStatus(randomRequest.id, 'awaiting_pickup_confirmation');
+      const pendingRequests = requests.filter(r => r.status === 'pending');
+
+      if (pendingRequests.length > 0) {
+        // Randomly select a recipient
+        const winningRequest = pendingRequests[Math.floor(Math.random() * pendingRequests.length)];
+
+        // Update item with recipient
+        await db
+          .update(schema.items)
+          .set({ 
+            recipientId: winningRequest.requesterId,
+            status: 'pending_pickup'
+          })
+          .where(eq(schema.items.id, itemId));
+
+        // Update request statuses
         for (const request of requests) {
-          if (request.id !== randomRequest.id && request.status === 'pending') {
-            await storage.updateItemRequestStatus(request.id, 'rejected');
-          }
+          await storage.updateItemRequestStatus(
+            request.id,
+            request.id === winningRequest.id ? 'awaiting_pickup_confirmation' : 'rejected'
+          );
         }
       }
 

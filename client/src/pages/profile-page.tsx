@@ -8,7 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Package, Gift, Tag, Clock } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
+import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -39,6 +41,10 @@ export default function ProfilePage() {
   });
 
   const communityCount = communityData?.count || 0;
+
+  const pendingConfirmations = userRequests?.filter(
+    r => r.status === "awaiting_pickup_confirmation"
+  ) || [];
 
   if (!user || itemsLoading || requestsLoading || bidsLoading || communityLoading) {
     return (
@@ -81,7 +87,11 @@ export default function ProfilePage() {
             </TabsTrigger>
             <TabsTrigger value="requests" className="flex items-center gap-2">
               <Gift className="h-4 w-4" />
-              My Requests
+              My Requests {pendingConfirmations.length > 0 && (
+                <Badge variant="default" className="ml-2">
+                  {pendingConfirmations.length}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="bids" className="flex items-center gap-2">
               <Tag className="h-4 w-4" />
@@ -90,28 +100,78 @@ export default function ProfilePage() {
           </TabsList>
 
           <TabsContent value="listings">
-            {userItems?.length === 0 ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>No Listings</CardTitle>
-                  <CardDescription>
-                    You haven't listed any items yet.
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            ) : (
-              <ItemGrid items={userItems ?? []} />
-            )}
+            <div className="grid gap-4">
+              {userItems?.some(item => item.recipientId && !item.pickupStart) && (
+                <Alert className="mb-4">
+                  <Clock className="h-4 w-4" />
+                  <AlertTitle>Action Needed</AlertTitle>
+                  <AlertDescription>
+                    You have items that need pickup windows scheduled
+                  </AlertDescription>
+                </Alert>
+              )}
+              {userItems?.length === 0 ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>No Listings</CardTitle>
+                    <CardDescription>
+                      You haven't listed any items yet.
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              ) : (
+                <div className="grid gap-4">
+                  {userItems?.map((item) => (
+                    <Card key={item.id}>
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <CardTitle>
+                              <Link href={`/item/${item.id}`} className="hover:underline">
+                                {item.title}
+                              </Link>
+                            </CardTitle>
+                            <CardDescription>
+                              Listed {formatDistanceToNow(new Date(item.createdAt), {
+                                addSuffix: true,
+                              })}
+                            </CardDescription>
+                          </div>
+                          <Badge
+                            variant={
+                              !item.recipientId ? "secondary" :
+                              !item.pickupStart ? "default" :
+                              "outline"
+                            }
+                          >
+                            {!item.recipientId ? "Pending Requests" :
+                             !item.pickupStart ? "Schedule Pickup" :
+                             "Pickup Scheduled"}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        {item.pickupStart && (
+                          <p className="text-sm text-muted-foreground">
+                            Pickup: {format(new Date(item.pickupStart), "PPP p")} - {format(new Date(item.pickupEnd!), "p")}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="requests">
             <div className="grid gap-4">
-              {userRequests?.some(r => r.status === "awaiting_pickup_confirmation") && (
+              {pendingConfirmations.length > 0 && (
                 <Alert className="mb-4">
                   <Clock className="h-4 w-4" />
-                  <AlertTitle>Pickup Confirmation Needed</AlertTitle>
+                  <AlertTitle>Action Needed</AlertTitle>
                   <AlertDescription>
-                    You have pending pickup windows that need confirmation
+                    You have {pendingConfirmations.length} pickup {pendingConfirmations.length === 1 ? 'window' : 'windows'} that need confirmation
                   </AlertDescription>
                 </Alert>
               )}
@@ -130,7 +190,11 @@ export default function ProfilePage() {
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div>
-                          <CardTitle>{request.item.title}</CardTitle>
+                          <CardTitle>
+                            <Link href={`/item/${request.item.id}`} className="hover:underline">
+                              {request.item.title}
+                            </Link>
+                          </CardTitle>
                           <CardDescription>
                             Requested{" "}
                             {formatDistanceToNow(new Date(request.createdAt), {
@@ -140,19 +204,42 @@ export default function ProfilePage() {
                         </div>
                         <Badge
                           variant={
-                            request.status === "pending"
-                              ? "secondary"
-                              : request.status === "accepted"
+                            request.status === "awaiting_pickup_confirmation"
                               ? "default"
+                              : request.status === "accepted"
+                              ? "outline"
+                              : request.status === "pending"
+                              ? "secondary"
                               : "destructive"
                           }
                         >
-                          {request.status}
+                          {request.status === "awaiting_pickup_confirmation" 
+                            ? "Confirm Pickup"
+                            : request.status === "accepted" 
+                            ? "Pickup Scheduled"
+                            : request.status}
                         </Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground">{request.message}</p>
+                      <p className="text-muted-foreground mb-2">{request.message}</p>
+                      {request.status === "awaiting_pickup_confirmation" && request.item.pickupStart && (
+                        <div className="mt-4">
+                          <h4 className="font-medium mb-2">Proposed Pickup Window</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(request.item.pickupStart), "PPP p")} - {format(new Date(request.item.pickupEnd!), "p")}
+                          </p>
+                          <div className="flex gap-2 mt-4">
+                            <Button>Confirm Pickup Time</Button>
+                            <Button variant="outline">Request Different Time</Button>
+                          </div>
+                        </div>
+                      )}
+                      {request.status === "accepted" && request.item.pickupStart && (
+                        <p className="text-sm text-muted-foreground">
+                          Pickup: {format(new Date(request.item.pickupStart), "PPP p")} - {format(new Date(request.item.pickupEnd!), "p")}
+                        </p>
+                      )}
                     </CardContent>
                   </Card>
                 ))
