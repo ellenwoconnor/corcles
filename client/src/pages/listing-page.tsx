@@ -85,9 +85,9 @@ function RequestsList({ itemId }: { itemId: number }) {
           }
           className="text-xs"
         >
-          {request.status === "ready_for_drawing" ? "Ready for Drawing" : 
-           request.status === "awaiting_pickup_confirmation" ? "Awaiting Confirmation" :
-           request.status}
+          {request.status === "ready_for_drawing" ? "Ready for Drawing" :
+            request.status === "awaiting_pickup_confirmation" ? "Awaiting Confirmation" :
+              request.status}
         </Badge>
       </div>
     </Card>
@@ -661,7 +661,7 @@ export default function ListingPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {!item.pickupStart ? (
+                    {!item.pickupStart && (
                       <div className="space-y-2">
                         <h3 className="font-medium">Schedule Pickup</h3>
                         <p className="text-sm text-muted-foreground mb-4">
@@ -674,14 +674,24 @@ export default function ListingPage() {
                           }}
                         />
                       </div>
-                    ) : (
+                    )}
+                    {item.pickupStart && (
                       <>
                         <div className="space-y-2">
                           <h3 className="font-medium">Scheduled Pickup Window</h3>
                           <p className="text-sm text-muted-foreground">
                             {format(new Date(item.pickupStart), "PPP p")} -{" "}
-                            {format(new Date(item.pickupEnd), "p")}
+                            {format(new Date(item.pickupEnd!), "p")}
                           </p>
+                          {requests?.some(r => r.status === "awaiting_pickup_confirmation") && (
+                            <Alert className="mt-2">
+                              <Clock className="h-4 w-4" />
+                              <AlertTitle>Awaiting Confirmation</AlertTitle>
+                              <AlertDescription>
+                                Waiting for the recipient to confirm the pickup window
+                              </AlertDescription>
+                            </Alert>
+                          )}
                         </div>
                         {requests && requests.filter((r) => r.status === "ready_for_drawing").length > 0 && (
                           <>
