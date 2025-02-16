@@ -393,10 +393,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to schedule pickup for this item" });
       }
 
-      if (!item.recipientId) {
-        return res.status(400).json({ error: "Must select a recipient before scheduling pickup" });
-      }
-
       const { pickupStart, pickupEnd } = req.body;
       const startDate = new Date(pickupStart);
       const endDate = new Date(pickupEnd);

@@ -634,16 +634,34 @@ export default function ListingPage() {
                         <p className="text-sm text-muted-foreground">
                           You have {requests.filter((r) => r.status === "pending").length} pending requests for this item
                         </p>
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">Set a pickup window before selecting a recipient</p>
-                          <PickupScheduler
-                            itemId={item.id}
-                            onScheduled={() => {
-                              queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
-                              drawingMutation.mutate();
-                            }}
-                          />
-                        </div>
+                        {!item.pickupStart ? (
+                          <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground">Set a pickup window</p>
+                            <PickupScheduler
+                              itemId={item.id}
+                              onScheduled={() => {
+                                queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium">Pickup window scheduled</p>
+                            <Button
+                              onClick={() => drawingMutation.mutate()}
+                              disabled={drawingMutation.isPending}
+                            >
+                              {drawingMutation.isPending ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Drawing...
+                                </>
+                              ) : (
+                                "Gift Item"
+                              )}
+                            </Button>
+                          </div>
+                        )}
                       </>
                     )}
                     {item.recipientId && (
