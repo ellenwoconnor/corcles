@@ -246,7 +246,7 @@ export default function ListingPage() {
                     </DialogContent>
                   </Dialog>
                 ) : (
-                  <Dialog>
+                  <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
                     <DialogTrigger asChild>
                       <Button className="flex-1" disabled={hasBid}>
                         {hasBid ? "Bid Pending" : "Place Bid"}
