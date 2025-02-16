@@ -78,9 +78,6 @@ export default function ItemCard({ item }: ItemCardProps) {
           </div>
           <div className="p-4">
             <h3 className="font-semibold text-lg mb-1 truncate">{item.title}</h3>
-            {!item.isGift && (
-              <p className="text-lg font-bold text-primary">${item.price}</p>
-            )}
             <div className="flex items-center gap-2 mt-2">
               <Avatar className="h-6 w-6">
                 <AvatarImage src="/avatar.jpg" />
