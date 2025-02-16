@@ -625,7 +625,7 @@ export default function ListingPage() {
                               Drawing...
                             </>
                           ) : (
-                            "Start Random Drawing"
+                            "Gift Item"
                           )}
                         </Button>
                       </>
