@@ -121,7 +121,12 @@ export class DatabaseStorage implements IStorage {
       })
       .from(items)
       .where(eq(items.id, id));
-    console.log("result is", result);
+    console.log("getItem query result:", {
+      id,
+      userId,
+      result,
+      query: `SELECT * FROM items WHERE id = ${id}`
+    });
     return result;
   }
 
