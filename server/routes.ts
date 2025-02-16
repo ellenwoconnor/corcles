@@ -205,11 +205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const requests = await storage.getItemRequests(itemId);
-      const requestsWithDisplayNames = requests.map(request => ({
-        ...request,
-        requesterDisplayName: request.requesterDisplayName || 'Anonymous'
-      }));
-      res.json(requestsWithDisplayNames);
+      res.json(requests);
     } catch (error) {
       logger.error('Error fetching requests:', error);
       res.status(500).json({ error: 'Failed to fetch requests' });
@@ -235,11 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const bids = await storage.getItemBids(itemId);
-      const bidsWithDisplayNames = bids.map(bid => ({
-        ...bid,
-        bidderDisplayName: bid.bidderDisplayName || 'Anonymous'
-      }));
-      res.json(bidsWithDisplayNames);
+      res.json(bids);
     } catch (error) {
       logger.error('Error fetching bids:', error);
       res.status(500).json({ error: 'Failed to fetch bids' });

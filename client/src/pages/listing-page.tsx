@@ -62,7 +62,7 @@ function RequestsList({ itemId }: { itemId: number }) {
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <p className="font-medium text-sm">{request.requesterDisplayName}</p>
+            <p className="font-medium text-sm">Anonymous</p>
             <span className="text-xs text-muted-foreground">
               {formatDistanceToNow(new Date(request.createdAt), {
                 addSuffix: true,
@@ -109,7 +109,7 @@ function BidsList({ itemId }: { itemId: number }) {
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <p className="font-medium text-sm">{bid.bidderDisplayName} · ${bid.amount}</p>
+            <p className="font-medium text-sm">Anonymous · ${bid.amount}</p>
             <span className="text-xs text-muted-foreground">
               {formatDistanceToNow(new Date(bid.createdAt), {
                 addSuffix: true,
