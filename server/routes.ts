@@ -186,25 +186,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/items/requests/:id/status", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-      
-      const requestId = parseInt(req.params.id);
-      const { status } = req.body;
-      
-      if (!["pending", "accepted", "rejected"].includes(status)) {
-        return res.status(400).json({ error: "Invalid status" });
-      }
-
-      const request = await storage.updateItemRequestStatus(requestId, status);
-      res.json(request);
-    } catch (error) {
-      logger.error('Error updating request status:', error);
-      res.status(500).json({ error: 'Failed to update request status' });
-    }
-  });
-
   app.get("/api/items/:id/requests", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -393,6 +374,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to schedule pickup for this item" });
       }
 
+      if (!item.recipientId) {
+        return res.status(400).json({ error: "Must select a recipient before scheduling pickup" });
+      }
+
       const { pickupStart, pickupEnd } = req.body;
       const startDate = new Date(pickupStart);
       const endDate = new Date(pickupEnd);
@@ -407,35 +392,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Pickup window cannot exceed 1 hour" });
       }
 
-      // Get all pending requests
-      const requests = await storage.getItemRequests(itemId);
-      const pendingRequests = requests.filter(r => r.status === 'pending');
-
-      if (pendingRequests.length === 0) {
-        return res.status(400).json({ error: "No pending requests available" });
-      }
-
-      // Randomly select a recipient
-      const winningRequest = pendingRequests[Math.floor(Math.random() * pendingRequests.length)];
-
-      // Update item with recipient and pickup window
       await db
         .update(schema.items)
         .set({ 
           pickupStart: startDate,
           pickupEnd: endDate,
-          recipientId: winningRequest.requesterId,
           status: 'scheduled'
         })
         .where(eq(schema.items.id, itemId));
-
-      // Update request statuses
-      for (const request of requests) {
-        await storage.updateItemRequestStatus(
-          request.id,
-          request.id === winningRequest.id ? 'accepted' : 'rejected'
-        );
-      }
 
       res.json({ success: true });
     } catch (error) {
