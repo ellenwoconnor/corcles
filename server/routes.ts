@@ -23,11 +23,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       // Handle case where items is null or undefined
-      const itemArray = Array.isArray(items) ? items : [];
-      // Only send the actual item data, not the table structure
-      res.json(itemArray.map(item => ({
+      res.json(items.map(item => ({
         ...item,
-        createdAt: new Date(item.createdAt).toISOString(), // Ensure proper date formatting
+        createdAt: new Date(item.createdAt).toISOString(),
       })));
     } catch (error) {
       logger.error('Error fetching items:', error);
@@ -51,10 +49,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ error: "Invalid item data" });
       }
 
-      res.json({
-        ...item,
-        createdAt: new Date(item.createdAt).toISOString()
-      });
+      res.json(item);
     } catch (error) {
       logger.error('Error fetching item:', error);
       res.status(500).json({ error: 'Failed to fetch item' });
