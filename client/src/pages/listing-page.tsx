@@ -262,7 +262,12 @@ export default function ListingPage() {
                       <Form {...bidForm}>
                         <form
                           onSubmit={bidForm.handleSubmit((data) => {
-                            bidMutation.mutate(data);
+                            bidMutation.mutate(data, {
+                              onSuccess: () => {
+                                queryClient.invalidateQueries({ queryKey: ['/api/user/bids'] });
+                                setRequestDialogOpen(false);
+                              }
+                            });
                           })}
                           className="space-y-4"
                         >
