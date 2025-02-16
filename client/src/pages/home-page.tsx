@@ -44,14 +44,16 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="container py-12 px-8">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
           <div>
             <h1 className="text-4xl font-bold tracking-tight">Marketplace</h1>
             <p className="text-muted-foreground">
               Browse items in your communities
             </p>
           </div>
-          <CreateListingDialog />
+          <div className="order-first sm:order-none">
+            <CreateListingDialog />
+          </div>
         </div>
 
         <div className="space-y-4 mb-8">

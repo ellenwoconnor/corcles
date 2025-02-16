@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Item, InsertItemRequest, InsertItemBid } from "@shared/schema";
+import { Item, InsertItemRequest, InsertItemBid, ItemRequest, ItemBid } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import { useRoute } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -178,6 +178,10 @@ export default function ListingPage() {
   const requestMutation = useMutation({
     mutationFn: async (data: z.infer<typeof requestSchema>) => {
       const response = await apiRequest("POST", `/api/items/${itemId}/request`, data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to send request');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -189,11 +193,22 @@ export default function ListingPage() {
       queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/my-requests`] });
       setRequestDialogOpen(false);
     },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to send request",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const bidMutation = useMutation({
     mutationFn: async (data: z.infer<typeof bidSchema>) => {
       const response = await apiRequest("POST", `/api/items/${itemId}/bid`, data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to place bid');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -203,7 +218,19 @@ export default function ListingPage() {
       });
       bidForm.reset();
       setRequestDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/my-bids`] });
+      queryClient.invalidateQueries({ 
+        queryKey: [
+          `/api/items/${itemId}/my-bids`,
+          '/api/user/bids'
+        ] 
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to place bid",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
