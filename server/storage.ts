@@ -102,7 +102,7 @@ export class DatabaseStorage implements IStorage {
     }
   ): Promise<(Item & { userHasFavorited: boolean })[]> {
     try {
-      let query = db
+      const baseQuery = db
         .select({
           id: items.id,
           title: items.title,
@@ -123,8 +123,10 @@ export class DatabaseStorage implements IStorage {
         .from(items)
         .where(eq(items.community, community));
 
+      let finalQuery = baseQuery;
+
       if (options?.searchQuery) {
-        query = query.where(
+        finalQuery = finalQuery.$dynamic().where(
           or(
             ilike(items.title, `%${options.searchQuery}%`),
             ilike(items.description, `%${options.searchQuery}%`)
@@ -133,7 +135,7 @@ export class DatabaseStorage implements IStorage {
       }
 
       if (options?.showFreeOnly) {
-        query = query.where(
+        finalQuery = finalQuery.$dynamic().where(
           or(
             eq(items.isGift, true),
             and(
@@ -147,13 +149,14 @@ export class DatabaseStorage implements IStorage {
         );
       }
 
-      const itemResults = await query.orderBy(desc(items.createdAt));
+      const itemResults = await finalQuery.orderBy(desc(items.createdAt));
 
       logger.debug('Retrieved items:', { 
         community, 
         count: itemResults.length,
         searchQuery: options?.searchQuery,
-        showFreeOnly: options?.showFreeOnly
+        showFreeOnly: options?.showFreeOnly,
+        freeItemsCount: itemResults.filter(item => item.isGift || item.price === 0 || item.price === null).length
       });
 
       return itemResults;
