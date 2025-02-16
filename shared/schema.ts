@@ -8,8 +8,9 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   displayName: text("display_name").notNull(),
   avatarUrl: text("avatar_url"),
-  address: text("address").notNull().unique(),
-  community: text("community").notNull(),
+  address: text("address").notNull(),
+  zipCode: text("zip_code").notNull(),
+  community: text("community").notNull(), // This will be auto-generated as "home-circle-{zipCode}"
 });
 
 export const favoriteTable = pgTable("favorites", {
@@ -41,7 +42,12 @@ export const insertUserSchema = createInsertSchema(users).extend({
       const hasStreet = /[a-zA-Z]/.test(val);
       return hasNumber && hasStreet;
     }, "Address must contain both numbers and street name"),
-  community: z.string().min(2, "Community name must be at least 2 characters"),
+  zipCode: z.string()
+    .min(5, "Zip code must be 5 digits")
+    .max(5, "Zip code must be 5 digits")
+    .refine((val) => /^\d{5}$/.test(val), "Zip code must be exactly 5 digits"),
+}).omit({ 
+  community: true // Remove community from the insert schema as it will be auto-generated
 });
 
 export const insertItemSchema = createInsertSchema(items).omit({ 
