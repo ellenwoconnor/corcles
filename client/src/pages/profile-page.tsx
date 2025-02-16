@@ -4,7 +4,7 @@ import { Item, ItemRequest, ItemBid } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import ItemGrid from "@/components/item-grid";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Package, Gift, Tag, Clock } from "lucide-react";
