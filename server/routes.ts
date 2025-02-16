@@ -15,12 +15,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const searchQuery = req.query.search as string | undefined;
       const showFreeOnly = req.query.freeOnly === 'true';
+      logger.debug('Fetching items with params:', { 
+        community: req.params.community,
+        searchQuery,
+        showFreeOnly,
+        rawFreeOnly: req.query.freeOnly
+      });
+
       const items = await storage.getItems(
         req.params.community, 
         req.user?.id, 
         { searchQuery, showFreeOnly }
       );
       const itemArray = Array.isArray(items) ? items : [];
+
+      logger.debug('Filtered items result:', {
+        totalItems: itemArray.length,
+        freeItems: itemArray.filter(item => item.isGift || !item.price || item.price === 0).length
+      });
+
       res.json(itemArray.map(item => ({
         ...item,
         createdAt: new Date(item.createdAt).toISOString(),
