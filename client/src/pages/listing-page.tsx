@@ -70,6 +70,12 @@ function RequestsList({ itemId }: { itemId: number }) {
             </span>
           </div>
           <p className="text-sm text-muted-foreground">{request.message}</p>
+          {request.item?.pickupStart && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Pickup: {format(new Date(request.item.pickupStart), "PPP p")} -{" "}
+              {format(new Date(request.item.pickupEnd!), "p")}
+            </p>
+          )}
         </div>
         <Badge
           variant={
