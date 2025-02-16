@@ -101,26 +101,28 @@ export class DatabaseStorage implements IStorage {
     id: number,
     userId?: number,
   ): Promise<(Item & { userHasFavorited: boolean }) | undefined> {
-    const [result] = await db
-      .select({
-        id: items.id,
-        title: items.title,
-        description: items.description,
-        price: items.price,
-        isGift: items.isGift,
-        imageUrl: items.imageUrl,
-        userId: items.userId,
-        community: items.community,
-        createdAt: items.createdAt,
-        favorites: items.favorites,
+    const result = await db.query.items.findFirst({
+      where: eq(items.id, id),
+      columns: {
+        id: true,
+        title: true,
+        description: true,
+        price: true,
+        isGift: true,
+        imageUrl: true,
+        userId: true,
+        community: true,
+        createdAt: true,
+        favorites: true,
+      },
+      extras: {
         userHasFavorited: sql<boolean>`EXISTS (
           SELECT 1 FROM ${favoriteTable}
-          WHERE ${favoriteTable.itemId} = ${items.id}
+          WHERE ${favoriteTable.itemId} = ${id}
           AND ${favoriteTable.userId} = ${userId ?? 0}
         )::boolean`.as("userHasFavorited"),
-      })
-      .from(items)
-      .where(eq(items.id, id));
+      },
+    });
     return result;
   }
 
