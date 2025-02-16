@@ -8,7 +8,7 @@ import {
   type InsertItem,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, ilike, or, isNull } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -24,10 +24,6 @@ export interface IStorage {
   getItems(
     community: string,
     userId?: number,
-    options?: {
-      searchQuery?: string;
-      showFreeOnly?: boolean;
-    }
   ): Promise<(Item & { userHasFavorited: boolean })[]>;
   getItem(
     id: number,
@@ -96,34 +92,8 @@ export class DatabaseStorage implements IStorage {
   async getItems(
     community: string,
     userId?: number,
-    options?: {
-      searchQuery?: string;
-      showFreeOnly?: boolean;
-    }
   ): Promise<(Item & { userHasFavorited: boolean })[]> {
     try {
-      // Build the where conditions array
-      const whereConditions = [eq(items.community, community)];
-
-      if (options?.searchQuery) {
-        whereConditions.push(
-          or(
-            ilike(items.title, `%${options.searchQuery}%`),
-            ilike(items.description, `%${options.searchQuery}%`)
-          )
-        );
-      }
-
-      if (options?.showFreeOnly) {
-        whereConditions.push(
-          or(
-            eq(items.isGift, true),
-            isNull(items.price),
-            eq(items.price, 0)
-          )
-        );
-      }
-
       const itemResults = await db
         .select({
           id: items.id,
@@ -143,17 +113,10 @@ export class DatabaseStorage implements IStorage {
           )::boolean`.as("userHasFavorited"),
         })
         .from(items)
-        .where(and(...whereConditions))
+        .where(eq(items.community, community))
         .orderBy(desc(items.createdAt));
 
-      logger.debug('Retrieved items:', { 
-        community, 
-        count: itemResults.length,
-        searchQuery: options?.searchQuery,
-        showFreeOnly: options?.showFreeOnly,
-        freeItemsCount: itemResults.filter(item => item.isGift || !item.price || item.price === 0).length
-      });
-
+      logger.debug('Retrieved items:', { community, count: itemResults.length });
       return itemResults;
     } catch (error) {
       logger.error('Error retrieving items:', { error, community });

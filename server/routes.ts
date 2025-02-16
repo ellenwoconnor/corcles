@@ -4,7 +4,7 @@ import multer from "multer";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertItemSchema } from "@shared/schema";
-import logger from './logger';
+import logger from './logger'; // Assuming a logger is available
 
 const upload = multer();
 
@@ -13,30 +13,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/items/:community", async (req, res) => {
     try {
-      const searchQuery = req.query.search as string | undefined;
-      const showFreeOnly = req.query.freeOnly === 'true';
-      logger.debug('Fetching items with params:', { 
-        community: req.params.community,
-        searchQuery,
-        showFreeOnly,
-        rawFreeOnly: req.query.freeOnly
-      });
-
-      const items = await storage.getItems(
-        req.params.community, 
-        req.user?.id, 
-        { searchQuery, showFreeOnly }
-      );
+      const items = await storage.getItems(req.params.community, req.user?.id);
+      // Handle case where items is null or undefined
       const itemArray = Array.isArray(items) ? items : [];
-
-      logger.debug('Filtered items result:', {
-        totalItems: itemArray.length,
-        freeItems: itemArray.filter(item => item.isGift || !item.price || item.price === 0).length
-      });
-
+      // Only send the actual item data, not the table structure
       res.json(itemArray.map(item => ({
         ...item,
-        createdAt: new Date(item.createdAt).toISOString(),
+        createdAt: new Date(item.createdAt).toISOString(), // Ensure proper date formatting
       })));
     } catch (error) {
       logger.error('Error fetching items:', error);
@@ -56,6 +39,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Item not found" });
       }
 
+      // Convert dates to ISO strings for consistent handling
       res.json({
         ...item,
         createdAt: new Date(item.createdAt).toISOString()
@@ -88,7 +72,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.status(201).json({
         ...item,
-        createdAt: new Date(item.createdAt).toISOString()
+        createdAt: new Date(item.createdAt).toISOString() // Ensure proper date formatting
       });
     } catch (error) {
       logger.error('Error creating item:', error);
