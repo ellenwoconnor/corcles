@@ -54,8 +54,7 @@ export default function AuthPage() {
       username: "",
       password: "",
       displayName: "",
-      community: "",
-      address: "", // Added default value for address
+      address: "",
     },
   });
 
@@ -185,33 +184,7 @@ export default function AuthPage() {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={registerForm.control}
-                    name="community"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Community</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select your community" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {MOCK_COMMUNITIES.map((community) => (
-                              <SelectItem key={community} value={community}>
-                                {community}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  
                   <Button
                     type="submit"
                     className="w-full"
