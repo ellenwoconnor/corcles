@@ -69,6 +69,7 @@ export default function AuthPage() {
         <div className="flex flex-col items-center mb-8">
           <RobotLogo />
           <h1 className="text-7xl font-bold mt-4">CORCLES</h1>
+          <p className="text-lg text-muted-foreground mt-2">Sharing made simple</p>
         </div>
         <div className="p-6 bg-card rounded-lg shadow-lg">
           <Tabs defaultValue="login">
