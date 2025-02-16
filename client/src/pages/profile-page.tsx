@@ -135,13 +135,9 @@ export default function ProfilePage() {
                               "outline"
                             }
                           >
-                            {requests?.some(r => r.status === "awaiting_pickup_confirmation") 
-                              ? "Pickup Confirmation Pending"
-                              : !item.recipientId 
-                                ? "Pending Requests" 
-                                : !item.pickupStart 
-                                  ? "Schedule Pickup" 
-                                  : "Pickup Scheduled"}
+                            {!item.recipientId ? "Pending Requests" :
+                             !item.pickupStart ? "Schedule Pickup" :
+                             "Pickup Scheduled"}
                           </Badge>
                         </div>
                       </CardHeader>
