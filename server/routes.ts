@@ -422,6 +422,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/items/:id/confirm-pickup", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const { confirmed } = req.body;
+      if (typeof confirmed !== 'boolean') {
+        return res.status(400).json({ error: "Confirmation status is required" });
+      }
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      // Get the user's request for this item
+      const [request] = await db
+        .select()
+        .from(schema.itemRequests)
+        .where(
+          and(
+            eq(schema.itemRequests.itemId, itemId),
+            eq(schema.itemRequests.requesterId, req.user.id),
+            eq(schema.itemRequests.status, schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION)
+          )
+        );
+
+      if (!request) {
+        return res.status(404).json({ error: "No pending pickup confirmation found" });
+      }
+
+      // Update request status based on confirmation
+      await db
+        .update(schema.itemRequests)
+        .set({ 
+          status: confirmed 
+            ? schema.REQUEST_STATUS.ACCEPTED 
+            : schema.REQUEST_STATUS.REJECTED 
+        })
+        .where(eq(schema.itemRequests.id, request.id));
+
+      // If confirmed, update item status to completed
+      if (confirmed) {
+        await db
+          .update(schema.items)
+          .set({ status: schema.ITEM_STATUS.COMPLETED })
+          .where(eq(schema.items.id, itemId));
+      }
+
+      logger.debug('Updated pickup confirmation:', { 
+        itemId,
+        requestId: request.id,
+        confirmed,
+        newStatus: confirmed ? 'completed' : 'available'
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error confirming pickup:', error);
+      res.status(500).json({ error: 'Failed to confirm pickup' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

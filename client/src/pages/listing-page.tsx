@@ -46,6 +46,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
+import { Check, X } from "lucide-react";
 
 function RequestsList({ itemId }: { itemId: number }) {
   const { data: requests } = useQuery<ItemRequest[]>({
@@ -261,6 +262,70 @@ function PickupScheduler({
         </div>
       </DrawerContent>
     </Drawer>
+  );
+}
+
+function PickupConfirmation({ item, request }: { item: Item; request: ItemRequest }) {
+  const { toast } = useToast();
+  const confirmMutation = useMutation({
+    mutationFn: async (confirmed: boolean) => {
+      const response = await apiRequest(
+        "POST",
+        `/api/items/${item.id}/confirm-pickup`,
+        { confirmed }
+      );
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to confirm pickup");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Pickup confirmed",
+        description: "The owner has been notified of your confirmation.",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}/my-requests`] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to confirm pickup",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  return (
+    <div className="space-y-4 border-t border-border pt-4">
+      <div className="space-y-2">
+        <h3 className="font-medium">Scheduled Pickup Window</h3>
+        <p className="text-sm text-muted-foreground">
+          {format(new Date(item.pickupStart!), "PPP p")} -{" "}
+          {format(new Date(item.pickupEnd!), "p")}
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <Button
+          onClick={() => confirmMutation.mutate(true)}
+          disabled={confirmMutation.isPending}
+          className="flex-1"
+        >
+          <Check className="w-4 h-4 mr-2" />
+          Confirm Pickup
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => confirmMutation.mutate(false)}
+          disabled={confirmMutation.isPending}
+          className="flex-1"
+        >
+          <X className="w-4 h-4 mr-2" />
+          Decline
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -489,53 +554,57 @@ export default function ListingPage() {
             ) : (
               <div className="flex gap-4">
                 {item.isGift ? (
-                  <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="flex-1" disabled={hasRequested}>
-                        {hasRequested ? "Request Pending" : "Request Item"}
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Request Item</DialogTitle>
-                        <DialogDescription>
-                          Send a message to the owner explaining why you'd like this item.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <Form {...requestForm}>
-                        <form
-                          onSubmit={requestForm.handleSubmit((data) => {
-                            requestMutation.mutate(data);
-                          })}
-                          className="space-y-4"
-                        >
-                          <FormField
-                            control={requestForm.control}
-                            name="message"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Message</FormLabel>
-                                <FormControl>
-                                  <Textarea {...field} />
-                                </FormControl>
-                                <FormDescription>
-                                  Be clear about why you're interested and how you'll use the item.
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <Button
-                            type="submit"
-                            className="w-full"
-                            disabled={requestMutation.isPending}
+                  requests?.some(r => r.status === "awaiting_pickup_confirmation") ? (
+                    <PickupConfirmation item={item} request={requests.find(r => r.status === "awaiting_pickup_confirmation")!} />
+                  ) : (
+                    <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="flex-1" disabled={hasRequested}>
+                          {hasRequested ? "Request Pending" : "Request Item"}
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Request Item</DialogTitle>
+                          <DialogDescription>
+                            Send a message to the owner explaining why you'd like this item.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <Form {...requestForm}>
+                          <form
+                            onSubmit={requestForm.handleSubmit((data) => {
+                              requestMutation.mutate(data);
+                            })}
+                            className="space-y-4"
                           >
-                            Send Request
-                          </Button>
-                        </form>
-                      </Form>
-                    </DialogContent>
-                  </Dialog>
+                            <FormField
+                              control={requestForm.control}
+                              name="message"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Message</FormLabel>
+                                  <FormControl>
+                                    <Textarea {...field} />
+                                  </FormControl>
+                                  <FormDescription>
+                                    Be clear about why you're interested and how you'll use the item.
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <Button
+                              type="submit"
+                              className="w-full"
+                              disabled={requestMutation.isPending}
+                            >
+                              Send Request
+                            </Button>
+                          </form>
+                        </Form>
+                      </DialogContent>
+                    </Dialog>
+                  )
                 ) : (
                   <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
                     <DialogTrigger asChild>
