@@ -407,14 +407,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Pickup window cannot exceed 1 hour" });
       }
 
+      // Get all pending requests
+      const requests = await storage.getItemRequests(itemId);
+      const pendingRequests = requests.filter(r => r.status === 'pending');
+
+      if (pendingRequests.length === 0) {
+        return res.status(400).json({ error: "No pending requests available" });
+      }
+
+      // Randomly select a recipient
+      const winningRequest = pendingRequests[Math.floor(Math.random() * pendingRequests.length)];
+
+      // Update item with recipient and pickup window
       await db
         .update(schema.items)
         .set({ 
           pickupStart: startDate,
           pickupEnd: endDate,
+          recipientId: winningRequest.requesterId,
           status: 'scheduled'
         })
         .where(eq(schema.items.id, itemId));
+
+      // Update request statuses
+      for (const request of requests) {
+        await storage.updateItemRequestStatus(
+          request.id,
+          request.id === winningRequest.id ? 'accepted' : 'rejected'
+        );
+      }
 
       res.json({ success: true });
     } catch (error) {

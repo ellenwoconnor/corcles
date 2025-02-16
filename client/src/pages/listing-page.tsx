@@ -636,7 +636,7 @@ export default function ListingPage() {
                         </p>
                         {!item.pickupStart ? (
                           <div className="space-y-2">
-                            <p className="text-sm text-muted-foreground">Set a pickup window</p>
+                            <p className="text-sm text-muted-foreground">Set a pickup window to select a recipient</p>
                             <PickupScheduler
                               itemId={item.id}
                               onScheduled={() => {
@@ -646,20 +646,11 @@ export default function ListingPage() {
                           </div>
                         ) : (
                           <div className="space-y-2">
-                            <p className="text-sm font-medium">Pickup window scheduled</p>
-                            <Button
-                              onClick={() => drawingMutation.mutate()}
-                              disabled={drawingMutation.isPending}
-                            >
-                              {drawingMutation.isPending ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Drawing...
-                                </>
-                              ) : (
-                                "Gift Item"
-                              )}
-                            </Button>
+                            <p className="text-sm text-muted-foreground">A recipient has been selected</p>
+                            <p className="text-sm font-medium">
+                              Pickup window: {format(new Date(item.pickupStart), "PPP p")} -{" "}
+                              {format(new Date(item.pickupEnd), "p")}
+                            </p>
                           </div>
                         )}
                       </>
