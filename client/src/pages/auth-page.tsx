@@ -54,8 +54,7 @@ export default function AuthPage() {
       username: "",
       password: "",
       displayName: "",
-      community: "",
-      address: "", // Added default value for address
+      address: "",
     },
   });
 
@@ -67,8 +66,11 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <RobotLogo />
-          <h1 className="text-7xl font-bold mt-4">CORCLES</h1>
+          <div className="flex items-center gap-4">
+            <RobotLogo />
+            <h1 className="text-7xl font-bold">CORCLES</h1>
+          </div>
+          <p className="text-lg text-muted-foreground mt-2">Sharing made simple</p>
         </div>
         <div className="p-6 bg-card rounded-lg shadow-lg">
           <Tabs defaultValue="login">
@@ -182,33 +184,7 @@ export default function AuthPage() {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={registerForm.control}
-                    name="community"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Community</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select your community" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {MOCK_COMMUNITIES.map((community) => (
-                              <SelectItem key={community} value={community}>
-                                {community}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  
                   <Button
                     type="submit"
                     className="w-full"

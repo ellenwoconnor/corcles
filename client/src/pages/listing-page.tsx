@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Item, InsertItemRequest, InsertItemBid } from "@shared/schema";
@@ -33,12 +34,12 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 
 const requestSchema = z.object({
-  message: z.string().min(1, "Please include a message"),
+  message: z.string().optional(),
 });
 
 const bidSchema = z.object({
   amount: z.number().min(1, "Bid amount must be greater than 0"),
-  message: z.string().min(1, "Please include a message"),
+  message: z.string().optional(),
 });
 
 export default function ListingPage() {
@@ -46,6 +47,7 @@ export default function ListingPage() {
   const itemId = params?.id;
   const { user } = useAuth();
   const { toast } = useToast();
+  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
 
   const {
     data: item,
@@ -59,6 +61,19 @@ export default function ListingPage() {
       createdAt: new Date(data.createdAt),
     }),
   });
+
+  const { data: requests } = useQuery<ItemRequest[]>({
+    queryKey: [`/api/items/${itemId}/my-requests`],
+    enabled: !!itemId && !!user,
+  });
+
+  const { data: bids } = useQuery<ItemBid[]>({
+    queryKey: [`/api/items/${itemId}/my-bids`],
+    enabled: !!itemId && !!user,
+  });
+
+  const hasRequested = requests?.some(request => request.status === 'pending');
+  const hasBid = bids?.some(bid => bid.status === 'pending');
 
   const requestForm = useForm<z.infer<typeof requestSchema>>({
     resolver: zodResolver(requestSchema),
@@ -86,6 +101,8 @@ export default function ListingPage() {
         description: "The owner will be notified of your request.",
       });
       requestForm.reset();
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/my-requests`] });
+      setRequestDialogOpen(false);
     },
   });
 
@@ -100,6 +117,8 @@ export default function ListingPage() {
         description: "The owner will be notified of your bid.",
       });
       bidForm.reset();
+      setRequestDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/my-bids`] });
     },
   });
 
@@ -179,9 +198,11 @@ export default function ListingPage() {
             {!isOwner && (
               <div className="flex gap-4">
                 {item.isGift ? (
-                  <Dialog>
+                  <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button className="flex-1">Request Item</Button>
+                      <Button className="flex-1" disabled={hasRequested}>
+                        {hasRequested ? "Request Pending" : "Request Item"}
+                      </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
@@ -225,9 +246,11 @@ export default function ListingPage() {
                     </DialogContent>
                   </Dialog>
                 ) : (
-                  <Dialog>
+                  <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button className="flex-1">Place Bid</Button>
+                      <Button className="flex-1" disabled={hasBid}>
+                        {hasBid ? "Bid Pending" : "Place Bid"}
+                      </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
@@ -252,9 +275,11 @@ export default function ListingPage() {
                                 <FormControl>
                                   <Input
                                     type="number"
+                                    placeholder="Enter bid amount"
                                     {...field}
+                                    value={field.value || ''}
                                     onChange={(e) =>
-                                      field.onChange(Number(e.target.value))
+                                      field.onChange(e.target.value ? Number(e.target.value) : '')
                                     }
                                   />
                                 </FormControl>
