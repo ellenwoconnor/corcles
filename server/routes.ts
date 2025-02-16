@@ -186,6 +186,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/items/requests/:id/status", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const requestId = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      if (!["pending", "accepted", "rejected"].includes(status)) {
+        return res.status(400).json({ error: "Invalid status" });
+      }
+
+      const request = await storage.updateItemRequestStatus(requestId, status);
+      res.json(request);
+    } catch (error) {
+      logger.error('Error updating request status:', error);
+      res.status(500).json({ error: 'Failed to update request status' });
+    }
+  });
+
   app.get("/api/items/:id/requests", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
