@@ -259,13 +259,17 @@ export default function ListingPage() {
     }),
   });
 
+  // Define isOwner once
+  const isOwner = item?.userId === user?.id;
+
+  // Use different queries for owner vs requester
   const { data: requests } = useQuery<ItemRequest[]>({
-    queryKey: [`/api/items/${itemId}/my-requests`],
+    queryKey: [isOwner ? `/api/items/${itemId}/requests` : `/api/items/${itemId}/my-requests`],
     enabled: !!itemId && !!user,
   });
 
   const { data: bids } = useQuery<ItemBid[]>({
-    queryKey: [`/api/items/${itemId}/my-bids`],
+    queryKey: [`/api/items/${itemId}/bids`],
     enabled: !!itemId && !!user,
   });
 
@@ -392,7 +396,6 @@ export default function ListingPage() {
     );
   }
 
-  const isOwner = item.userId === user?.id;
 
   return (
     <div className="min-h-screen bg-background">
@@ -607,10 +610,10 @@ export default function ListingPage() {
                   </>
                 ) : (
                   <div className="space-y-4">
-                    {requests && requests.filter(r => r.status === 'pending').length > 0 && (
+                    {requests && requests.filter((r) => r.status === "pending").length > 0 && (
                       <>
                         <p className="text-sm text-muted-foreground">
-                          You have {requests.filter(r => r.status === 'pending').length} pending requests for this item
+                          You have {requests.filter((r) => r.status === "pending").length} pending requests for this item
                         </p>
                         <Button
                           onClick={() => drawingMutation.mutate()}
