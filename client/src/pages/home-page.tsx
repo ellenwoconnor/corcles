@@ -22,7 +22,7 @@ export default function HomePage() {
           <div>
             <h1 className="text-4xl font-bold tracking-tight">Marketplace</h1>
             <p className="text-muted-foreground">
-              Browse items in {user?.community}
+              Browse items in your circles
             </p>
           </div>
           <CreateListingDialog />
