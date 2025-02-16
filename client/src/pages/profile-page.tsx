@@ -27,7 +27,19 @@ export default function ProfilePage() {
     enabled: !!user,
   });
 
-  if (!user || itemsLoading || requestsLoading || bidsLoading) {
+  const { data: communityData, isLoading: communityLoading } = useQuery({
+    queryKey: ["/api/community", user?.community],
+    queryFn: async () => {
+      const response = await fetch(`/api/community/${user?.community}/count`);
+      if (!response.ok) throw new Error('Failed to fetch community count');
+      return response.json();
+    },
+    enabled: !!user?.community,
+  });
+
+  const communityCount = communityData?.count || 0;
+
+  if (!user || itemsLoading || requestsLoading || bidsLoading || communityLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-border" />
@@ -39,11 +51,25 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="container py-12">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold tracking-tight">My Profile</h1>
-          <p className="text-muted-foreground">
-            Manage your listings, requests, and bids
-          </p>
+        <div className="mb-8 space-y-4">
+          <div className="space-y-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight mb-2">{user.username}</h1>
+              <div className="flex items-center gap-x-6 text-sm">
+                <div>
+                  <span className="font-medium">Address: </span>
+                  <span className="text-muted-foreground">{user.address}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Home Community: </span>
+                  <span className="text-muted-foreground">{user.community}</span>
+                  <Badge variant="secondary" className="ml-1">
+                    {communityCount} {communityCount === 1 ? 'member' : 'members'}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <Tabs defaultValue="listings">

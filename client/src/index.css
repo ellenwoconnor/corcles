@@ -11,3 +11,9 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+@layer components {
+  .container {
+    @apply px-8 py-12 mx-auto max-w-7xl;
+  }
+}

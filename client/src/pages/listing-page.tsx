@@ -27,6 +27,91 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+
+function RequestsList({ itemId }: { itemId: number }) {
+  const { data: requests } = useQuery<ItemRequest[]>({
+    queryKey: [`/api/items/${itemId}/requests`],
+    enabled: !!itemId,
+  });
+
+  if (!requests?.length) {
+    return <p className="text-muted-foreground">No requests yet.</p>;
+  }
+
+  return requests.map((request) => (
+    <Card key={request.id} className="p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <p className="font-medium text-sm">Anonymous</p>
+            <span className="text-xs text-muted-foreground">
+              {formatDistanceToNow(new Date(request.createdAt), {
+                addSuffix: true,
+              })}
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground">{request.message}</p>
+        </div>
+        <Badge
+          variant={
+            request.status === "pending"
+              ? "secondary"
+              : request.status === "accepted"
+              ? "default"
+              : "destructive"
+          }
+          className="text-xs"
+        >
+          {request.status}
+        </Badge>
+      </div>
+    </Card>
+  ));
+}
+
+function BidsList({ itemId }: { itemId: number }) {
+  const { data: bids } = useQuery<ItemBid[]>({
+    queryKey: [`/api/items/${itemId}/bids`],
+    enabled: !!itemId,
+  });
+
+  if (!bids?.length) {
+    return <p className="text-muted-foreground">No bids yet.</p>;
+  }
+
+  return bids.map((bid) => (
+    <Card key={bid.id} className="p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <p className="font-medium text-sm">Anonymous · ${bid.amount}</p>
+            <span className="text-xs text-muted-foreground">
+              {formatDistanceToNow(new Date(bid.createdAt), {
+                addSuffix: true,
+              })}
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground">{bid.message}</p>
+        </div>
+        <Badge
+          variant={
+            bid.status === "pending"
+              ? "secondary"
+              : bid.status === "accepted"
+              ? "default"
+              : "destructive"
+          }
+          className="text-xs"
+        >
+          {bid.status}
+        </Badge>
+      </div>
+    </Card>
+  ));
+}
+
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -174,19 +259,13 @@ export default function ListingPage() {
               )}
             </div>
 
-            <div className="flex items-center gap-4">
-              <Avatar>
-                <AvatarImage src="/avatar.jpg" />
-                <AvatarFallback>U</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-medium">Listed by Anonymous</p>
-                <p className="text-sm text-muted-foreground">
-                  {formatDistanceToNow(item.createdAt, {
-                    addSuffix: true,
-                  })}
-                </p>
-              </div>
+            <div>
+              <p className="font-medium">Listed by Anonymous</p>
+              <p className="text-sm text-muted-foreground">
+                {formatDistanceToNow(item.createdAt, {
+                  addSuffix: true,
+                })}
+              </p>
             </div>
 
             <div className="border-t border-border pt-4">
@@ -195,7 +274,20 @@ export default function ListingPage() {
               </p>
             </div>
 
-            {!isOwner && (
+            {isOwner ? (
+              <div className="border-t border-border pt-3">
+                <h3 className="text-base font-medium mb-2">
+                  {item.isGift ? "Requests" : "Bids"}
+                </h3>
+                <div className="space-y-2">
+                  {item.isGift ? (
+                    <RequestsList itemId={item.id} />
+                  ) : (
+                    <BidsList itemId={item.id} />
+                  )}
+                </div>
+              </div>
+            ) : (
               <div className="flex gap-4">
                 {item.isGift ? (
                   <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
@@ -262,7 +354,12 @@ export default function ListingPage() {
                       <Form {...bidForm}>
                         <form
                           onSubmit={bidForm.handleSubmit((data) => {
-                            bidMutation.mutate(data);
+                            bidMutation.mutate(data, {
+                              onSuccess: () => {
+                                queryClient.invalidateQueries({ queryKey: ['/api/user/bids'] });
+                                setRequestDialogOpen(false);
+                              }
+                            });
                           })}
                           className="space-y-4"
                         >

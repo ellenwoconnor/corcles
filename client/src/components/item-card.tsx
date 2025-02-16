@@ -25,11 +25,7 @@ export default function ItemCard({ item }: ItemCardProps) {
           </div>
           <div className="p-3">
             <h3 className="font-semibold text-base mb-1 truncate">{item.title}</h3>
-            <div className="flex items-center gap-2 mt-1">
-              <Avatar className="h-6 w-6">
-                <AvatarImage src="/avatar.jpg" />
-                <AvatarFallback>U</AvatarFallback>
-              </Avatar>
+            <div className="mt-1">
               <span className="text-sm text-muted-foreground">
                 {formatDistanceToNow(new Date(item.createdAt), {
                   addSuffix: true,
