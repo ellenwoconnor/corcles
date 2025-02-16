@@ -41,33 +41,32 @@ function RequestsList({ itemId }: { itemId: number }) {
   }
 
   return requests.map((request) => (
-    <Card key={request.id}>
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle>Request from Anonymous</CardTitle>
-            <CardDescription>
+    <Card key={request.id} className="p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <p className="font-medium text-sm">Anonymous</p>
+            <span className="text-xs text-muted-foreground">
               {formatDistanceToNow(new Date(request.createdAt), {
                 addSuffix: true,
               })}
-            </CardDescription>
+            </span>
           </div>
-          <Badge
-            variant={
-              request.status === "pending"
-                ? "secondary"
-                : request.status === "accepted"
-                ? "default"
-                : "destructive"
-            }
-          >
-            {request.status}
-          </Badge>
+          <p className="text-sm text-muted-foreground">{request.message}</p>
         </div>
-      </CardHeader>
-      <CardContent>
-        <p className="text-muted-foreground">{request.message}</p>
-      </CardContent>
+        <Badge
+          variant={
+            request.status === "pending"
+              ? "secondary"
+              : request.status === "accepted"
+              ? "default"
+              : "destructive"
+          }
+          className="text-xs"
+        >
+          {request.status}
+        </Badge>
+      </div>
     </Card>
   ));
 }
@@ -83,34 +82,32 @@ function BidsList({ itemId }: { itemId: number }) {
   }
 
   return bids.map((bid) => (
-    <Card key={bid.id}>
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle>Bid from Anonymous</CardTitle>
-            <CardDescription>
+    <Card key={bid.id} className="p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <p className="font-medium text-sm">Anonymous · ${bid.amount}</p>
+            <span className="text-xs text-muted-foreground">
               {formatDistanceToNow(new Date(bid.createdAt), {
                 addSuffix: true,
               })}
-            </CardDescription>
+            </span>
           </div>
-          <Badge
-            variant={
-              bid.status === "pending"
-                ? "secondary"
-                : bid.status === "accepted"
-                ? "default"
-                : "destructive"
-            }
-          >
-            {bid.status}
-          </Badge>
+          <p className="text-sm text-muted-foreground">{bid.message}</p>
         </div>
-      </CardHeader>
-      <CardContent>
-        <p className="font-medium mb-2">${bid.amount}</p>
-        <p className="text-muted-foreground">{bid.message}</p>
-      </CardContent>
+        <Badge
+          variant={
+            bid.status === "pending"
+              ? "secondary"
+              : bid.status === "accepted"
+              ? "default"
+              : "destructive"
+          }
+          className="text-xs"
+        >
+          {bid.status}
+        </Badge>
+      </div>
     </Card>
   ));
 }
@@ -284,18 +281,16 @@ export default function ListingPage() {
             </div>
 
             {isOwner ? (
-              <div className="space-y-6 border-t border-border pt-4">
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">
-                    {item.isGift ? "Requests" : "Bids"}
-                  </h2>
-                  <div className="space-y-4">
-                    {item.isGift ? (
-                      <RequestsList itemId={item.id} />
-                    ) : (
-                      <BidsList itemId={item.id} />
-                    )}
-                  </div>
+              <div className="border-t border-border pt-3">
+                <h3 className="text-base font-medium mb-2">
+                  {item.isGift ? "Requests" : "Bids"}
+                </h3>
+                <div className="space-y-2">
+                  {item.isGift ? (
+                    <RequestsList itemId={item.id} />
+                  ) : (
+                    <BidsList itemId={item.id} />
+                  )}
                 </div>
               </div>
             ) : (
