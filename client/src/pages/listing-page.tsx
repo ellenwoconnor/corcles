@@ -33,12 +33,12 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 
 const requestSchema = z.object({
-  message: z.string().min(1, "Please include a message"),
+  message: z.string().optional(),
 });
 
 const bidSchema = z.object({
   amount: z.number().min(1, "Bid amount must be greater than 0"),
-  message: z.string().min(1, "Please include a message"),
+  message: z.string().optional(),
 });
 
 export default function ListingPage() {

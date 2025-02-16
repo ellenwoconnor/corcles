@@ -84,6 +84,8 @@ export const insertItemRequestSchema = createInsertSchema(itemRequests).omit({
   id: true,
   createdAt: true,
   status: true
+}).extend({
+  message: z.string().optional()
 });
 
 export const insertItemBidSchema = createInsertSchema(itemBids).omit({
@@ -92,6 +94,7 @@ export const insertItemBidSchema = createInsertSchema(itemBids).omit({
   status: true
 }).extend({
   amount: z.number().min(1, "Bid amount must be greater than 0"),
+  message: z.string().optional()
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
