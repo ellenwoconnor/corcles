@@ -25,11 +25,6 @@ export default function Navbar() {
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <div className="w-full flex-1 md:w-auto md:flex-none">
-            <Button variant="outline" className="mr-2">
-              {user?.community}
-            </Button>
-          </div>
           <nav className="flex items-center space-x-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

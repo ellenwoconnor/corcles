@@ -4,18 +4,21 @@ import { Item } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import ItemGrid from "@/components/item-grid";
 import CreateListingDialog from "@/components/create-listing-dialog";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, Gift } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 
 export default function HomePage() {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
+  const [showFreeOnly, setShowFreeOnly] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
 
   const { data: items, isLoading } = useQuery<(Item & { userHasFavorited: boolean })[]>({
-    queryKey: [`/api/items/${user?.community}`, debouncedSearch],
+    queryKey: [`/api/items/${user?.community}`, debouncedSearch, showFreeOnly],
     queryFn: async () => {
       const searchParams = new URLSearchParams();
       if (debouncedSearch) {
@@ -25,7 +28,8 @@ export default function HomePage() {
       if (!response.ok) {
         throw new Error('Failed to fetch items');
       }
-      return response.json();
+      const allItems = await response.json();
+      return showFreeOnly ? allItems.filter((item: Item) => item.isGift) : allItems;
     },
     enabled: !!user?.community,
   });
@@ -44,14 +48,28 @@ export default function HomePage() {
           <CreateListingDialog />
         </div>
 
-        <div className="relative mb-8">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search items..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
+        <div className="space-y-4 mb-8">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search items..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="free-only"
+              checked={showFreeOnly}
+              onCheckedChange={setShowFreeOnly}
+            />
+            <Label htmlFor="free-only" className="flex items-center gap-2">
+              <Gift className="h-4 w-4" />
+              Show only free items
+            </Label>
+          </div>
         </div>
 
         {isLoading ? (
@@ -64,7 +82,9 @@ export default function HomePage() {
             <p className="text-muted-foreground">
               {search 
                 ? "Try adjusting your search terms"
-                : "Be the first to list an item in your community"}
+                : showFreeOnly
+                  ? "No free items available in your community yet"
+                  : "Be the first to list an item in your community"}
             </p>
           </div>
         ) : (
