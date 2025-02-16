@@ -13,17 +13,17 @@ export default function ProfilePage() {
   const { user } = useAuth();
 
   const { data: userItems, isLoading: itemsLoading } = useQuery<Item[]>({
-    queryKey: ["/api/user/items"],
+    queryKey: ["/api/user/items", user?.id],
     enabled: !!user,
   });
 
   const { data: userRequests, isLoading: requestsLoading } = useQuery<(ItemRequest & { item: Item })[]>({
-    queryKey: ["/api/user/requests"],
+    queryKey: ["/api/user/requests", user?.id],
     enabled: !!user,
   });
 
   const { data: userBids, isLoading: bidsLoading } = useQuery<(ItemBid & { item: Item })[]>({
-    queryKey: ["/api/user/bids"],
+    queryKey: ["/api/user/bids", user?.id],
     enabled: !!user,
   });
 
