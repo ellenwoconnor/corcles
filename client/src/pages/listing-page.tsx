@@ -79,11 +79,15 @@ function RequestsList({ itemId }: { itemId: number }) {
               ? "default"
               : request.status === "accepted"
               ? "default"
+              : request.status === "awaiting_pickup_confirmation"
+              ? "default"
               : "destructive"
           }
           className="text-xs"
         >
-          {request.status === "ready_for_drawing" ? "Ready for Drawing" : request.status}
+          {request.status === "ready_for_drawing" ? "Ready for Drawing" : 
+           request.status === "awaiting_pickup_confirmation" ? "Awaiting Confirmation" :
+           request.status}
         </Badge>
       </div>
     </Card>
@@ -624,10 +628,35 @@ export default function ListingPage() {
                     </div>
                     <div className="space-y-2">
                       <h3 className="font-medium">Pickup Window</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(item.pickupStart!), "PPP p")} -{" "}
-                        {format(new Date(item.pickupEnd!), "p")}
-                      </p>
+                      {item.pickupStart ? (
+                        <div>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(item.pickupStart), "PPP p")} -{" "}
+                            {format(new Date(item.pickupEnd!), "p")}
+                          </p>
+                          {requests?.some(r => r.status === "awaiting_pickup_confirmation") && (
+                            <Alert className="mt-2">
+                              <Clock className="h-4 w-4" />
+                              <AlertTitle>Awaiting Confirmation</AlertTitle>
+                              <AlertDescription>
+                                Waiting for the recipient to confirm the pickup window
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <p className="text-sm text-muted-foreground">
+                            Set a pickup window for the recipient
+                          </p>
+                          <PickupScheduler
+                            itemId={item.id}
+                            onScheduled={() => {
+                              queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 ) : (
