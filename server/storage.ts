@@ -12,7 +12,8 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
-import { createLogger, format, transports } from "winston";
+import winston from "winston";
+const { createLogger, format, transports } = winston;
 
 const PostgresSessionStore = connectPg(session);
 const logger = createLogger({
