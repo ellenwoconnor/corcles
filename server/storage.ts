@@ -130,9 +130,10 @@ export class DatabaseStorage implements IStorage {
     logger.debug("getItem query result:", {
       id,
       userId,
-      result,
+      resultValue: result || 'No result found',
       query: `SELECT * FROM items WHERE id = ${id}`,
     });
+    logger.info(`Item ${id} lookup result: ${result ? 'Found' : 'Not found'}`);
     return result;
   }
 
