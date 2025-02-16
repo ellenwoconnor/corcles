@@ -395,8 +395,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await db
         .update(schema.items)
         .set({ 
-          pickupStart: startDate.toISOString(),
-          pickupEnd: endDate.toISOString(),
+          pickupStart: startDate,
+          pickupEnd: endDate,
           status: 'scheduled'
         })
         .where(eq(schema.items.id, itemId));
