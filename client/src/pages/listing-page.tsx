@@ -407,7 +407,6 @@ export default function ListingPage() {
     );
   }
 
-
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -457,7 +456,7 @@ export default function ListingPage() {
                 <div className="space-y-2">
                   {item.isGift ? (
                     <p className="text-sm text-muted-foreground">
-                      {requests?.filter(r => r.status === "pending").length || 0} pending requests
+                      {requests?.filter((r) => r.status === "pending").length || 0} pending requests
                     </p>
                   ) : (
                     <BidsList itemId={item.id} />
@@ -604,19 +603,21 @@ export default function ListingPage() {
                         A recipient has been selected through random drawing
                       </p>
                     </div>
-                    {item.pickupStart && item.pickupEnd ? (
-                      <div className="space-y-2">
-                        <h3 className="font-medium">Pickup Window</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(item.pickupStart), "PPP p")} -{" "}
-                          {format(new Date(item.pickupEnd), "p")}
-                        </p>
-                      </div>
-                    ) : (
+                    <div className="space-y-2">
+                      <h3 className="font-medium">Pickup Window</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {format(new Date(item.pickupStart!), "PPP p")} -{" "}
+                        {format(new Date(item.pickupEnd!), "p")}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {!item.pickupStart ? (
                       <div className="space-y-2">
                         <h3 className="font-medium">Schedule Pickup</h3>
                         <p className="text-sm text-muted-foreground mb-4">
-                          Set a one-hour window for the recipient to pick up the item
+                          First, set a one-hour window for item pickup. Then you can select a recipient.
                         </p>
                         <PickupScheduler
                           itemId={item.id}
@@ -625,28 +626,35 @@ export default function ListingPage() {
                           }}
                         />
                       </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {requests && requests.filter((r) => r.status === "pending").length > 0 && (
+                    ) : (
                       <>
-                        <p className="text-sm text-muted-foreground">
-                          You have {requests.filter((r) => r.status === "pending").length} pending requests for this item
-                        </p>
-                        <Button
-                          onClick={() => drawingMutation.mutate()}
-                          disabled={drawingMutation.isPending}
-                        >
-                          {drawingMutation.isPending ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Drawing...
-                            </>
-                          ) : (
-                            "Gift Item"
-                          )}
-                        </Button>
+                        <div className="space-y-2">
+                          <h3 className="font-medium">Scheduled Pickup Window</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(item.pickupStart), "PPP p")} -{" "}
+                            {format(new Date(item.pickupEnd), "p")}
+                          </p>
+                        </div>
+                        {requests && requests.filter((r) => r.status === "pending").length > 0 && (
+                          <>
+                            <p className="text-sm text-muted-foreground">
+                              You have {requests.filter((r) => r.status === "pending").length} pending requests for this item
+                            </p>
+                            <Button
+                              onClick={() => drawingMutation.mutate()}
+                              disabled={drawingMutation.isPending}
+                            >
+                              {drawingMutation.isPending ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Drawing...
+                                </>
+                              ) : (
+                                "Select Random Recipient"
+                              )}
+                            </Button>
+                          </>
+                        )}
                       </>
                     )}
                   </div>
