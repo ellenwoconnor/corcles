@@ -67,8 +67,10 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <RobotLogo />
-          <h1 className="text-7xl font-bold mt-4">CORCLES</h1>
+          <div className="flex items-center gap-4">
+            <RobotLogo />
+            <h1 className="text-7xl font-bold">CORCLES</h1>
+          </div>
           <p className="text-lg text-muted-foreground mt-2">Sharing made simple</p>
         </div>
         <div className="p-6 bg-card rounded-lg shadow-lg">
