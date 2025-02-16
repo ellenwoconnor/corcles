@@ -470,7 +470,13 @@ export default function ListingPage() {
                 </h3>
                 <div className="space-y-2">
                   {item.isGift ? (
-                    <RequestsList itemId={item.id} />
+                    requests ? (
+                      <p className="text-muted-foreground">
+                        {requests.length} {requests.length === 1 ? 'request' : 'requests'} received
+                      </p>
+                    ) : (
+                      <p className="text-muted-foreground">No requests yet.</p>
+                    )
                   ) : (
                     <BidsList itemId={item.id} />
                   )}
