@@ -632,7 +632,7 @@ export default function ListingPage() {
                     {!item.recipientId && requests && requests.filter((r) => r.status === "pending").length > 0 && (
                       <>
                         <p className="text-sm text-muted-foreground">
-                          You have {requests.filter((r) => r.status === "pending").length} pending requests for this item
+                          Requests: {requests.filter((r) => r.status === "pending").length}
                         </p>
                         {!item.pickupStart ? (
                           <div className="space-y-2">
