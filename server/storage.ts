@@ -144,7 +144,7 @@ export class DatabaseStorage implements IStorage {
     userId?: number,
   ): Promise<(Item & { userHasFavorited: boolean }) | undefined> {
     try {
-      const [result] = await db
+      const [item] = await db
         .select({
           id: items.id,
           title: items.title,
@@ -170,10 +170,11 @@ export class DatabaseStorage implements IStorage {
       logger.debug("getItem query result:", {
         id,
         userId,
-        result: result || 'No result found'
+        found: !!item,
+        item
       });
 
-      return result;
+      return item;
     } catch (error) {
       logger.error('Error retrieving item:', { error, id });
       throw error;

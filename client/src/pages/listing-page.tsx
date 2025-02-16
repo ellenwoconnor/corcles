@@ -1,13 +1,12 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Item } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import { useRoute } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
-import { Heart, Loader2 } from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Loader2 } from "lucide-react";
 
 export default function ListingPage() {
   const [, params] = useRoute("/item/:id");
@@ -23,21 +22,8 @@ export default function ListingPage() {
     enabled: !!itemId,
     select: (data) => ({
       ...data,
-      createdAt: new Date(),
+      createdAt: new Date(data.createdAt),
     }),
-  });
-
-  const favoriteMutation = useMutation({
-    mutationFn: async () => {
-      if (!item) return;
-      await apiRequest("POST", `/api/items/${item.id}/favorite`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
-      queryClient.invalidateQueries({
-        queryKey: [`/api/items/${user?.community}`],
-      });
-    },
   });
 
   if (isLoading) {
