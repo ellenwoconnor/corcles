@@ -388,6 +388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Pickup window cannot exceed 1 hour" });
       }
 
+      // Update item status and pickup window
       await db
         .update(schema.items)
         .set({ 
@@ -396,6 +397,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: 'pending_recipient'
         })
         .where(eq(schema.items.id, itemId));
+
+      // Update all pending requests to ready_for_drawing
+      const requests = await storage.getItemRequests(itemId);
+      for (const request of requests) {
+        if (request.status === 'pending') {
+          await storage.updateItemRequestStatus(request.id, 'ready_for_drawing');
+        }
+      }
 
       res.json({ success: true });
     } catch (error) {
