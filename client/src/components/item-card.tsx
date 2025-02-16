@@ -72,11 +72,9 @@ export default function ItemCard({ item }: ItemCardProps) {
               alt={item.title}
               className="object-cover w-full h-full"
             />
-            {item.isGift && (
-              <div className="absolute top-2 right-2 bg-primary text-primary-foreground px-2 py-1 rounded-full text-sm font-medium">
-                Free
-              </div>
-            )}
+            <div className="absolute top-2 right-2 bg-primary text-primary-foreground px-2 py-1 rounded-full text-sm font-medium">
+              {item.isGift ? "Free" : `$${item.price}`}
+            </div>
           </div>
           <div className="p-4">
             <h3 className="font-semibold text-lg mb-1 truncate">{item.title}</h3>
