@@ -67,8 +67,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
-    return user;
+    try {
+      // Generate the community name based on zip code
+      const community = `home-circle-${insertUser.zipCode}`;
+
+      const [user] = await db.insert(users).values({
+        ...insertUser,
+        community,
+      }).returning();
+
+      logger.debug('Created new user:', { 
+        userId: user.id, 
+        username: user.username,
+        community
+      });
+
+      return user;
+    } catch (error) {
+      logger.error('Error creating user:', { error, username: insertUser.username });
+      throw error;
+    }
   }
 
   async getItems(
