@@ -46,6 +46,7 @@ export default function ListingPage() {
   const itemId = params?.id;
   const { user } = useAuth();
   const { toast } = useToast();
+  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
 
   const {
     data: item,
@@ -59,6 +60,13 @@ export default function ListingPage() {
       createdAt: new Date(data.createdAt),
     }),
   });
+
+  const { data: requests } = useQuery<ItemRequest[]>({
+    queryKey: [`/api/items/${itemId}/my-requests`],
+    enabled: !!itemId && !!user,
+  });
+
+  const hasRequested = requests?.some(request => request.status === 'pending');
 
   const requestForm = useForm<z.infer<typeof requestSchema>>({
     resolver: zodResolver(requestSchema),
@@ -86,6 +94,8 @@ export default function ListingPage() {
         description: "The owner will be notified of your request.",
       });
       requestForm.reset();
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/my-requests`] });
+      setRequestDialogOpen(false);
     },
   });
 
@@ -179,9 +189,11 @@ export default function ListingPage() {
             {!isOwner && (
               <div className="flex gap-4">
                 {item.isGift ? (
-                  <Dialog>
+                  <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button className="flex-1">Request Item</Button>
+                      <Button className="flex-1" disabled={hasRequested}>
+                        {hasRequested ? "Request Pending" : "Request Item"}
+                      </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>

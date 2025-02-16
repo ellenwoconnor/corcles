@@ -165,6 +165,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/items/:id/my-requests", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const requests = await db
+        .select()
+        .from(itemRequests)
+        .where(and(
+          eq(itemRequests.itemId, itemId),
+          eq(itemRequests.requesterId, req.user.id)
+        ));
+
+      res.json(requests);
+    } catch (error) {
+      logger.error('Error fetching user requests:', error);
+      res.status(500).json({ error: 'Failed to fetch requests' });
+    }
+  });
+
   app.get("/api/items/:id/requests", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
