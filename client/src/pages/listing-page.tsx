@@ -73,13 +73,15 @@ function RequestsList({ itemId }: { itemId: number }) {
           variant={
             request.status === "pending"
               ? "secondary"
+              : request.status === "ready_for_drawing"
+              ? "default"
               : request.status === "accepted"
               ? "default"
               : "destructive"
           }
           className="text-xs"
         >
-          {request.status}
+          {request.status === "ready_for_drawing" ? "Ready for Drawing" : request.status}
         </Badge>
       </div>
     </Card>
@@ -455,9 +457,7 @@ export default function ListingPage() {
                 </h3>
                 <div className="space-y-2">
                   {item.isGift ? (
-                    <p className="text-sm text-muted-foreground">
-                      {requests?.filter((r) => r.status === "pending").length || 0} pending requests
-                    </p>
+                    <RequestsList itemId={item.id} />
                   ) : (
                     <BidsList itemId={item.id} />
                   )}
