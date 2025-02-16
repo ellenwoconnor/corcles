@@ -1,13 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import {
-  Item,
-  InsertItemRequest,
-  InsertItemBid,
-  ItemRequest,
-  ItemBid,
-} from "@shared/schema";
+import { Item, InsertItemRequest, InsertItemBid, ItemRequest, ItemBid } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import { useRoute } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -33,23 +27,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  addDays,
-  addHours,
-  format,
-  isBefore,
-  isAfter,
-  startOfHour,
-} from "date-fns";
+import { addDays, addHours, format, isBefore, isAfter, startOfHour } from "date-fns";
 import {
   Drawer,
   DrawerContent,
@@ -93,8 +74,8 @@ function RequestsList({ itemId }: { itemId: number }) {
             request.status === "pending"
               ? "secondary"
               : request.status === "accepted"
-                ? "default"
-                : "destructive"
+              ? "default"
+              : "destructive"
           }
           className="text-xs"
         >
@@ -134,8 +115,8 @@ function BidsList({ itemId }: { itemId: number }) {
             bid.status === "pending"
               ? "secondary"
               : bid.status === "accepted"
-                ? "default"
-                : "destructive"
+              ? "default"
+              : "destructive"
           }
           className="text-xs"
         >
@@ -183,7 +164,7 @@ function PickupScheduler({
         {
           pickupStart: pickupStart.toISOString(),
           pickupEnd: pickupEnd.toISOString(),
-        },
+        }
       );
 
       if (!response.ok) {
@@ -209,13 +190,11 @@ function PickupScheduler({
     },
   });
 
-  const availableHours = Array.from({ length: 24 }, (_, i) => i).filter(
-    (hour) => {
-      if (!selectedDate) return false;
-      const date = addHours(selectedDate, hour);
-      return isAfter(date, now) && isBefore(date, twoWeeksFromNow);
-    },
-  );
+  const availableHours = Array.from({ length: 24 }, (_, i) => i).filter((hour) => {
+    if (!selectedDate) return false;
+    const date = addHours(selectedDate, hour);
+    return isAfter(date, now) && isBefore(date, twoWeeksFromNow);
+  });
 
   return (
     <Drawer open={isOpen} onOpenChange={setIsOpen}>
@@ -236,9 +215,7 @@ function PickupScheduler({
               mode="single"
               selected={selectedDate}
               onSelect={setSelectedDate}
-              disabled={(date) =>
-                isBefore(date, now) || isAfter(date, twoWeeksFromNow)
-              }
+              disabled={(date) => isBefore(date, now) || isAfter(date, twoWeeksFromNow)}
             />
           </div>
           {selectedDate && (
@@ -259,11 +236,7 @@ function PickupScheduler({
           )}
           <Button
             className="w-full"
-            disabled={
-              !selectedDate ||
-              selectedHour === undefined ||
-              scheduleMutation.isPending
-            }
+            disabled={!selectedDate || selectedHour === undefined || scheduleMutation.isPending}
             onClick={() => scheduleMutation.mutate()}
           >
             {scheduleMutation.isPending ? (
@@ -288,11 +261,7 @@ export default function ListingPage() {
   const { toast } = useToast();
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
 
-  const {
-    data: item,
-    isLoading,
-    error,
-  } = useQuery<Item & { userHasFavorited?: boolean }>({
+  const { data: item, isLoading, error } = useQuery<Item & { userHasFavorited?: boolean }>({
     queryKey: [`/api/items/${itemId}`],
     enabled: !!itemId,
     select: (data) => ({
@@ -306,11 +275,7 @@ export default function ListingPage() {
 
   // Use different queries for owner vs requester
   const { data: requests } = useQuery<ItemRequest[]>({
-    queryKey: [
-      isOwner
-        ? `/api/items/${itemId}/requests`
-        : `/api/items/${itemId}/my-requests`,
-    ],
+    queryKey: [isOwner ? `/api/items/${itemId}/requests` : `/api/items/${itemId}/my-requests`],
     enabled: !!itemId && !!user,
   });
 
@@ -319,9 +284,7 @@ export default function ListingPage() {
     enabled: !!itemId && !!user,
   });
 
-  const hasRequested = requests?.some(
-    (request) => request.status === "pending",
-  );
+  const hasRequested = requests?.some((request) => request.status === "pending");
   const hasBid = bids?.some((bid) => bid.status === "pending");
 
   const requestForm = useForm<z.infer<typeof requestSchema>>({
@@ -341,11 +304,7 @@ export default function ListingPage() {
 
   const requestMutation = useMutation({
     mutationFn: async (data: z.infer<typeof requestSchema>) => {
-      const response = await apiRequest(
-        "POST",
-        `/api/items/${itemId}/request`,
-        data,
-      );
+      const response = await apiRequest("POST", `/api/items/${itemId}/request`, data);
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Failed to send request");
@@ -358,9 +317,7 @@ export default function ListingPage() {
         description: "The owner will be notified of your request.",
       });
       requestForm.reset();
-      queryClient.invalidateQueries({
-        queryKey: [`/api/items/${itemId}/my-requests`],
-      });
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/my-requests`] });
       setRequestDialogOpen(false);
     },
     onError: (error: Error) => {
@@ -374,11 +331,7 @@ export default function ListingPage() {
 
   const bidMutation = useMutation({
     mutationFn: async (data: z.infer<typeof bidSchema>) => {
-      const response = await apiRequest(
-        "POST",
-        `/api/items/${itemId}/bid`,
-        data,
-      );
+      const response = await apiRequest("POST", `/api/items/${itemId}/bid`, data);
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Failed to place bid");
@@ -454,6 +407,7 @@ export default function ListingPage() {
     );
   }
 
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -503,9 +457,7 @@ export default function ListingPage() {
                 <div className="space-y-2">
                   {item.isGift ? (
                     <p className="text-sm text-muted-foreground">
-                      {requests?.filter((r) => r.status === "pending").length ||
-                        0}{" "}
-                      pending requests
+                      {requests?.filter(r => r.status === "pending").length || 0} pending requests
                     </p>
                   ) : (
                     <BidsList itemId={item.id} />
@@ -515,10 +467,7 @@ export default function ListingPage() {
             ) : (
               <div className="flex gap-4">
                 {item.isGift ? (
-                  <Dialog
-                    open={requestDialogOpen}
-                    onOpenChange={setRequestDialogOpen}
-                  >
+                  <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
                     <DialogTrigger asChild>
                       <Button className="flex-1" disabled={hasRequested}>
                         {hasRequested ? "Request Pending" : "Request Item"}
@@ -528,8 +477,7 @@ export default function ListingPage() {
                       <DialogHeader>
                         <DialogTitle>Request Item</DialogTitle>
                         <DialogDescription>
-                          Send a message to the owner explaining why you'd like
-                          this item.
+                          Send a message to the owner explaining why you'd like this item.
                         </DialogDescription>
                       </DialogHeader>
                       <Form {...requestForm}>
@@ -549,8 +497,7 @@ export default function ListingPage() {
                                   <Textarea {...field} />
                                 </FormControl>
                                 <FormDescription>
-                                  Be clear about why you're interested and how
-                                  you'll use the item.
+                                  Be clear about why you're interested and how you'll use the item.
                                 </FormDescription>
                                 <FormMessage />
                               </FormItem>
@@ -568,10 +515,7 @@ export default function ListingPage() {
                     </DialogContent>
                   </Dialog>
                 ) : (
-                  <Dialog
-                    open={requestDialogOpen}
-                    onOpenChange={setRequestDialogOpen}
-                  >
+                  <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
                     <DialogTrigger asChild>
                       <Button className="flex-1" disabled={hasBid}>
                         {hasBid ? "Bid Pending" : "Place Bid"}
@@ -589,9 +533,7 @@ export default function ListingPage() {
                           onSubmit={bidForm.handleSubmit((data) => {
                             bidMutation.mutate(data, {
                               onSuccess: () => {
-                                queryClient.invalidateQueries({
-                                  queryKey: ["/api/user/bids"],
-                                });
+                                queryClient.invalidateQueries({ queryKey: ["/api/user/bids"] });
                                 setRequestDialogOpen(false);
                               },
                             });
@@ -611,11 +553,7 @@ export default function ListingPage() {
                                     {...field}
                                     value={field.value || ""}
                                     onChange={(e) =>
-                                      field.onChange(
-                                        e.target.value
-                                          ? Number(e.target.value)
-                                          : "",
-                                      )
+                                      field.onChange(e.target.value ? Number(e.target.value) : "")
                                     }
                                   />
                                 </FormControl>
@@ -636,8 +574,7 @@ export default function ListingPage() {
                                   <Textarea {...field} />
                                 </FormControl>
                                 <FormDescription>
-                                  Include any additional information about your
-                                  bid.
+                                  Include any additional information about your bid.
                                 </FormDescription>
                                 <FormMessage />
                               </FormItem>
@@ -667,7 +604,6 @@ export default function ListingPage() {
                         A recipient has been selected through random drawing
                       </p>
                     </div>
-
                     {item.pickupStart && item.pickupEnd ? (
                       <div className="space-y-2">
                         <h3 className="font-medium">Pickup Window</h3>
@@ -685,9 +621,7 @@ export default function ListingPage() {
                         <PickupScheduler
                           itemId={item.id}
                           onScheduled={() => {
-                            queryClient.invalidateQueries({
-                              queryKey: [`/api/items/${itemId}`],
-                            });
+                            queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
                           }}
                         />
                       </div>
@@ -695,28 +629,26 @@ export default function ListingPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {requests &&
-                      requests.filter((r) => r.status === "pending").length > 0 && (
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">
-                            {requests.filter((r) => r.status === "pending").length}{" "}
-                            pending requests
-                          </p>
-                          <Button
-                            onClick={() => drawingMutation.mutate()}
-                            disabled={drawingMutation.isPending}
-                          >
-                            {drawingMutation.isPending ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Drawing...
-                              </>
-                            ) : (
-                              "Start Random Drawing"
-                            )}
-                          </Button>
-                        </div>
-                      )}
+                    {requests && requests.filter((r) => r.status === "pending").length > 0 && (
+                      <>
+                        <p className="text-sm text-muted-foreground">
+                          You have {requests.filter((r) => r.status === "pending").length} pending requests for this item
+                        </p>
+                        <Button
+                          onClick={() => drawingMutation.mutate()}
+                          disabled={drawingMutation.isPending}
+                        >
+                          {drawingMutation.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Drawing...
+                            </>
+                          ) : (
+                            "Gift Item"
+                          )}
+                        </Button>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
