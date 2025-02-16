@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -10,7 +10,7 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   address: text("address").notNull(),
   zipCode: text("zip_code").notNull(),
-  community: text("community").notNull(), // This will be auto-generated as "home-circle-{zipCode}"
+  community: text("community").notNull(),
 });
 
 export const favoriteTable = pgTable("favorites", {
@@ -30,6 +30,26 @@ export const items = pgTable("items", {
   community: text("community").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   favorites: integer("favorites").notNull().default(0),
+  status: text("status").notNull().default('available'),
+});
+
+export const itemRequests = pgTable("item_requests", {
+  id: serial("id").primaryKey(),
+  itemId: integer("item_id").notNull(),
+  requesterId: integer("requester_id").notNull(),
+  status: text("status").notNull().default('pending'),
+  message: text("message"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const itemBids = pgTable("item_bids", {
+  id: serial("id").primaryKey(),
+  itemId: integer("item_id").notNull(),
+  bidderId: integer("bidder_id").notNull(),
+  amount: integer("amount").notNull(),
+  status: text("status").notNull().default('pending'),
+  message: text("message"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).extend({
@@ -47,22 +67,41 @@ export const insertUserSchema = createInsertSchema(users).extend({
     .max(5, "Zip code must be 5 digits")
     .refine((val) => /^\d{5}$/.test(val), "Zip code must be exactly 5 digits"),
 }).omit({ 
-  community: true // Remove community from the insert schema as it will be auto-generated
+  community: true
 });
 
 export const insertItemSchema = createInsertSchema(items).omit({ 
   id: true,
   userId: true,
   createdAt: true,
-  favorites: true
+  favorites: true,
+  status: true
 }).extend({
   imageFile: z.instanceof(File).optional(),
+});
+
+export const insertItemRequestSchema = createInsertSchema(itemRequests).omit({
+  id: true,
+  createdAt: true,
+  status: true
+});
+
+export const insertItemBidSchema = createInsertSchema(itemBids).omit({
+  id: true,
+  createdAt: true,
+  status: true
+}).extend({
+  amount: z.number().min(1, "Bid amount must be greater than 0"),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertItem = z.infer<typeof insertItemSchema>;
 export type Item = typeof items.$inferSelect;
+export type InsertItemRequest = z.infer<typeof insertItemRequestSchema>;
+export type ItemRequest = typeof itemRequests.$inferSelect;
+export type InsertItemBid = z.infer<typeof insertItemBidSchema>;
+export type ItemBid = typeof itemBids.$inferSelect;
 
 export const MOCK_COMMUNITIES = [
   "Downtown Seattle",

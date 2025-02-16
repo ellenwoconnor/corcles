@@ -2,10 +2,16 @@ import {
   users,
   items,
   favoriteTable,
+  itemRequests,
+  itemBids,
   type User,
   type InsertUser,
   type Item,
   type InsertItem,
+  type ItemRequest,
+  type InsertItemRequest,
+  type ItemBid,
+  type InsertItemBid,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, ilike } from "drizzle-orm";
@@ -17,6 +23,7 @@ import logger from './logger';
 const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
+  // Existing methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByAddress(address: string): Promise<User | undefined>;
@@ -31,7 +38,18 @@ export interface IStorage {
     userId?: number,
   ): Promise<(Item & { userHasFavorited: boolean }) | undefined>;
   createItem(item: InsertItem & { userId: number }): Promise<Item>;
-  
+
+  // New methods for requests and bids
+  createItemRequest(request: InsertItemRequest): Promise<ItemRequest>;
+  getItemRequests(itemId: number): Promise<ItemRequest[]>;
+  getUserRequests(userId: number): Promise<(ItemRequest & { item: Item })[]>;
+  updateItemRequestStatus(id: number, status: string): Promise<ItemRequest>;
+
+  createItemBid(bid: InsertItemBid): Promise<ItemBid>;
+  getItemBids(itemId: number): Promise<ItemBid[]>;
+  getUserBids(userId: number): Promise<(ItemBid & { item: Item })[]>;
+  updateItemBidStatus(id: number, status: string): Promise<ItemBid>;
+
   sessionStore: session.Store;
 }
 
@@ -250,6 +268,128 @@ export class DatabaseStorage implements IStorage {
       }
     } catch (error) {
       logger.error('Error unfavoriting item:', { error, id, userId });
+      throw error;
+    }
+  }
+
+  async createItemRequest(request: InsertItemRequest): Promise<ItemRequest> {
+    try {
+      const [newRequest] = await db.insert(itemRequests).values(request).returning();
+      logger.debug('Created new item request:', { requestId: newRequest.id });
+      return newRequest;
+    } catch (error) {
+      logger.error('Error creating item request:', { error, request });
+      throw error;
+    }
+  }
+
+  async getItemRequests(itemId: number): Promise<ItemRequest[]> {
+    try {
+      const requests = await db
+        .select()
+        .from(itemRequests)
+        .where(eq(itemRequests.itemId, itemId))
+        .orderBy(desc(itemRequests.createdAt));
+      return requests;
+    } catch (error) {
+      logger.error('Error getting item requests:', { error, itemId });
+      throw error;
+    }
+  }
+
+  async getUserRequests(userId: number): Promise<(ItemRequest & { item: Item })[]> {
+    try {
+      const requests = await db
+        .select({
+          request: itemRequests,
+          item: items,
+        })
+        .from(itemRequests)
+        .innerJoin(items, eq(itemRequests.itemId, items.id))
+        .where(eq(itemRequests.requesterId, userId))
+        .orderBy(desc(itemRequests.createdAt));
+
+      return requests.map(({ request, item }) => ({
+        ...request,
+        item,
+      }));
+    } catch (error) {
+      logger.error('Error getting user requests:', { error, userId });
+      throw error;
+    }
+  }
+
+  async updateItemRequestStatus(id: number, status: string): Promise<ItemRequest> {
+    try {
+      const [updatedRequest] = await db
+        .update(itemRequests)
+        .set({ status })
+        .where(eq(itemRequests.id, id))
+        .returning();
+      return updatedRequest;
+    } catch (error) {
+      logger.error('Error updating item request status:', { error, id, status });
+      throw error;
+    }
+  }
+
+  async createItemBid(bid: InsertItemBid): Promise<ItemBid> {
+    try {
+      const [newBid] = await db.insert(itemBids).values(bid).returning();
+      logger.debug('Created new item bid:', { bidId: newBid.id });
+      return newBid;
+    } catch (error) {
+      logger.error('Error creating item bid:', { error, bid });
+      throw error;
+    }
+  }
+
+  async getItemBids(itemId: number): Promise<ItemBid[]> {
+    try {
+      const bids = await db
+        .select()
+        .from(itemBids)
+        .where(eq(itemBids.itemId, itemId))
+        .orderBy(desc(itemBids.amount));
+      return bids;
+    } catch (error) {
+      logger.error('Error getting item bids:', { error, itemId });
+      throw error;
+    }
+  }
+
+  async getUserBids(userId: number): Promise<(ItemBid & { item: Item })[]> {
+    try {
+      const bids = await db
+        .select({
+          bid: itemBids,
+          item: items,
+        })
+        .from(itemBids)
+        .innerJoin(items, eq(itemBids.itemId, items.id))
+        .where(eq(itemBids.bidderId, userId))
+        .orderBy(desc(itemBids.createdAt));
+
+      return bids.map(({ bid, item }) => ({
+        ...bid,
+        item,
+      }));
+    } catch (error) {
+      logger.error('Error getting user bids:', { error, userId });
+      throw error;
+    }
+  }
+
+  async updateItemBidStatus(id: number, status: string): Promise<ItemBid> {
+    try {
+      const [updatedBid] = await db
+        .update(itemBids)
+        .set({ status })
+        .where(eq(itemBids.id, id))
+        .returning();
+      return updatedBid;
+    } catch (error) {
+      logger.error('Error updating item bid status:', { error, id, status });
       throw error;
     }
   }

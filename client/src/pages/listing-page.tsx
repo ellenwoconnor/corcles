@@ -1,17 +1,51 @@
 import { useAuth } from "@/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
-import { Item } from "@shared/schema";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Item, InsertItemRequest, InsertItemBid } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import { useRoute } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageSquare } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
+
+const requestSchema = z.object({
+  message: z.string().min(1, "Please include a message"),
+});
+
+const bidSchema = z.object({
+  amount: z.number().min(1, "Bid amount must be greater than 0"),
+  message: z.string().min(1, "Please include a message"),
+});
 
 export default function ListingPage() {
   const [, params] = useRoute("/item/:id");
   const itemId = params?.id;
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const {
     data: item,
@@ -24,6 +58,49 @@ export default function ListingPage() {
       ...data,
       createdAt: new Date(data.createdAt),
     }),
+  });
+
+  const requestForm = useForm<z.infer<typeof requestSchema>>({
+    resolver: zodResolver(requestSchema),
+    defaultValues: {
+      message: "",
+    },
+  });
+
+  const bidForm = useForm<z.infer<typeof bidSchema>>({
+    resolver: zodResolver(bidSchema),
+    defaultValues: {
+      amount: 0,
+      message: "",
+    },
+  });
+
+  const requestMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof requestSchema>) => {
+      const response = await apiRequest("POST", `/api/items/${itemId}/request`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Request sent!",
+        description: "The owner will be notified of your request.",
+      });
+      requestForm.reset();
+    },
+  });
+
+  const bidMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof bidSchema>) => {
+      const response = await apiRequest("POST", `/api/items/${itemId}/bid`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Bid placed!",
+        description: "The owner will be notified of your bid.",
+      });
+      bidForm.reset();
+    },
   });
 
   if (isLoading) {
@@ -49,6 +126,8 @@ export default function ListingPage() {
       </div>
     );
   }
+
+  const isOwner = item.userId === user?.id;
 
   return (
     <div className="min-h-screen bg-background">
@@ -97,9 +176,125 @@ export default function ListingPage() {
               </p>
             </div>
 
-            <div className="flex gap-4">
-              <Button className="flex-1">Contact Seller</Button>
-            </div>
+            {!isOwner && item.status === 'available' && (
+              <div className="flex gap-4">
+                {item.isGift ? (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="flex-1">Request Item</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Request Item</DialogTitle>
+                        <DialogDescription>
+                          Send a message to the owner explaining why you'd like this item.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <Form {...requestForm}>
+                        <form
+                          onSubmit={requestForm.handleSubmit((data) => {
+                            requestMutation.mutate(data);
+                          })}
+                          className="space-y-4"
+                        >
+                          <FormField
+                            control={requestForm.control}
+                            name="message"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Message</FormLabel>
+                                <FormControl>
+                                  <Textarea {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                  Be clear about why you're interested and how you'll use the item.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={requestMutation.isPending}
+                          >
+                            Send Request
+                          </Button>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
+                ) : (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="flex-1">Place Bid</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Place a Bid</DialogTitle>
+                        <DialogDescription>
+                          Make an offer for this item.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <Form {...bidForm}>
+                        <form
+                          onSubmit={bidForm.handleSubmit((data) => {
+                            bidMutation.mutate(data);
+                          })}
+                          className="space-y-4"
+                        >
+                          <FormField
+                            control={bidForm.control}
+                            name="amount"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Bid Amount ($)</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    {...field}
+                                    onChange={(e) =>
+                                      field.onChange(Number(e.target.value))
+                                    }
+                                  />
+                                </FormControl>
+                                <FormDescription>
+                                  Enter your bid amount in dollars.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={bidForm.control}
+                            name="message"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Message</FormLabel>
+                                <FormControl>
+                                  <Textarea {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                  Include any additional information about your bid.
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <Button
+                            type="submit"
+                            className="w-full"
+                            disabled={bidMutation.isPending}
+                          >
+                            Place Bid
+                          </Button>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </main>
