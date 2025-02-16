@@ -12,9 +12,14 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
+import { createLogger, format, transports } from "winston";
 
 const PostgresSessionStore = connectPg(session);
-
+const logger = createLogger({
+  level: "debug",
+  format: format.combine(format.timestamp(), format.json()),
+  transports: [new transports.Console()],
+});
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -121,11 +126,11 @@ export class DatabaseStorage implements IStorage {
       })
       .from(items)
       .where(eq(items.id, id));
-    console.log("getItem query result:", {
+    logger.debug("getItem query result:", {
       id,
       userId,
       result,
-      query: `SELECT * FROM items WHERE id = ${id}`
+      query: `SELECT * FROM items WHERE id = ${id}`,
     });
     return result;
   }
