@@ -23,9 +23,9 @@ export default function ItemCard({ item }: ItemCardProps) {
               {item.isGift ? "Free" : `$${item.price}`}
             </div>
           </div>
-          <div className="p-4">
-            <h3 className="font-semibold text-lg mb-1 truncate">{item.title}</h3>
-            <div className="flex items-center gap-2 mt-2">
+          <div className="p-3">
+            <h3 className="font-semibold text-base mb-1 truncate">{item.title}</h3>
+            <div className="flex items-center gap-2 mt-1">
               <Avatar className="h-6 w-6">
                 <AvatarImage src="/avatar.jpg" />
                 <AvatarFallback>U</AvatarFallback>
