@@ -16,6 +16,17 @@ export default function HomePage() {
 
   const { data: items, isLoading } = useQuery<(Item & { userHasFavorited: boolean })[]>({
     queryKey: [`/api/items/${user?.community}`, debouncedSearch],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+      if (debouncedSearch) {
+        searchParams.append('search', debouncedSearch);
+      }
+      const response = await fetch(`/api/items/${user?.community}?${searchParams.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch items');
+      }
+      return response.json();
+    },
     enabled: !!user?.community,
   });
 
