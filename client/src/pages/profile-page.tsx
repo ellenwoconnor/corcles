@@ -64,7 +64,7 @@ export default function ProfilePage() {
                   <p className="text-muted-foreground">{user.address}</p>
                 </div>
                 <div>
-                  <p className="font-medium">Home Circle</p>
+                  <p className="font-medium">Home Community</p>
                   <div className="flex items-center gap-2">
                     <p className="text-muted-foreground">{user.community}</p>
                     <Badge variant="secondary">
