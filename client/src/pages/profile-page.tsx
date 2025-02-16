@@ -135,7 +135,7 @@ export default function ProfilePage() {
                               "outline"
                             }
                           >
-                            {requests?.some(r => r.status === "awaiting_pickup_confirmation") 
+                            {userRequests?.some(r => r.item.id === item.id && r.status === "awaiting_pickup_confirmation")
                               ? "Pickup Confirmation Pending"
                               : !item.recipientId 
                                 ? "Pending Requests" 
