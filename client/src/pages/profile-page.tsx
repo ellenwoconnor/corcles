@@ -52,29 +52,24 @@ export default function ProfilePage() {
       <Navbar />
       <main className="container py-12">
         <div className="mb-8 space-y-4">
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight">{user.username}</h1>
-          </div>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-2">
+          <div className="space-y-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight mb-2">{user.username}</h1>
+              <div className="flex items-center gap-x-6 text-sm">
                 <div>
-                  <p className="font-medium">Address</p>
-                  <p className="text-muted-foreground">{user.address}</p>
+                  <span className="font-medium">Address: </span>
+                  <span className="text-muted-foreground">{user.address}</span>
                 </div>
-                <div>
-                  <p className="font-medium">Home Community</p>
-                  <div className="flex items-center gap-2">
-                    <p className="text-muted-foreground">{user.community}</p>
-                    <Badge variant="secondary">
-                      {communityCount} {communityCount === 1 ? 'member' : 'members'}
-                    </Badge>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Home Community: </span>
+                  <span className="text-muted-foreground">{user.community}</span>
+                  <Badge variant="secondary" className="ml-1">
+                    {communityCount} {communityCount === 1 ? 'member' : 'members'}
+                  </Badge>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         <Tabs defaultValue="listings">
