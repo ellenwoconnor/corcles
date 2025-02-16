@@ -677,19 +677,10 @@ export default function ListingPage() {
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        <h3 className="font-medium">Schedule Pickup</h3>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          Set a one-hour window for the recipient to pick up the
-                          item
+                        <p className="text-sm font-medium">
+                          Pickup window: {format(new Date(item.pickupStart), "PPP p")} -{" "}
+                          {format(new Date(item.pickupEnd), "p")}
                         </p>
-                        <PickupScheduler
-                          itemId={item.id}
-                          onScheduled={() => {
-                            queryClient.invalidateQueries({
-                              queryKey: [`/api/items/${itemId}`],
-                            });
-                          }}
-                        />
                       </div>
                     )}
                   </div>
