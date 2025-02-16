@@ -36,7 +36,13 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
   });
 
   const registerForm = useForm<z.infer<typeof insertUserSchema>>({
-    resolver: zodResolver(insertUserSchema),
+    resolver: zodResolver(
+      insertUserSchema.extend({
+        password: z.string().min(6, "Password must be at least 6 characters"),
+        address: z.string().min(1, "Address is required"),
+        zipCode: z.string().regex(/^\d{5}$/, "ZIP code must be 5 digits"),
+      })
+    ),
     defaultValues: {
       username: "",
       password: "",
@@ -57,8 +63,12 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
         <Form {...loginForm}>
           <form
             onSubmit={loginForm.handleSubmit(async (data) => {
-              await loginMutation.mutateAsync(data);
-              onSuccess?.();
+              try {
+                await loginMutation.mutateAsync(data);
+                onSuccess?.();
+              } catch (error) {
+                // Login errors are already handled by the mutation
+              }
             })}
             className="space-y-4"
           >
@@ -103,8 +113,18 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
         <Form {...registerForm}>
           <form
             onSubmit={registerForm.handleSubmit(async (data) => {
-              await registerMutation.mutateAsync(data);
-              onSuccess?.();
+              try {
+                await registerMutation.mutateAsync(data);
+                onSuccess?.();
+              } catch (error) {
+                // Registration errors are handled in the mutation
+                if ((error as Error).message.includes("address")) {
+                  registerForm.setError("address", {
+                    type: "manual",
+                    message: "This address is already registered in our system",
+                  });
+                }
+              }
             })}
             className="space-y-4"
           >
