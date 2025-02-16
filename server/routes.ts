@@ -4,7 +4,7 @@ import multer from "multer";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertItemSchema } from "@shared/schema";
-import logger from './logger'; // Assuming a logger is available
+import logger from './logger';
 
 const upload = multer();
 
@@ -13,7 +13,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/items/:community", async (req, res) => {
     try {
-      const items = await storage.getItems(req.params.community, req.user?.id);
+      const { search } = req.query;
+      const searchTerm = typeof search === 'string' ? search : undefined;
+
+      const items = await storage.getItems(
+        req.params.community, 
+        req.user?.id,
+        searchTerm
+      );
+
       // Handle case where items is null or undefined
       const itemArray = Array.isArray(items) ? items : [];
       // Only send the actual item data, not the table structure
