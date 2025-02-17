@@ -194,9 +194,9 @@ export default function ListingPage() {
                     {item.isGift ? "Requests" : "Bids"}
                   </h3>
                   {item.isGift && requests && requests.length > 0 && (
-                    <Badge variant="secondary">
+                    <span className="text-sm text-muted-foreground">
                       {requests.length} {requests.length === 1 ? 'request' : 'requests'}
-                    </Badge>
+                    </span>
                   )}
                 </div>
                 <div className="space-y-2">
