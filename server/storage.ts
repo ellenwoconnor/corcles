@@ -151,8 +151,13 @@ export class DatabaseStorage implements IStorage {
       if (userItemsOnly) {
         query.where(eq(items.userId, userId!));
       } else {
-        // For community browsing, filter by community
-        query.where(eq(items.community, community));
+        // For community browsing, filter by community and exclude completed items
+        query.where(
+          and(
+            eq(items.community, community),
+            sql`${items.status} != 'completed'`
+          )
+        );
       }
 
       if (search) {
@@ -173,11 +178,12 @@ export class DatabaseStorage implements IStorage {
         items: itemResults.map(item => ({
           id: item.id,
           title: item.title,
-          userId: item.userId
+          userId: item.userId,
+          status: item.status
         }))
       });
 
-      return itemResults;
+      return itemResults as (Item & { userHasFavorited: boolean })[];
     } catch (error) {
       logger.error('Error retrieving items:', { error, community, searchTerm: search });
       throw error;

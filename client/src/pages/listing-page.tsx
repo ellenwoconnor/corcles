@@ -298,6 +298,16 @@ export default function ListingPage() {
                         queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}/my-requests`] });
                       }}
                     />
+                  ) : hasRequested ? (
+                    <div className="space-y-4 border-t border-border pt-4">
+                      <div className="space-y-2">
+                        <h3 className="font-medium">Request Pending</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Your request is being reviewed by the owner.
+                        </p>
+                        <Badge variant="secondary">Pending</Badge>
+                      </div>
+                    </div>
                   ) : (
                     <RequestForm
                       itemId={item.id}
