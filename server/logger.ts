@@ -77,6 +77,11 @@ const logger = winston.createLogger({
 
 // Create request logger middleware
 export const requestLogger = (req: any, res: any, next: any) => {
+  // Skip logging for UI component requests
+  if (req.url.includes('/src/components/ui/')) {
+    return next();
+  }
+
   const start = Date.now();
 
   res.on('finish', () => {
