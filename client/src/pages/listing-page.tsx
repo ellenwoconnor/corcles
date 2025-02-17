@@ -271,7 +271,20 @@ export default function ListingPage() {
               /* Buyer View */
               <div className="flex gap-4">
                 {item.isGift ? (
-                  requests?.some(r => r.status === "awaiting_pickup_confirmation") ? (
+                  item.pickupStart ? (
+                    <div className="space-y-4 border-t border-border pt-4">
+                      <div className="space-y-2">
+                        <h3 className="font-medium">Scheduled Pickup</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(item.pickupStart), "PPP p")} -{" "}
+                          {format(new Date(item.pickupEnd!), "p")}
+                        </p>
+                        <Badge variant="outline">
+                          {item.status === 'completed' ? 'Pickup Complete' : 'Pickup Scheduled'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ) : requests?.some(r => r.status === "awaiting_pickup_confirmation") ? (
                     <PickupConfirmation
                       item={item}
                       request={requests.find(r => r.status === "awaiting_pickup_confirmation")!}
