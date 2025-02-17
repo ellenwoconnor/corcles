@@ -2,6 +2,12 @@ import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export interface PickupWindow {
+  pickupStart: string;
+  pickupEnd: string;
+  order?: number;
+}
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -48,6 +54,7 @@ export const items = pgTable("items", {
   recipientId: integer("recipient_id"),
   pickupStart: timestamp("pickup_start"),
   pickupEnd: timestamp("pickup_end"),
+  proposedPickupWindows: jsonb("proposed_pickup_windows").array(),
 });
 
 export const itemRequests = pgTable("item_requests", {
@@ -97,7 +104,18 @@ export const insertItemSchema = createInsertSchema(items).omit({
   pickupStart: true,
   pickupEnd: true
 }).extend({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
+  price: z.number().nullable().optional(),
   imageFile: z.instanceof(File).optional(),
+}).refine((data) => {
+  if (!data.isGift && (!data.price || data.price < 0.01)) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Price must be greater than zero for non-free items",
+  path: ["price"],
 });
 
 export const insertItemRequestSchema = createInsertSchema(itemRequests).omit({
@@ -120,7 +138,10 @@ export const insertItemBidSchema = createInsertSchema(itemBids).omit({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertItem = z.infer<typeof insertItemSchema>;
-export type Item = typeof items.$inferSelect & { userDisplayName?: string };
+export type Item = typeof items.$inferSelect & { 
+  userDisplayName?: string;
+  proposedPickupWindows?: PickupWindow[];
+};
 export type InsertItemRequest = z.infer<typeof insertItemRequestSchema>;
 export type ItemRequest = typeof itemRequests.$inferSelect;
 export type InsertItemBid = z.infer<typeof insertItemBidSchema>;

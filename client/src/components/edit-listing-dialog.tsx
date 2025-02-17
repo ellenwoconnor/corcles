@@ -21,99 +21,79 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertItemSchema } from "@shared/schema";
+import { insertItemSchema, Item } from "@shared/schema";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { DollarSign, Gift } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import { z } from "zod";
-import { useToast } from "@/hooks/use-toast";
+import { Loader2, Pencil } from "lucide-react";
 
-const MOCK_IMAGES = [
-  "https://images.unsplash.com/photo-1737282836845-555d9214dfe4",
-  "https://images.unsplash.com/photo-1523194258983-4ef0203f0c47",
-  "https://images.unsplash.com/photo-1477921749929-1b7a5d38b68a",
-  "https://images.unsplash.com/photo-1545147508-91576a5343a2",
-  "https://images.unsplash.com/photo-1737476813012-054eb34c53a9",
-  "https://images.unsplash.com/photo-1725278484721-b20373781f43",
-  "https://images.unsplash.com/photo-1509266145091-5e3e5ef88bc1",
-  "https://images.unsplash.com/photo-1627562309156-3056abea4fe9",
-];
+interface EditListingDialogProps {
+  item: Item;
+  trigger?: React.ReactNode;
+}
 
-export default function CreateListingDialog() {
+export default function EditListingDialog({ item, trigger }: EditListingDialogProps) {
   const { user } = useAuth();
-  const { toast } = useToast();
   const [open, setOpen] = useState(false);
 
   const form = useForm<z.infer<typeof insertItemSchema>>({
     resolver: zodResolver(insertItemSchema),
     defaultValues: {
-      title: "",
-      description: "",
-      price: undefined,
-      isGift: true,
-      imageUrl: MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)],
-      community: user?.community ?? "",
+      title: item.title,
+      description: item.description,
+      price: item.price ?? 0,
+      isGift: item.isGift,
+      imageUrl: item.imageUrl,
+      community: item.community,
     },
-    mode: "onChange"
   });
 
-  const createItemMutation = useMutation({
+  const updateItemMutation = useMutation({
     mutationFn: async (data: z.infer<typeof insertItemSchema>) => {
-      const response = await apiRequest("POST", "/api/items", {
+      const response = await apiRequest("PATCH", `/api/items/${item.id}`, {
         ...data,
         price: data.isGift ? null : data.price,
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to create listing");
+        throw new Error(error.message || "Failed to update item");
       }
       return response.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/items/${user?.community}`] });
       setOpen(false);
-      form.reset();
-      toast({
-        title: "Success",
-        description: "Listing created successfully",
-      });
     },
-    onError: (error: Error) => {
-      console.error("Failed to create listing:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create listing",
-        variant: "destructive",
-      });
-    }
   });
 
   return (
-    <Dialog 
-      open={open} 
-      onOpenChange={(newOpen) => {
-        if (!newOpen) {
-          form.reset();
-        }
-        setOpen(newOpen);
-      }}
-    >
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>Create Listing</Button>
+        {trigger || (
+          <Button 
+            variant="secondary" 
+            size="default"
+            className="gap-2"
+          >
+            <Pencil className="h-4 w-4" />
+            Edit Listing
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Listing</DialogTitle>
+          <DialogTitle>Edit Listing</DialogTitle>
           <DialogDescription>
-            Add details about the item you want to sell or gift
+            Update the details of your listing
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit((data) => {
-              createItemMutation.mutate(data);
+              updateItemMutation.mutate(data);
             })}
             className="space-y-4"
           >
@@ -147,17 +127,19 @@ export default function CreateListingDialog() {
               control={form.control}
               name="isGift"
               render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center gap-2 mb-4">
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Gift Item</FormLabel>
+                    <FormDescription>
+                      Mark this item as free to gift
+                    </FormDescription>
+                  </div>
+                  <FormControl>
                     <Switch
                       checked={field.value}
-                      onCheckedChange={(checked) => {
-                        field.onChange(checked);
-                        if (checked) form.setValue("price", undefined);
-                      }}
+                      onCheckedChange={field.onChange}
                     />
-                    <FormLabel className="!mt-0">Free item</FormLabel>
-                  </div>
+                  </FormControl>
                 </FormItem>
               )}
             />
@@ -171,11 +153,9 @@ export default function CreateListingDialog() {
                     <FormControl>
                       <Input
                         type="number"
-                        min="0"
-                        step="0.01"
-                        placeholder="Enter price in dollars (minimum $0.01)"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        value={field.value || ""}
                       />
                     </FormControl>
                     <FormMessage />
@@ -186,9 +166,16 @@ export default function CreateListingDialog() {
             <Button
               type="submit"
               className="w-full"
-              disabled={createItemMutation.isPending}
+              disabled={updateItemMutation.isPending}
             >
-              Create Listing
+              {updateItemMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Listing"
+              )}
             </Button>
           </form>
         </Form>
