@@ -237,55 +237,36 @@ export default function ListingPage() {
 
             {/* Owner Pickup Management */}
             {isOwner && item.isGift && (
-              <div className="border-t border-border pt-4 space-y-4">
+              <div className="border-t border-border pt-4">
                 {item.recipientId ? (
-                  <div className="space-y-4">
-                    {/* Selected Recipient */}
-                    <div className="space-y-2">
-                      <h3 className="font-medium">Selected Recipient</h3>
-                      <p className="text-sm text-muted-foreground">
-                        A recipient has been selected through random drawing
-                      </p>
-                    </div>
-
-                    {/* Pickup Window */}
-                    <div className="space-y-2">
-                      <h3 className="font-medium">Pickup Window</h3>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium mb-1">Pickup Details</h3>
                       {item.pickupStart ? (
-                        <div>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(item.pickupStart), "PPP p")} -{" "}
-                            {format(new Date(item.pickupEnd!), "p")}
-                          </p>
-                          {requests?.some(r => r.status === "awaiting_pickup_confirmation") && (
-                            <Alert className="mt-2">
-                              <AlertTitle>Awaiting Confirmation</AlertTitle>
-                            </Alert>
-                          )}
-                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(item.pickupStart), "PPP p")} -{" "}
+                          {format(new Date(item.pickupEnd!), "p")}
+                        </p>
                       ) : (
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">
-                            Set a pickup window for the recipient
-                          </p>
-                          <PickupScheduler
-                            itemId={item.id}
-                            onScheduled={() => {
-                              queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
-                            }}
-                          />
-                        </div>
+                        <PickupScheduler
+                          itemId={item.id}
+                          onScheduled={() => {
+                            queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
+                          }}
+                        />
                       )}
                     </div>
+                    {requests?.some(r => r.status === "awaiting_pickup_confirmation") && (
+                      <Alert className="w-auto">
+                        <AlertTitle>Awaiting Pickup Confirmation</AlertTitle>
+                      </Alert>
+                    )}
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {requests && requests.filter((r) => r.status === "pending").length > 0 && !item.pickupStart && (
-                      <div className="space-y-2">
-                        <h3 className="font-medium">Schedule Pickup</h3>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          First, set a one-hour window for item pickup. Then you can select a recipient.
-                        </p>
+                  <div>
+                    {requests && requests.filter((r) => r.status === "pending").length > 0 && (
+                      <div>
+                        <h3 className="font-medium mb-2">Schedule Pickup Window</h3>
                         <PickupScheduler
                           itemId={item.id}
                           onScheduled={() => {
@@ -295,16 +276,13 @@ export default function ListingPage() {
                       </div>
                     )}
                     {item.pickupStart && (
-                      <>
-                        <div className="space-y-2">
-                          <h3 className="font-medium">Scheduled Pickup Window</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(item.pickupStart), "PPP p")} -{" "}
-                            {format(new Date(item.pickupEnd!), "p")}
-                          </p>
-                        </div>
-                        
-                      </>
+                      <div>
+                        <h3 className="font-medium mb-1">Scheduled Pickup</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(item.pickupStart), "PPP p")} -{" "}
+                          {format(new Date(item.pickupEnd!), "p")}
+                        </p>
+                      </div>
                     )}
                   </div>
                 )}
