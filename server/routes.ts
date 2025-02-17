@@ -287,10 +287,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/community/:community/count", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const result = await db.select().from(schema.users).where(eq(schema.users.zipCode, '00000'));
-      res.json({ count: 5 }); // Hardcoding count to 5 for zip code 00000
+      const result = await db.select().from(schema.users).where(eq(schema.users.community, req.params.community));
+      logger.debug('Community count query result:', { 
+        community: req.params.community,
+        count: result.length
+      });
+      res.json({ count: result.length });
     } catch (error) {
-      console.error('Error fetching community count:', error);
+      logger.error('Error fetching community count:', error);
       res.status(500).json({ error: 'Failed to fetch community count' });
     }
   });
