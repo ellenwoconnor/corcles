@@ -97,6 +97,8 @@ export const insertItemSchema = createInsertSchema(items).omit({
   pickupStart: true,
   pickupEnd: true
 }).extend({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
   imageFile: z.instanceof(File).optional(),
 });
 

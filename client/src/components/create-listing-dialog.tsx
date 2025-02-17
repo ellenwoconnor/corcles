@@ -53,6 +53,7 @@ export default function CreateListingDialog() {
       imageUrl: MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)],
       community: user?.community ?? "",
     },
+    mode: "onChange"
   });
 
   const createItemMutation = useMutation({
