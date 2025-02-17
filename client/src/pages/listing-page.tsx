@@ -1,142 +1,27 @@
 import { useState } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Item, InsertItemRequest, InsertItemBid, ItemRequest, ItemBid } from "@shared/schema";
-import Navbar from "@/components/navbar";
+import { Item, InsertItemRequest, InsertItemBid } from "@shared/schema";
 import { useRoute } from "wouter";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { formatDistanceToNow } from "date-fns";
-import { Loader2, MessageSquare, Pencil } from "lucide-react";
+import { formatDistanceToNow, format } from "date-fns";
+import { Loader2, Pencil } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "@/components/ui/calendar";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Clock } from "lucide-react";
-import { addDays, addHours, format, isBefore, isAfter, startOfHour } from "date-fns";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import { Textarea } from "@/components/ui/textarea";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-import { Check, X } from "lucide-react";
+
+import Navbar from "@/components/navbar";
 import EditListingDialog from "@/components/edit-listing-dialog";
+import RequestsList from "@/components/requests-list";
+import BidsList from "@/components/bids-list";
+import PickupScheduler from "@/components/pickup-scheduler";
+import PickupConfirmation from "@/components/pickup-confirmation";
+import RequestForm from "@/components/request-form";
+import BidForm from "@/components/bid-form";
 
-function RequestsList({ itemId }: { itemId: number }) {
-  const { data: requests } = useQuery<ItemRequest[]>({
-    queryKey: [`/api/items/${itemId}/requests`],
-    enabled: !!itemId,
-  });
-
-  if (!requests?.length) {
-    return <p className="text-muted-foreground">No requests yet.</p>;
-  }
-
-  return requests.map((request) => (
-    <Card key={request.id} className="p-3">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <p className="font-medium text-sm">Anonymous</p>
-            <span className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(request.createdAt), {
-                addSuffix: true,
-              })}
-            </span>
-          </div>
-          <p className="text-sm text-muted-foreground">{request.message}</p>
-        </div>
-        <Badge
-          variant={
-            request.status === "pending"
-              ? "secondary"
-              : request.status === "ready_for_drawing"
-              ? "default"
-              : request.status === "accepted"
-              ? "default"
-              : request.status === "awaiting_pickup_confirmation"
-              ? "default"
-              : "destructive"
-          }
-          className="text-xs"
-        >
-          {request.status === "ready_for_drawing" ? "Ready for Drawing" :
-            request.status === "awaiting_pickup_confirmation" ? "Awaiting Confirmation" :
-              request.status}
-        </Badge>
-      </div>
-    </Card>
-  ));
-}
-
-function BidsList({ itemId }: { itemId: number }) {
-  const { data: bids } = useQuery<ItemBid[]>({
-    queryKey: [`/api/items/${itemId}/bids`],
-    enabled: !!itemId,
-  });
-
-  if (!bids?.length) {
-    return <p className="text-muted-foreground">No bids yet.</p>;
-  }
-
-  return bids.map((bid) => (
-    <Card key={bid.id} className="p-3">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <p className="font-medium text-sm">Anonymous · ${bid.amount}</p>
-            <span className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(bid.createdAt), {
-                addSuffix: true,
-              })}
-            </span>
-          </div>
-          <p className="text-sm text-muted-foreground">{bid.message}</p>
-        </div>
-        <Badge
-          variant={
-            bid.status === "pending"
-              ? "secondary"
-              : bid.status === "accepted"
-              ? "default"
-              : "destructive"
-          }
-          className="text-xs"
-        >
-          {bid.status}
-        </Badge>
-      </div>
-    </Card>
-  ));
-}
-
+// Form schemas
 const requestSchema = z.object({
   message: z.string().optional(),
 });
@@ -146,200 +31,17 @@ const bidSchema = z.object({
   message: z.string().optional(),
 });
 
-function PickupScheduler({
-  itemId,
-  onScheduled,
-}: {
-  itemId: number;
-  onScheduled: () => void;
-}) {
-  const { toast } = useToast();
-  const [selectedDate, setSelectedDate] = useState<Date>();
-  const [selectedHour, setSelectedHour] = useState<number>();
-  const [isOpen, setIsOpen] = useState(false);
-
-  const now = new Date();
-  const twoWeeksFromNow = addDays(now, 14);
-
-  const scheduleMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedDate || selectedHour === undefined) return;
-
-      const pickupStart = startOfHour(addHours(selectedDate, selectedHour));
-      const pickupEnd = addHours(pickupStart, 1);
-
-      const response = await apiRequest(
-        "POST",
-        `/api/items/${itemId}/schedule`,
-        {
-          pickupStart: pickupStart.toISOString(),
-          pickupEnd: pickupEnd.toISOString(),
-        }
-      );
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to schedule pickup");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      setIsOpen(false);
-      onScheduled();
-      toast({
-        title: "Pickup scheduled!",
-        description: "The recipient has been notified of the pickup window.",
-      });
-      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/requests`] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to schedule pickup",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const availableHours = Array.from({ length: 24 }, (_, i) => i).filter((hour) => {
-    if (!selectedDate) return false;
-    const date = addHours(selectedDate, hour);
-    return isAfter(date, now) && isBefore(date, twoWeeksFromNow);
-  });
-
-  return (
-    <Drawer open={isOpen} onOpenChange={setIsOpen}>
-      <DrawerTrigger asChild>
-        <Button>Schedule Pickup</Button>
-      </DrawerTrigger>
-      <DrawerContent>
-        <DrawerHeader>
-          <DrawerTitle>Schedule Item Pickup</DrawerTitle>
-          <DrawerDescription>
-            Select a one-hour window for item pickup
-          </DrawerDescription>
-        </DrawerHeader>
-        <div className="p-4 space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Select Date</label>
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              disabled={(date) => isBefore(date, now) || isAfter(date, twoWeeksFromNow)}
-            />
-          </div>
-          {selectedDate && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Select Hour</label>
-              <div className="grid grid-cols-4 gap-2">
-                {availableHours.map((hour) => (
-                  <Button
-                    key={hour}
-                    variant={selectedHour === hour ? "default" : "outline"}
-                    onClick={() => setSelectedHour(hour)}
-                  >
-                    {format(addHours(startOfHour(now), hour), "ha")}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
-          <Button
-            className="w-full"
-            disabled={!selectedDate || selectedHour === undefined || scheduleMutation.isPending}
-            onClick={() => scheduleMutation.mutate()}
-          >
-            {scheduleMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Scheduling...
-              </>
-            ) : (
-              "Confirm Pickup Window"
-            )}
-          </Button>
-        </div>
-      </DrawerContent>
-    </Drawer>
-  );
-}
-
-function PickupConfirmation({ item, request }: { item: Item; request: ItemRequest }) {
-  const { toast } = useToast();
-  const confirmMutation = useMutation({
-    mutationFn: async (confirmed: boolean) => {
-      const response = await apiRequest(
-        "POST",
-        `/api/items/${item.id}/confirm-pickup`,
-        { confirmed }
-      );
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to confirm pickup");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Pickup confirmed",
-        description: "The owner has been notified of your confirmation.",
-      });
-      queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}/my-requests`] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to confirm pickup",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  return (
-    <div className="space-y-4 border-t border-border pt-4">
-      <div className="space-y-2">
-        <h3 className="font-medium">Scheduled Pickup Window</h3>
-        <p className="text-sm text-muted-foreground">
-          {format(new Date(item.pickupStart!), "PPP p")} -{" "}
-          {format(new Date(item.pickupEnd!), "p")}
-        </p>
-      </div>
-      <div className="flex gap-2">
-        <Button
-          onClick={() => confirmMutation.mutate(true)}
-          disabled={confirmMutation.isPending}
-          className="flex-1"
-        >
-          <Check className="w-4 h-4 mr-2" />
-          Confirm Pickup
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => confirmMutation.mutate(false)}
-          disabled={confirmMutation.isPending}
-          className="flex-1"
-        >
-          <X className="w-4 h-4 mr-2" />
-          Decline
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 export default function ListingPage() {
+  // Routing and auth
   const [, params] = useRoute("/item/:id");
-  const itemId = params?.id;
   const { user } = useAuth();
   const { toast } = useToast();
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
 
+  // Item data query
   const { data: item, isLoading, error } = useQuery<Item & { userHasFavorited?: boolean }>({
-    queryKey: [`/api/items/${itemId}`],
-    enabled: !!itemId,
+    queryKey: [`/api/items/${params?.id}`],
+    enabled: !!params?.id,
     select: (data) => ({
       ...data,
       createdAt: new Date(data.createdAt),
@@ -348,93 +50,24 @@ export default function ListingPage() {
 
   const isOwner = item?.userId === user?.id;
 
+  // Requests and bids queries
   const { data: requests } = useQuery<ItemRequest[]>({
-    queryKey: [isOwner ? `/api/items/${itemId}/requests` : `/api/items/${itemId}/my-requests`],
-    enabled: !!itemId && !!user,
+    queryKey: [isOwner ? `/api/items/${params?.id}/requests` : `/api/items/${params?.id}/my-requests`],
+    enabled: !!params?.id && !!user,
   });
 
   const { data: bids } = useQuery<ItemBid[]>({
-    queryKey: [`/api/items/${itemId}/bids`],
-    enabled: !!itemId && !!user,
+    queryKey: [`/api/items/${params?.id}/bids`],
+    enabled: !!params?.id && !!user,
   });
 
   const hasRequested = requests?.some((request) => request.status === "pending");
   const hasBid = bids?.some((bid) => bid.status === "pending");
 
-  const requestForm = useForm<z.infer<typeof requestSchema>>({
-    resolver: zodResolver(requestSchema),
-    defaultValues: {
-      message: "",
-    },
-  });
-
-  const bidForm = useForm<z.infer<typeof bidSchema>>({
-    resolver: zodResolver(bidSchema),
-    defaultValues: {
-      amount: 0,
-      message: "",
-    },
-  });
-
-  const requestMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof requestSchema>) => {
-      const response = await apiRequest("POST", `/api/items/${itemId}/request`, data);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to send request");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Request sent!",
-        description: "The owner will be notified of your request.",
-      });
-      requestForm.reset();
-      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/my-requests`] });
-      setRequestDialogOpen(false);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to send request",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const bidMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof bidSchema>) => {
-      const response = await apiRequest("POST", `/api/items/${itemId}/bid`, data);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to place bid");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Bid placed!",
-        description: "The owner will be notified of your bid.",
-      });
-      bidForm.reset();
-      setRequestDialogOpen(false);
-      queryClient.invalidateQueries({
-        queryKey: [`/api/items/${itemId}/my-bids`, "/api/user/bids"],
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to place bid",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
+  // Drawing mutation
   const drawingMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", `/api/items/${itemId}/draw`);
+      const response = await apiRequest("POST", `/api/items/${params?.id}/draw`);
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Failed to perform drawing");
@@ -446,7 +79,7 @@ export default function ListingPage() {
         title: "Drawing complete!",
         description: "A recipient has been randomly selected.",
       });
-      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
     },
     onError: (error: Error) => {
       toast({
@@ -457,6 +90,7 @@ export default function ListingPage() {
     },
   });
 
+  // Loading and error states
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -486,6 +120,7 @@ export default function ListingPage() {
       <Navbar />
       <main className="container py-6">
         <div className="grid md:grid-cols-2 gap-8">
+          {/* Item Image */}
           <div>
             <img
               src={item.imageUrl}
@@ -493,7 +128,10 @@ export default function ListingPage() {
               className="w-full rounded-lg object-cover aspect-square"
             />
           </div>
+
+          {/* Item Details */}
           <div className="space-y-6">
+            {/* Header Section */}
             <div>
               <h1 className="text-3xl font-bold tracking-tight mb-2">
                 {item.title}
@@ -520,6 +158,7 @@ export default function ListingPage() {
               </div>
             </div>
 
+            {/* User Info */}
             <div>
               <p className="font-medium">Listed by {item.userDisplayName || 'Anonymous'}</p>
               <p className="text-sm text-muted-foreground">
@@ -529,20 +168,23 @@ export default function ListingPage() {
               </p>
             </div>
 
+            {/* Description */}
             <div className="border-t border-border pt-4">
               <p className="text-muted-foreground whitespace-pre-wrap">
                 {item.description}
               </p>
             </div>
 
+            {/* Pickup Confirmation Alert */}
             {requests?.some(r => r.status === "awaiting_pickup_confirmation") && (
               <div className="mb-4">
                 <Alert>
-                  <Clock className="h-4 w-4" />
                   <AlertTitle>Pickup Confirmation Pending</AlertTitle>
                 </Alert>
               </div>
             )}
+
+            {/* Owner View */}
             {isOwner ? (
               <div className="border-t border-border pt-3 space-y-4">
                 <div className="flex items-center justify-between">
@@ -552,173 +194,64 @@ export default function ListingPage() {
                 </div>
                 <div className="space-y-2">
                   {item.isGift ? (
-                    requests ? (
-                      <p className="text-muted-foreground">
-                        {requests.length} {requests.length === 1 ? 'request' : 'requests'} received
-                      </p>
-                    ) : (
-                      <p className="text-muted-foreground">No requests yet.</p>
-                    )
+                    <RequestsList itemId={item.id} />
                   ) : (
                     <BidsList itemId={item.id} />
                   )}
                 </div>
               </div>
             ) : (
+              /* Buyer View */
               <div className="flex gap-4">
                 {item.isGift ? (
                   requests?.some(r => r.status === "awaiting_pickup_confirmation") ? (
-                    <PickupConfirmation item={item} request={requests.find(r => r.status === "awaiting_pickup_confirmation")!} />
+                    <PickupConfirmation 
+                      item={item} 
+                      request={requests.find(r => r.status === "awaiting_pickup_confirmation")!} 
+                    />
                   ) : (
-                    <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button className="flex-1" disabled={hasRequested}>
-                          {hasRequested ? "Request Pending" : "Request Item"}
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Request Item</DialogTitle>
-                          <DialogDescription>
-                            Send a message to the owner explaining why you'd like this item.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <Form {...requestForm}>
-                          <form
-                            onSubmit={requestForm.handleSubmit((data) => {
-                              requestMutation.mutate(data);
-                            })}
-                            className="space-y-4"
-                          >
-                            <FormField
-                              control={requestForm.control}
-                              name="message"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Message</FormLabel>
-                                  <FormControl>
-                                    <Textarea {...field} />
-                                  </FormControl>
-                                  <FormDescription>
-                                    Be clear about why you're interested and how you'll use the item.
-                                  </FormDescription>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                            <Button
-                              type="submit"
-                              className="w-full"
-                              disabled={requestMutation.isPending}
-                            >
-                              Send Request
-                            </Button>
-                          </form>
-                        </Form>
-                      </DialogContent>
-                    </Dialog>
+                    <RequestForm
+                      itemId={item.id}
+                      hasRequested={hasRequested}
+                      isOpen={requestDialogOpen}
+                      onOpenChange={setRequestDialogOpen}
+                    />
                   )
                 ) : (
-                  <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="flex-1" disabled={hasBid}>
-                        {hasBid ? "Bid Pending" : "Place Bid"}
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Place a Bid</DialogTitle>
-                        <DialogDescription>
-                          Make an offer for this item.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <Form {...bidForm}>
-                        <form
-                          onSubmit={bidForm.handleSubmit((data) => {
-                            bidMutation.mutate(data, {
-                              onSuccess: () => {
-                                queryClient.invalidateQueries({ queryKey: ["/api/user/bids"] });
-                                setRequestDialogOpen(false);
-                              },
-                            });
-                          })}
-                          className="space-y-4"
-                        >
-                          <FormField
-                            control={bidForm.control}
-                            name="amount"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Bid Amount ($)</FormLabel>
-                                <FormControl>
-                                  <Input
-                                    type="number"
-                                    placeholder="Enter bid amount"
-                                    {...field}
-                                    value={field.value || ""}
-                                    onChange={(e) =>
-                                      field.onChange(e.target.value ? Number(e.target.value) : "")
-                                    }
-                                  />
-                                </FormControl>
-                                <FormDescription>
-                                  Enter your bid amount in dollars.
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={bidForm.control}
-                            name="message"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Message</FormLabel>
-                                <FormControl>
-                                  <Textarea {...field} />
-                                </FormControl>
-                                <FormDescription>
-                                  Include any additional information about your bid.
-                                </FormDescription>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <Button
-                            type="submit"
-                            className="w-full"
-                            disabled={bidMutation.isPending}
-                          >
-                            Place Bid
-                          </Button>
-                        </form>
-                      </Form>
-                    </DialogContent>
-                  </Dialog>
+                  <BidForm
+                    itemId={item.id}
+                    hasBid={hasBid}
+                    isOpen={requestDialogOpen}
+                    onOpenChange={setRequestDialogOpen}
+                  />
                 )}
               </div>
             )}
+
+            {/* Owner Pickup Management */}
             {isOwner && item.isGift && (
               <div className="border-t border-border pt-4 space-y-4">
                 {item.recipientId ? (
                   <div className="space-y-4">
+                    {/* Selected Recipient */}
                     <div className="space-y-2">
                       <h3 className="font-medium">Selected Recipient</h3>
                       <p className="text-sm text-muted-foreground">
                         A recipient has been selected through random drawing
                       </p>
                     </div>
+
+                    {/* Pickup Window */}
                     <div className="space-y-2">
                       <h3 className="font-medium">Pickup Window</h3>
                       {item.pickupStart ? (
                         <div>
                           <p className="text-sm text-muted-foreground">
                             {format(new Date(item.pickupStart), "PPP p")} -{" "}
-                            {format(new Date(item.pickupEnd || new Date()), "p")}
+                            {format(new Date(item.pickupEnd!), "p")}
                           </p>
                           {requests?.some(r => r.status === "awaiting_pickup_confirmation") && (
                             <Alert className="mt-2">
-                              <Clock className="h-4 w-4" />
                               <AlertTitle>Awaiting Confirmation</AlertTitle>
                             </Alert>
                           )}
@@ -731,7 +264,7 @@ export default function ListingPage() {
                           <PickupScheduler
                             itemId={item.id}
                             onScheduled={() => {
-                              queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
+                              queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
                             }}
                           />
                         </div>
@@ -749,7 +282,7 @@ export default function ListingPage() {
                         <PickupScheduler
                           itemId={item.id}
                           onScheduled={() => {
-                            queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
+                            queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
                           }}
                         />
                       </div>
@@ -759,7 +292,7 @@ export default function ListingPage() {
                           <h3 className="font-medium">Scheduled Pickup Window</h3>
                           <p className="text-sm text-muted-foreground">
                             {format(new Date(item.pickupStart), "PPP p")} -{" "}
-                            {format(new Date(item.pickupEnd), "p")}
+                            {format(new Date(item.pickupEnd!), "p")}
                           </p>
                         </div>
                         {requests && requests.filter((r) => r.status === "ready_for_drawing").length > 0 && (

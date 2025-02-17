@@ -15,6 +15,8 @@ vi.mock('lucide-react', async () => {
     X: mockIcon,
     Heart: mockIcon,
     Calendar: mockIcon,
+    Clock: mockIcon,
+    Check: mockIcon,
   };
 });
 
@@ -41,12 +43,13 @@ vi.mock('@/lib/queryClient', () => ({
   },
 }));
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ListingPage from '../listing-page';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { Router } from 'wouter';
+import { apiRequest } from '@/lib/queryClient';
 
 interface MockItem {
   id: number;
@@ -62,6 +65,9 @@ interface MockItem {
   favorites: number;
   userDisplayName: string;
   userHasFavorited: boolean;
+  recipientId?: number | null;
+  pickupStart?: string | null;
+  pickupEnd?: string | null;
 }
 
 const mockItem: MockItem = {
@@ -86,7 +92,8 @@ const renderWithQuery = (itemId: string, item: MockItem = mockItem) => {
     defaultOptions: {
       queries: {
         retry: false,
-        staleTime: Infinity,
+        gcTime: 0,
+        staleTime: 0,
       },
     },
   });
@@ -118,7 +125,7 @@ describe('ListingPage', () => {
       defaultOptions: {
         queries: {
           retry: false,
-          cacheTime: 0,
+          gcTime: 0,
           staleTime: 0,
         },
       },
@@ -173,7 +180,7 @@ describe('ListingPage', () => {
     await waitFor(() => {
       const editButton = screen.queryByRole('button', { name: /edit listing/i });
       expect(editButton).not.toBeInTheDocument();
-    }, { timeout: 2000 });
+    });
   });
 
   it('displays "Free" badge for gift items', async () => {
@@ -202,6 +209,148 @@ describe('ListingPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /request item/i })).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /place bid/i })).not.toBeInTheDocument();
+    });
+  });
+
+  // New tests for pickup experience
+  it('shows pickup scheduler for item owner after setting pickup window', async () => {
+    (useAuth as any).mockReturnValue({
+      user: { id: mockItem.userId, community: 'test-community' },
+      isAuthenticated: true,
+    });
+
+    const giftItem: MockItem = { 
+      ...mockItem, 
+      isGift: true, 
+      price: null,
+      status: 'available',
+    };
+
+    renderWithQuery('1', giftItem);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /schedule pickup/i })).toBeInTheDocument();
+    });
+  });
+
+  it('shows pickup confirmation UI for recipient', async () => {
+    const recipientId = 999;
+    (useAuth as any).mockReturnValue({
+      user: { id: recipientId, community: 'test-community' },
+      isAuthenticated: true,
+    });
+
+    const giftItem: MockItem = { 
+      ...mockItem, 
+      isGift: true, 
+      price: null,
+      status: 'pending_pickup',
+      recipientId,
+      pickupStart: new Date().toISOString(),
+      pickupEnd: new Date(Date.now() + 3600000).toISOString() // 1 hour later
+    };
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+          gcTime: 0,
+          staleTime: 0,
+        },
+      },
+    });
+
+    // Set up both the item and request data
+    queryClient.setQueryData([`/api/items/1`], giftItem);
+    queryClient.setQueryData([`/api/items/1/my-requests`], [
+      { 
+        id: 1, 
+        itemId: 1,
+        requesterId: recipientId,
+        status: 'awaiting_pickup_confirmation',
+        message: 'Test request'
+      }
+    ]);
+
+    (apiRequest as any).mockResolvedValue({ ok: true, json: () => Promise.resolve({ success: true }) });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <ListingPage />
+        </Router>
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /confirm pickup/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /decline/i })).toBeInTheDocument();
+    });
+
+    // Test confirmation flow
+    const confirmButton = screen.getByRole('button', { name: /confirm pickup/i });
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        'POST',
+        '/api/items/1/confirm-pickup',
+        { confirmed: true }
+      );
+    });
+  });
+
+  it('shows drawing button for item owner with pending requests', async () => {
+    (useAuth as any).mockReturnValue({
+      user: { id: mockItem.userId, community: 'test-community' },
+      isAuthenticated: true,
+    });
+
+    const giftItem: MockItem = { 
+      ...mockItem, 
+      isGift: true, 
+      price: null,
+      status: 'pending_pickup',
+      pickupStart: new Date().toISOString(),
+      pickupEnd: new Date(Date.now() + 3600000).toISOString()
+    };
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+          gcTime: 0,
+          staleTime: 0,
+        },
+      },
+    });
+
+    queryClient.setQueryData([`/api/items/1`], giftItem);
+    queryClient.setQueryData([`/api/items/1/requests`], [
+      { id: 1, status: 'ready_for_drawing', message: 'Test request' }
+    ]);
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <ListingPage />
+        </Router>
+      </QueryClientProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /select random recipient/i })).toBeInTheDocument();
+    });
+
+    // Test drawing flow
+    const drawButton = screen.getByRole('button', { name: /select random recipient/i });
+    fireEvent.click(drawButton);
+
+    await waitFor(() => {
+      expect(apiRequest).toHaveBeenCalledWith(
+        'POST',
+        '/api/items/1/draw'
+      );
     });
   });
 });
