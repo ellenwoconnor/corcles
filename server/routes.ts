@@ -11,11 +11,11 @@ import logger from './logger';
 import { addHours, isAfter, isBefore, addDays } from "date-fns";
 import express from "express";
 
-// Configure multer for memory storage
+// Configure multer for memory storage with increased size limit
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 10 * 1024 * 1024, // 10MB limit
   },
   fileFilter: (_req, file, cb) => {
     if (!file.mimetype.startsWith('image/')) {
@@ -33,7 +33,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   setupAuth(app);
 
-  // Add new route for image upload
+  // Add new route for image upload with error handling
   app.post("/api/upload", upload.single('image'), async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -47,6 +47,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ imageUrl });
     } catch (error) {
+      if (error instanceof multer.MulterError) {
+        if (error.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({ 
+            error: 'File is too large. Maximum size is 10MB' 
+          });
+        }
+      }
       logger.error('Error uploading image:', error);
       res.status(500).json({ error: 'Failed to upload image' });
     }
