@@ -140,13 +140,15 @@ export default function ProfilePage() {
                           <Badge
                             variant={
                               !item.recipientId ? "secondary" :
-                              !item.pickupStart ? "default" :
-                              "outline"
+                              !item.pickupStart && item.proposedPickupWindows ? "default" :
+                              item.pickupStart ? "outline" :
+                              "secondary"
                             }
                           >
                             {!item.recipientId ? "Pending Requests" :
-                             !item.pickupStart ? "Schedule Pickup" :
-                             "Pickup Scheduled"}
+                             !item.pickupStart && item.proposedPickupWindows ? "Awaiting Confirmation" :
+                             item.pickupStart ? "Pickup Scheduled" :
+                             "Pending Requests"}
                           </Badge>
                         </div>
                       </CardHeader>
@@ -213,9 +215,9 @@ export default function ProfilePage() {
                               : "destructive"
                           }
                         >
-                          {request.status === "awaiting_pickup_confirmation" 
+                          {request.status === "awaiting_pickup_confirmation"
                             ? "Confirm Pickup"
-                            : request.status === "accepted" 
+                            : request.status === "accepted"
                             ? "Pickup Scheduled"
                             : request.status}
                         </Badge>
