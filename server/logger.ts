@@ -77,23 +77,28 @@ const logger = winston.createLogger({
 
 // Create request logger middleware
 export const requestLogger = (req: any, res: any, next: any) => {
-  // Skip logging for UI component requests
-  if (req.url.includes('/src/components/ui/')) {
+  // Skip logging for static UI component requests and other asset requests
+  if (req.url.includes('/src/components/ui/') ||
+      req.url.endsWith('.css') ||
+      req.url.endsWith('.js') ||
+      req.url.endsWith('.map')) {
     return next();
   }
 
   const start = Date.now();
 
   res.on('finish', () => {
-    const duration = Date.now() - start;
-    logger.info('Request processed', {
-      method: req.method,
-      url: req.url,
-      status: res.statusCode,
-      duration: `${duration}ms`,
-      userAgent: req.get('user-agent'),
-      ip: req.ip
-    });
+    // Only log API requests and page loads
+    if (req.url.startsWith('/api/') || req.url === '/' || !req.url.includes('.')) {
+      logger.info('Request processed', {
+        method: req.method,
+        url: req.url,
+        status: res.statusCode,
+        duration: `${Date.now() - start}ms`,
+        userAgent: req.get('user-agent'),
+        ip: req.ip
+      });
+    }
   });
 
   next();
