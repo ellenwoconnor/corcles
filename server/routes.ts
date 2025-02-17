@@ -61,7 +61,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const data = {
         ...req.body,
-        price: req.body.isGift ? 0 : Number(req.body.price),
+        price: Number(req.body.price),
         isGift: !!req.body.isGift
       };
 

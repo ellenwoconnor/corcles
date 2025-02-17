@@ -99,8 +99,16 @@ export const insertItemSchema = createInsertSchema(items).omit({
 }).extend({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
-  price: z.number().min(0.01, "Price must be greater than zero"),
+  price: z.number().nullable().optional(),
   imageFile: z.instanceof(File).optional(),
+}).refine((data) => {
+  if (!data.isGift && (!data.price || data.price < 0.01)) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Price must be greater than zero for non-free items",
+  path: ["price"],
 });
 
 export const insertItemRequestSchema = createInsertSchema(itemRequests).omit({
