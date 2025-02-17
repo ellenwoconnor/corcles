@@ -1,15 +1,30 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-// Mock the icon components
-vi.mock('lucide-react', () => ({
-  Loader2: () => <div data-testid="loader2" />,
-  MessageSquare: () => <div data-testid="message-square" />,
-  Pencil: () => <div data-testid="pencil" />,
-  User: () => <div data-testid="user" />,
-  LogOut: () => <div data-testid="logout" />,
-  Settings: () => <div data-testid="settings" />,
-  Search: () => <div data-testid="search" />,
-  Bell: () => <div data-testid="bell" />,
+// Mock all required icons with async importOriginal
+vi.mock('lucide-react', async () => {
+  const mockIcon = () => <div data-testid="icon" />;
+  return {
+    Loader2: () => <div data-testid="loader2" />,
+    MessageSquare: mockIcon,
+    Pencil: mockIcon,
+    User: mockIcon,
+    LogOut: mockIcon,
+    Settings: mockIcon,
+    Search: mockIcon,
+    Bell: mockIcon,
+    X: mockIcon,
+    Heart: mockIcon,
+    Calendar: mockIcon,
+  };
+});
+
+// Mock wouter's components and hooks
+const mockParams = { id: '1' };
+vi.mock('wouter', () => ({
+  Link: ({ children, ...props }: any) => <a {...props}>{children}</a>,
+  useRoute: () => [true, mockParams],
+  useLocation: () => ['/listing/1'],
+  Router: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
 // Mock the auth hook
@@ -26,16 +41,6 @@ vi.mock('@/lib/queryClient', () => ({
   },
 }));
 
-// Mock wouter's components and hooks
-const mockParams = { id: '1' };
-vi.mock('wouter', () => ({
-  Link: ({ children, ...props }: any) => <a {...props}>{children}</a>,
-  useRoute: () => [true, mockParams],
-  useLocation: () => ['/listing/1'],
-  // Add Router component that renders its children
-  Router: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
-
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ListingPage from '../listing-page';
@@ -43,7 +48,23 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth } from '@/features/auth/hooks/use-auth';
 import { Router } from 'wouter';
 
-const mockItem = {
+interface MockItem {
+  id: number;
+  title: string;
+  description: string;
+  price: number | null;
+  isGift: boolean;
+  imageUrl: string;
+  community: string;
+  userId: number;
+  createdAt: string;
+  status: string;
+  favorites: number;
+  userDisplayName: string;
+  userHasFavorited: boolean;
+}
+
+const mockItem: MockItem = {
   id: 1,
   title: 'Test Item',
   description: 'Test Description',
@@ -59,7 +80,8 @@ const mockItem = {
   userHasFavorited: false,
 };
 
-const renderWithQuery = (itemId: string, item = mockItem) => {
+const renderWithQuery = (itemId: string, item: MockItem = mockItem) => {
+  // Create a new QueryClient for each test
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -70,7 +92,7 @@ const renderWithQuery = (itemId: string, item = mockItem) => {
   });
 
   // Set the query data before rendering
-  queryClient.setQueryData(['/api/items', itemId], item);
+  queryClient.setQueryData([`/api/items/${itemId}`], item);
 
   return render(
     <QueryClientProvider client={queryClient}>
@@ -91,9 +113,27 @@ describe('ListingPage', () => {
     });
   });
 
-  it('shows loading state initially', () => {
-    renderWithQuery('1');
-    expect(screen.getByTestId('loader2')).toBeInTheDocument();
+  it('shows loading state initially', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+          cacheTime: 0,
+          staleTime: 0,
+        },
+      },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <ListingPage />
+        </Router>
+      </QueryClientProvider>
+    );
+
+    // Test should find the loading indicator since we're not pre-seeding the cache
+    expect(await screen.findByTestId('loader2')).toBeInTheDocument();
   });
 
   it('displays item details when loaded', async () => {
@@ -107,19 +147,22 @@ describe('ListingPage', () => {
   });
 
   it('shows edit button only for item owner', async () => {
-    // Mock authenticated user as owner
+    // First render with owner permissions
     (useAuth as any).mockReturnValue({
       user: { id: mockItem.userId, community: 'test-community' },
       isAuthenticated: true,
     });
 
-    renderWithQuery('1');
+    const { rerender, unmount } = renderWithQuery('1');
 
     await waitFor(() => {
-      expect(screen.getByText('Edit Listing')).toBeInTheDocument();
+      const editButton = screen.getByRole('button', { name: /edit listing/i });
+      expect(editButton).toBeInTheDocument();
     });
 
-    // Mock different user
+    // Cleanup and re-render with different user
+    unmount();
+
     (useAuth as any).mockReturnValue({
       user: { id: 999, community: 'test-community' },
       isAuthenticated: true,
@@ -128,12 +171,13 @@ describe('ListingPage', () => {
     renderWithQuery('1');
 
     await waitFor(() => {
-      expect(screen.queryByText('Edit Listing')).not.toBeInTheDocument();
-    });
+      const editButton = screen.queryByRole('button', { name: /edit listing/i });
+      expect(editButton).not.toBeInTheDocument();
+    }, { timeout: 2000 });
   });
 
   it('displays "Free" badge for gift items', async () => {
-    const giftItem = { ...mockItem, isGift: true, price: null };
+    const giftItem: MockItem = { ...mockItem, isGift: true, price: null };
     renderWithQuery('1', giftItem);
 
     await waitFor(() => {
@@ -146,18 +190,18 @@ describe('ListingPage', () => {
     renderWithQuery('1');
 
     await waitFor(() => {
-      expect(screen.getByText('Place Bid')).toBeInTheDocument();
-      expect(screen.queryByText('Request Item')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /place bid/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /request item/i })).not.toBeInTheDocument();
     });
   });
 
   it('shows request form for gift items', async () => {
-    const giftItem = { ...mockItem, isGift: true, price: null };
+    const giftItem: MockItem = { ...mockItem, isGift: true, price: null };
     renderWithQuery('1', giftItem);
 
     await waitFor(() => {
-      expect(screen.getByText('Request Item')).toBeInTheDocument();
-      expect(screen.queryByText('Place Bid')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /request item/i })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /place bid/i })).not.toBeInTheDocument();
     });
   });
 });
