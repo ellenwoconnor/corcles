@@ -63,7 +63,7 @@ export default function CreateListingDialog() {
     mutationFn: async (data: z.infer<typeof insertItemSchema>) => {
       const response = await apiRequest("POST", "/api/items", {
         ...data,
-        price: data.isGift ? null : data.price,
+        price: data.isGift ? undefined : data.price,
       });
       if (!response.ok) {
         const error = await response.json();
