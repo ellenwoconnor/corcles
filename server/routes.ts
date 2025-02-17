@@ -542,6 +542,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/items/:id/select-pickup-time", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const { windowIndex } = req.body;
+      if (typeof windowIndex !== 'number') {
+        return res.status(400).json({ error: "Window index is required" });
+      }
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      if (!item.proposedPickupWindows || !item.proposedPickupWindows[windowIndex]) {
+        return res.status(400).json({ error: "Invalid pickup window selected" });
+      }
+
+      const selectedWindow = item.proposedPickupWindows[windowIndex];
+
+      // Update item with selected pickup time
+      await db
+        .update(schema.items)
+        .set({ 
+          pickupStart: selectedWindow.pickupStart,
+          pickupEnd: selectedWindow.pickupEnd,
+          status: schema.ITEM_STATUS.PENDING_PICKUP
+        })
+        .where(eq(schema.items.id, itemId));
+
+      // Update request status
+      await db
+        .update(schema.itemRequests)
+        .set({ status: schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
+        .where(
+          and(
+            eq(schema.itemRequests.itemId, itemId),
+            eq(schema.itemRequests.requesterId, req.user.id)
+          )
+        );
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error selecting pickup time:', error);
+      res.status(500).json({ error: 'Failed to select pickup time' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

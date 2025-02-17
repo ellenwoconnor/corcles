@@ -20,6 +20,7 @@ import PickupScheduler from "@/components/pickup-scheduler";
 import PickupConfirmation from "@/components/pickup-confirmation";
 import RequestForm from "@/components/request-form";
 import BidForm from "@/components/bid-form";
+import PickupTimeSelector from "@/components/pickup-time-selector";
 
 // Form schemas
 const requestSchema = z.object({
@@ -274,6 +275,15 @@ export default function ListingPage() {
                     <PickupConfirmation
                       item={item}
                       request={requests.find(r => r.status === "awaiting_pickup_confirmation")!}
+                    />
+                  ) : item.proposedPickupWindows && item.proposedPickupWindows.length > 0 ? (
+                    <PickupTimeSelector
+                      itemId={item.id}
+                      windows={item.proposedPickupWindows}
+                      onSelected={() => {
+                        queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
+                        queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}/my-requests`] });
+                      }}
                     />
                   ) : (
                     <RequestForm
