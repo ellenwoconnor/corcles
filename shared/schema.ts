@@ -99,6 +99,7 @@ export const insertItemSchema = createInsertSchema(items).omit({
 }).extend({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
+  price: z.number().min(0.01, "Price must be greater than zero"),
   imageFile: z.instanceof(File).optional(),
 });
 

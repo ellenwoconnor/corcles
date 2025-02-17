@@ -161,7 +161,7 @@ export default function CreateListingDialog() {
                         type="number"
                         min="0"
                         step="0.01"
-                        placeholder="Enter price"
+                        placeholder="Enter price in dollars (minimum $0.01)"
                         {...field}
                         onChange={(e) => field.onChange(Number(e.target.value))}
                       />
