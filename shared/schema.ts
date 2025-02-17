@@ -98,6 +98,8 @@ export const insertItemSchema = createInsertSchema(items).omit({
   pickupEnd: true
 }).extend({
   imageFile: z.instanceof(File).optional(),
+  title: z.string().min(1, {message: "Title is required"}),
+  description: z.string().min(1, {message: "Description is required"})
 });
 
 export const insertItemRequestSchema = createInsertSchema(itemRequests).omit({
