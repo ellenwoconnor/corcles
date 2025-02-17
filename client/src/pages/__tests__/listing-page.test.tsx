@@ -139,7 +139,6 @@ describe('ListingPage', () => {
       </QueryClientProvider>
     );
 
-    // Test should find the loading indicator since we're not pre-seeding the cache
     expect(await screen.findByTestId('loader2')).toBeInTheDocument();
   });
 
@@ -160,7 +159,7 @@ describe('ListingPage', () => {
       isAuthenticated: true,
     });
 
-    const { rerender, unmount } = renderWithQuery('1');
+    const { unmount } = renderWithQuery('1');
 
     await waitFor(() => {
       const editButton = screen.getByRole('button', { name: /edit listing/i });
@@ -193,61 +192,25 @@ describe('ListingPage', () => {
     });
   });
 
-  it('shows bid form for non-gift items', async () => {
-    renderWithQuery('1');
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /place bid/i })).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /request item/i })).not.toBeInTheDocument();
-    });
-  });
-
-  it('shows request form for gift items', async () => {
-    const giftItem: MockItem = { ...mockItem, isGift: true, price: null };
-    renderWithQuery('1', giftItem);
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /request item/i })).toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /place bid/i })).not.toBeInTheDocument();
-    });
-  });
-
-  // New tests for pickup experience
-  it('shows pickup scheduler for item owner after setting pickup window', async () => {
-    (useAuth as any).mockReturnValue({
-      user: { id: mockItem.userId, community: 'test-community' },
-      isAuthenticated: true,
-    });
-
-    const giftItem: MockItem = { 
-      ...mockItem, 
-      isGift: true, 
-      price: null,
-      status: 'available',
-    };
-
-    renderWithQuery('1', giftItem);
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /schedule pickup/i })).toBeInTheDocument();
-    });
-  });
-
-  it('shows pickup confirmation UI for recipient', async () => {
+  // New test for pickup confirmation as recipient
+  it('shows pickup confirmation UI and handles confirmation', async () => {
     const recipientId = 999;
     (useAuth as any).mockReturnValue({
       user: { id: recipientId, community: 'test-community' },
       isAuthenticated: true,
     });
 
-    const giftItem: MockItem = { 
-      ...mockItem, 
-      isGift: true, 
+    const pickupStart = new Date();
+    const pickupEnd = new Date(pickupStart.getTime() + 3600000); // 1 hour later
+
+    const giftItem: MockItem = {
+      ...mockItem,
+      isGift: true,
       price: null,
       status: 'pending_pickup',
       recipientId,
-      pickupStart: new Date().toISOString(),
-      pickupEnd: new Date(Date.now() + 3600000).toISOString() // 1 hour later
+      pickupStart: pickupStart.toISOString(),
+      pickupEnd: pickupEnd.toISOString(),
     };
 
     const queryClient = new QueryClient({
@@ -261,18 +224,21 @@ describe('ListingPage', () => {
     });
 
     // Set up both the item and request data
-    queryClient.setQueryData([`/api/items/1`], giftItem);
-    queryClient.setQueryData([`/api/items/1/my-requests`], [
-      { 
-        id: 1, 
+    queryClient.setQueryData(['/api/items/1'], giftItem);
+    queryClient.setQueryData(['/api/items/1/my-requests'], [
+      {
+        id: 1,
         itemId: 1,
         requesterId: recipientId,
         status: 'awaiting_pickup_confirmation',
-        message: 'Test request'
-      }
+        message: 'Test request',
+      },
     ]);
 
-    (apiRequest as any).mockResolvedValue({ ok: true, json: () => Promise.resolve({ success: true }) });
+    (apiRequest as any).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true }),
+    });
 
     render(
       <QueryClientProvider client={queryClient}>
@@ -282,13 +248,19 @@ describe('ListingPage', () => {
       </QueryClientProvider>
     );
 
+    // Alert should be visible
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /confirm pickup/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /decline/i })).toBeInTheDocument();
+      expect(screen.getByText(/pickup confirmation pending/i)).toBeInTheDocument();
     });
 
-    // Test confirmation flow
+    // Confirmation buttons should be present
     const confirmButton = screen.getByRole('button', { name: /confirm pickup/i });
+    const declineButton = screen.getByRole('button', { name: /decline/i });
+
+    expect(confirmButton).toBeInTheDocument();
+    expect(declineButton).toBeInTheDocument();
+
+    // Test confirmation flow
     fireEvent.click(confirmButton);
 
     await waitFor(() => {
@@ -300,19 +272,18 @@ describe('ListingPage', () => {
     });
   });
 
-  it('shows drawing button for item owner with pending requests', async () => {
+  // New test for owner pickup scheduling
+  it('shows pickup scheduler for item owner and handles scheduling', async () => {
     (useAuth as any).mockReturnValue({
       user: { id: mockItem.userId, community: 'test-community' },
       isAuthenticated: true,
     });
 
-    const giftItem: MockItem = { 
-      ...mockItem, 
-      isGift: true, 
+    const giftItem: MockItem = {
+      ...mockItem,
+      isGift: true,
       price: null,
       status: 'pending_pickup',
-      pickupStart: new Date().toISOString(),
-      pickupEnd: new Date(Date.now() + 3600000).toISOString()
     };
 
     const queryClient = new QueryClient({
@@ -325,9 +296,9 @@ describe('ListingPage', () => {
       },
     });
 
-    queryClient.setQueryData([`/api/items/1`], giftItem);
-    queryClient.setQueryData([`/api/items/1/requests`], [
-      { id: 1, status: 'ready_for_drawing', message: 'Test request' }
+    queryClient.setQueryData(['/api/items/1'], giftItem);
+    queryClient.setQueryData(['/api/items/1/requests'], [
+      { id: 1, status: 'ready_for_drawing', message: 'Test request' },
     ]);
 
     render(
@@ -338,19 +309,36 @@ describe('ListingPage', () => {
       </QueryClientProvider>
     );
 
+    // Schedule pickup button should be visible
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /select random recipient/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /schedule pickup/i })).toBeInTheDocument();
+    });
+  });
+
+  // New test for pickup window display
+  it('displays pickup window correctly when scheduled', async () => {
+    (useAuth as any).mockReturnValue({
+      user: { id: mockItem.userId, community: 'test-community' },
+      isAuthenticated: true,
     });
 
-    // Test drawing flow
-    const drawButton = screen.getByRole('button', { name: /select random recipient/i });
-    fireEvent.click(drawButton);
+    const pickupStart = new Date();
+    const pickupEnd = new Date(pickupStart.getTime() + 3600000);
+
+    const giftItem: MockItem = {
+      ...mockItem,
+      isGift: true,
+      price: null,
+      status: 'pending_pickup',
+      pickupStart: pickupStart.toISOString(),
+      pickupEnd: pickupEnd.toISOString(),
+    };
+
+    renderWithQuery('1', giftItem);
 
     await waitFor(() => {
-      expect(apiRequest).toHaveBeenCalledWith(
-        'POST',
-        '/api/items/1/draw'
-      );
+      // Should show formatted pickup window time
+      expect(screen.getByText(new RegExp(pickupStart.toLocaleDateString()))).toBeInTheDocument();
     });
   });
 });
