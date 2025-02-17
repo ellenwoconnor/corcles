@@ -27,21 +27,16 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import { z } from "zod";
-
-const MOCK_IMAGES = [
-  "https://images.unsplash.com/photo-1737282836845-555d9214dfe4",
-  "https://images.unsplash.com/photo-1523194258983-4ef0203f0c47",
-  "https://images.unsplash.com/photo-1477921749929-1b7a5d38b68a",
-  "https://images.unsplash.com/photo-1545147508-91576a5343a2",
-  "https://images.unsplash.com/photo-1737476813012-054eb34c53a9",
-  "https://images.unsplash.com/photo-1725278484721-b20373781f43",
-  "https://images.unsplash.com/photo-1509266145091-5e3e5ef88bc1",
-  "https://images.unsplash.com/photo-1627562309156-3056abea4fe9",
-];
+import { Loader2, Upload } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function CreateListingDialog() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
+  const { toast } = useToast();
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<z.infer<typeof insertItemSchema>>({
     resolver: zodResolver(insertItemSchema),
@@ -50,7 +45,7 @@ export default function CreateListingDialog() {
       description: "",
       price: undefined,
       isGift: true,
-      imageUrl: MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)],
+      imageUrl: "",
       community: user?.community ?? "",
     },
     mode: "onBlur"
@@ -68,8 +63,61 @@ export default function CreateListingDialog() {
       queryClient.invalidateQueries({ queryKey: [`/api/items/${user?.community}`] });
       setOpen(false);
       form.reset();
+      setUploadedImage(null);
     },
   });
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload an image file",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload an image smaller than 5MB",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      const { imageUrl } = await response.json();
+      setUploadedImage(imageUrl);
+      form.setValue('imageUrl', imageUrl);
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload image. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -86,10 +134,56 @@ export default function CreateListingDialog() {
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit((data) => {
+              if (!data.imageUrl) {
+                toast({
+                  title: "Image required",
+                  description: "Please upload an image for your listing",
+                  variant: "destructive"
+                });
+                return;
+              }
               createItemMutation.mutate(data);
             })}
             className="space-y-4"
           >
+            <FormField
+              control={form.control}
+              name="imageUrl"
+              render={() => (
+                <FormItem>
+                  <FormLabel>Item Image</FormLabel>
+                  <FormControl>
+                    <div className="space-y-4">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={isUploading}
+                      />
+                      {uploadedImage && (
+                        <img
+                          src={uploadedImage}
+                          alt="Preview"
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                      )}
+                      {isUploading && (
+                        <Alert>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          <AlertDescription>
+                            Uploading image...
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </div>
+                  </FormControl>
+                  <FormDescription>
+                    Upload a clear photo of your item. Maximum size: 5MB
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="title"
@@ -172,9 +266,16 @@ export default function CreateListingDialog() {
             <Button
               type="submit"
               className="w-full"
-              disabled={createItemMutation.isPending}
+              disabled={createItemMutation.isPending || isUploading}
             >
-              Create Listing
+              {createItemMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Listing"
+              )}
             </Button>
           </form>
         </Form>

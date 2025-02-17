@@ -10,10 +10,42 @@ import { db } from "./db";
 import logger from './logger';
 import { addHours, isAfter, isBefore, addDays } from "date-fns";
 
-const upload = multer();
+// Configure multer for memory storage
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      cb(new Error('Only images are allowed'));
+      return;
+    }
+    cb(null, true);
+  },
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
+
+  // Add new route for image upload
+  app.post("/api/upload", upload.single('image'), async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      // Convert image to base64 for storage
+      const base64Image = req.file.buffer.toString('base64');
+      const imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
+
+      res.json({ imageUrl });
+    } catch (error) {
+      logger.error('Error uploading image:', error);
+      res.status(500).json({ error: 'Failed to upload image' });
+    }
+  });
 
   app.get("/api/items/:id([0-9]+)", async (req, res) => {
     try {
