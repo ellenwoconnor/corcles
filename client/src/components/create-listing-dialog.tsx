@@ -63,6 +63,10 @@ export default function CreateListingDialog() {
         ...data,
         price: data.isGift ? null : data.price,
       });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create listing");
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -70,6 +74,9 @@ export default function CreateListingDialog() {
       setOpen(false);
       form.reset();
     },
+    onError: (error: Error) => {
+      console.error("Failed to create listing:", error);
+    }
   });
 
   return (
