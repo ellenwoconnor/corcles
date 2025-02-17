@@ -489,6 +489,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/items/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      if (item.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized to edit this item" });
+      }
+
+      const data = {
+        ...req.body,
+        price: req.body.price ? Number(req.body.price) : undefined,
+        isGift: typeof req.body.isGift === 'boolean' ? req.body.isGift : undefined
+      };
+
+      const parseResult = insertItemSchema.partial().safeParse(data);
+      if (!parseResult.success) {
+        return res.status(400).json(parseResult.error);
+      }
+
+      const updatedItem = await storage.updateItem(itemId, parseResult.data);
+      res.json(updatedItem);
+    } catch (error) {
+      logger.error('Error updating item:', error);
+      res.status(500).json({ error: 'Failed to update item' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

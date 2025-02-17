@@ -50,7 +50,7 @@ export interface IStorage {
   getUserBids(userId: number): Promise<(ItemBid & { item: Item })[]>;
   updateItemBidStatus(id: number, status: string): Promise<ItemBid>;
   updateItemStatusAfterPickupSchedule(itemId: number): Promise<void>;
-
+  updateItem(id: number, item: Partial<InsertItem>): Promise<Item>;
   sessionStore: session.Store;
 }
 
@@ -425,6 +425,22 @@ export class DatabaseStorage implements IStorage {
       logger.debug('Updated item and request statuses after pickup schedule:', { itemId });
     } catch (error) {
       logger.error('Error updating item status after pickup schedule:', { error, itemId });
+      throw error;
+    }
+  }
+
+  async updateItem(id: number, item: Partial<InsertItem>): Promise<Item> {
+    try {
+      const [updatedItem] = await db
+        .update(items)
+        .set(item)
+        .where(eq(items.id, id))
+        .returning();
+
+      logger.debug('Updated item:', { itemId: id, updates: item });
+      return updatedItem;
+    } catch (error) {
+      logger.error('Error updating item:', { error, id, item });
       throw error;
     }
   }
