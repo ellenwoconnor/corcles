@@ -73,7 +73,15 @@ export default function CreateListingDialog() {
   });
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog 
+      open={open} 
+      onOpenChange={(newOpen) => {
+        if (!newOpen) {
+          form.reset();
+        }
+        setOpen(newOpen);
+      }}
+    >
       <DialogTrigger asChild>
         <Button>Create Listing</Button>
       </DialogTrigger>
