@@ -199,11 +199,70 @@ export default function ListingPage() {
                     </Badge>
                   )}
                 </div>
-                <div className="space-y-2">
+
+                {/* Display Requests or Bids */}
+                <div className="space-y-4">
                   {item.isGift ? (
-                    <RequestsList itemId={item.id} />
+                    <>
+                      <RequestsList requests={requests || []} />
+                      {/* Pickup Scheduling Section */}
+                      {requests && requests.filter(r => r.status === "pending").length > 0 && !item.proposedPickupWindows && (
+                        <div className="space-y-2">
+                          <h3 className="font-medium">Schedule Pickup</h3>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            First, set time windows for item pickup. Then you can select a recipient.
+                          </p>
+                          <PickupScheduler
+                            itemId={item.id}
+                            onScheduled={() => {
+                              queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
+                            }}
+                          />
+                        </div>
+                      )}
+                      {/* Show Proposed Windows if they exist */}
+                      {item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && (
+                        <>
+                          <div className="space-y-2">
+                            <h3 className="font-medium">Proposed Pickup Windows</h3>
+                            <div className="space-y-2">
+                              {item.proposedPickupWindows.map((window: { pickupStart: string, pickupEnd: string }, index: number) => (
+                                <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
+                                  <p className="text-sm">
+                                    {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
+                                    {format(new Date(window.pickupStart), "h:mm a")} -{" "}
+                                    {format(new Date(window.pickupEnd), "h:mm a")}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          {/* Drawing Section */}
+                          {requests && requests.filter((r) => r.status === "ready_for_drawing").length > 0 && (
+                            <>
+                              <p className="text-sm text-muted-foreground">
+                                Ready to select from {requests.filter((r) => r.status === "ready_for_drawing").length} requests
+                              </p>
+                              <Button
+                                onClick={() => drawingMutation.mutate()}
+                                disabled={drawingMutation.isPending}
+                              >
+                                {drawingMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Drawing...
+                                  </>
+                                ) : (
+                                  "Select Random Recipient"
+                                )}
+                              </Button>
+                            </>
+                          )}
+                        </>
+                      )}
+                    </>
                   ) : (
-                    <BidsList itemId={item.id} />
+                    <BidsList bids={bids || []} />
                   )}
                 </div>
               </div>
@@ -219,7 +278,7 @@ export default function ListingPage() {
                   ) : (
                     <RequestForm
                       itemId={item.id}
-                      hasRequested={hasRequested}
+                      hasRequested={!!hasRequested}
                       isOpen={requestDialogOpen}
                       onOpenChange={setRequestDialogOpen}
                     />
@@ -227,7 +286,7 @@ export default function ListingPage() {
                 ) : (
                   <BidForm
                     itemId={item.id}
-                    hasBid={hasBid}
+                    hasBid={!!hasBid}
                     isOpen={requestDialogOpen}
                     onOpenChange={setRequestDialogOpen}
                   />
@@ -235,107 +294,9 @@ export default function ListingPage() {
               </div>
             )}
 
-            {/* Owner Pickup Management */}
-            {isOwner && item.isGift && (
-              <div className="border-t border-border pt-4 space-y-4">
-                {item.recipientId ? (
-                  <div className="space-y-4">
-                    {/* Selected Recipient */}
-                    <div className="space-y-2">
-                      <h3 className="font-medium">Selected Recipient</h3>
-                      <p className="text-sm text-muted-foreground">
-                        A recipient has been selected through random drawing
-                      </p>
-                    </div>
+            {/* Owner Pickup Management - Removed as it is redundant with the new Owner View section */}
 
-                    {/* Pickup Window */}
-                    <div className="space-y-2">
-                      <h3 className="font-medium">Pickup Window</h3>
-                      {item.pickupStart ? (
-                        <div>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(item.pickupStart), "PPP p")} -{" "}
-                            {format(new Date(item.pickupEnd!), "p")}
-                          </p>
-                          {requests?.some(r => r.status === "awaiting_pickup_confirmation") && (
-                            <Alert className="mt-2">
-                              <AlertTitle>Awaiting Confirmation</AlertTitle>
-                            </Alert>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <p className="text-sm text-muted-foreground">
-                            Set a pickup window for the recipient
-                          </p>
-                          <PickupScheduler
-                            itemId={item.id}
-                            onScheduled={() => {
-                              queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {requests && requests.filter((r) => r.status === "pending").length > 0 && !item.proposedPickupWindows && (
-                      <div className="space-y-2">
-                        <h3 className="font-medium">Schedule Pickup</h3>
-                        <p className="text-sm text-muted-foreground mb-4">
-                          First, set time windows for item pickup. Then you can select a recipient.
-                        </p>
-                        <PickupScheduler
-                          itemId={item.id}
-                          onScheduled={() => {
-                            queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
-                          }}
-                        />
-                      </div>
-                    )}
-                    {item.proposedPickupWindows && (
-                      <>
-                        <div className="space-y-2">
-                          <h3 className="font-medium">Proposed Pickup Windows</h3>
-                          <div className="space-y-2">
-                            {item.proposedPickupWindows.map((window, index) => (
-                              <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
-                                <p className="text-sm">
-                                  {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
-                                  {format(new Date(window.pickupStart), "h:mm a")} -{" "}
-                                  {format(new Date(window.pickupEnd), "h:mm a")}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        {requests && requests.filter((r) => r.status === "ready_for_drawing").length > 0 && (
-                          <>
-                            <p className="text-sm text-muted-foreground">
-                              Ready to select from {requests.filter((r) => r.status === "ready_for_drawing").length} requests
-                            </p>
-                            <Button
-                              onClick={() => drawingMutation.mutate()}
-                              disabled={drawingMutation.isPending}
-                            >
-                              {drawingMutation.isPending ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Drawing...
-                                </>
-                              ) : (
-                                "Select Random Recipient"
-                              )}
-                            </Button>
-                          </>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+
           </div>
         </div>
       </main>

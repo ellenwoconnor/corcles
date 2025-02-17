@@ -23,7 +23,7 @@ export function formatRequestStatus(status: string) {
     case "awaiting_pickup_confirmation":
       return "Awaiting Confirmation";
     default:
-      return status;
+      return status.charAt(0).toUpperCase() + status.slice(1);
   }
 }
 
@@ -33,30 +33,40 @@ interface RequestsListProps {
 
 export default function RequestsList({ requests }: RequestsListProps) {
   if (!requests?.length) {
-    return <></>;
+    return (
+      <Card className="p-4">
+        <p className="text-sm text-muted-foreground">No requests yet</p>
+      </Card>
+    );
   }
 
-  return requests.map((request) => (
-    <Card key={request.id} className="p-3">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <p className="font-medium text-sm">Anonymous</p>
-            <span className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(request.createdAt), {
-                addSuffix: true,
-              })}
-            </span>
+  return (
+    <div className="space-y-3">
+      {requests.map((request) => (
+        <Card key={request.id} className="p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <p className="font-medium text-sm">Anonymous Requester</p>
+                <span className="text-xs text-muted-foreground">
+                  {formatDistanceToNow(new Date(request.createdAt), {
+                    addSuffix: true,
+                  })}
+                </span>
+              </div>
+              {request.message && (
+                <p className="text-sm text-muted-foreground">{request.message}</p>
+              )}
+            </div>
+            <Badge
+              variant={getRequestStatusVariant(request.status)}
+              className="text-xs capitalize"
+            >
+              {formatRequestStatus(request.status)}
+            </Badge>
           </div>
-          <p className="text-sm text-muted-foreground">{request.message}</p>
-        </div>
-        <Badge
-          variant={getRequestStatusVariant(request.status)}
-          className="text-xs"
-        >
-          {formatRequestStatus(request.status)}
-        </Badge>
-      </div>
-    </Card>
-  ));
+        </Card>
+      ))}
+    </div>
+  );
 }
