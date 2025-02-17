@@ -49,7 +49,7 @@ export default function CreateListingDialog() {
       title: "",
       description: "",
       price: 0,
-      isGift: false,
+      isGift: true,
       imageUrl: MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)],
       community: user?.community ?? "",
     },
