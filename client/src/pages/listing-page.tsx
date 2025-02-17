@@ -213,7 +213,9 @@ export default function ListingPage() {
                     <>
                       <RequestsList requests={requests || []} />
                       {/* Pickup Scheduling Section */}
-                      {requests && requests.filter(r => r.status === "pending").length > 0 && !item.proposedPickupWindows && (
+                      {requests && 
+                       requests.some(r => r.status === "pending") && 
+                       !item.proposedPickupWindows?.length && (
                         <div className="space-y-2">
                           <h3 className="font-medium">Schedule Pickup</h3>
                           <p className="text-sm text-muted-foreground mb-4">
@@ -233,25 +235,22 @@ export default function ListingPage() {
                           <div className="space-y-2">
                             <h3 className="font-medium">Proposed Pickup Windows</h3>
                             <div className="space-y-2">
-                              {item.proposedPickupWindows.map((window, index) => {
-                                console.log('Processing window:', window); // Add debugging log
-                                return (
-                                  <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
-                                    <p className="text-sm">
-                                      {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
-                                      {format(new Date(window.pickupStart), "h:mm a")} -{" "}
-                                      {format(new Date(window.pickupEnd), "h:mm a")}
-                                    </p>
-                                  </div>
-                                );
-                              })}
+                              {item.proposedPickupWindows.map((window, index) => (
+                                <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
+                                  <p className="text-sm">
+                                    {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
+                                    {format(new Date(window.pickupStart), "h:mm a")} -{" "}
+                                    {format(new Date(window.pickupEnd), "h:mm a")}
+                                  </p>
+                                </div>
+                              ))}
                             </div>
                           </div>
                           {/* Drawing Section */}
-                          {requests && requests.filter((r) => r.status === "ready_for_drawing").length > 0 && (
+                          {requests && requests.filter(r => r.status === "pending").length > 0 && (
                             <>
                               <p className="text-sm text-muted-foreground">
-                                Ready to select from {requests.filter((r) => r.status === "ready_for_drawing").length} requests
+                                Ready to select from {requests.filter(r => r.status === "pending").length} requests
                               </p>
                               <Button
                                 onClick={() => drawingMutation.mutate()}
