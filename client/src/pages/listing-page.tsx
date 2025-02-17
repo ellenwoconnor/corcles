@@ -243,9 +243,9 @@ export default function ListingPage() {
                     </div>
 
                     {/* Pickup Window */}
-                    <div className="space-y-2">
-                      <h3 className="font-medium">Pickup Window</h3>
-                      {item.pickupStart ? (
+                    {item.pickupStart && (
+                      <div className="space-y-2">
+                        <h3 className="font-medium">Pickup Window</h3>
                         <div>
                           <p className="text-sm text-muted-foreground">
                             {format(new Date(item.pickupStart), "PPP p")} -{" "}
