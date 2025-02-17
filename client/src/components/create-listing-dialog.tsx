@@ -49,7 +49,7 @@ export default function CreateListingDialog() {
     defaultValues: {
       title: "",
       description: "",
-      price: 0,
+      price: undefined,
       isGift: true,
       imageUrl: MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)],
       community: user?.community ?? "",
@@ -166,9 +166,6 @@ export default function CreateListingDialog() {
                         onChange={(e) => field.onChange(Number(e.target.value))}
                       />
                     </FormControl>
-                    <FormDescription>
-                      Enter the price in dollars
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
