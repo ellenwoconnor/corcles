@@ -186,6 +186,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/user/items", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const userItems = await storage.getItems(
+        req.user.community,
+        req.user.id,
+        undefined,
+        true // This is userOnly flag
+      );
+
+      logger.debug('Fetching user items:', {
+        userId: req.user.id,
+        community: req.user.community,
+        itemCount: userItems.length
+      });
+
+      res.json(userItems);
+    } catch (error) {
+      logger.error('Error fetching user items:', error);
+      res.status(500).json({ error: 'Failed to fetch user items' });
+    }
+  });
+
   app.get("/api/items/:id/requests", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -205,65 +229,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const requests = await storage.getItemRequests(itemId);
+      logger.debug('Fetching item requests:', {
+        itemId,
+        requestCount: requests.length,
+        ownerId: item.userId,
+        requesterId: req.user.id
+      });
+
       res.json(requests);
     } catch (error) {
       logger.error('Error fetching requests:', error);
       res.status(500).json({ error: 'Failed to fetch requests' });
-    }
-  });
-
-  app.get("/api/items/:id/bids", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
-      const itemId = parseInt(req.params.id);
-      if (isNaN(itemId)) {
-        return res.status(400).json({ error: "Invalid item ID" });
-      }
-
-      const item = await storage.getItem(itemId);
-      if (!item) {
-        return res.status(404).json({ error: "Item not found" });
-      }
-
-      if (item.userId !== req.user.id) {
-        return res.sendStatus(403);
-      }
-
-      const bids = await storage.getItemBids(itemId);
-      res.json(bids);
-    } catch (error) {
-      logger.error('Error fetching bids:', error);
-      res.status(500).json({ error: 'Failed to fetch bids' });
-    }
-  });
-
-  app.get("/api/user/items", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
-      const userItems = await storage.getItems(
-        req.user.community,
-        req.user.id,
-        undefined,
-        true 
-      );
-      res.json(userItems);
-    } catch (error) {
-      logger.error('Error fetching user items:', error);
-      res.status(500).json({ error: 'Failed to fetch user items' });
-    }
-  });
-
-  app.get("/api/user/requests", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
-      const requests = await storage.getUserRequests(req.user.id);
-      res.json(requests);
-    } catch (error) {
-      logger.error('Error fetching user requests:', error);
-      res.status(500).json({ error: 'Failed to fetch user requests' });
     }
   });
 
@@ -287,10 +263,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/community/:community/count", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const result = await db.select().from(schema.users).where(eq(schema.users.zipCode, '00000'));
-      res.json({ count: 5 }); // Hardcoding count to 5 for zip code 00000
+      const result = await db.select().from(schema.users).where(eq(schema.users.community, req.params.community));
+      logger.debug('Community count query result:', { 
+        community: req.params.community,
+        count: result.length
+      });
+      res.json({ count: result.length });
     } catch (error) {
-      console.error('Error fetching community count:', error);
+      logger.error('Error fetching community count:', error);
       res.status(500).json({ error: 'Failed to fetch community count' });
     }
   });
@@ -374,26 +354,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to schedule pickup for this item" });
       }
 
-      const { pickupStart, pickupEnd } = req.body;
-      const startDate = new Date(pickupStart);
-      const endDate = new Date(pickupEnd);
-      const now = new Date();
-      const twoWeeksFromNow = addDays(now, 14);
-
-      if (isBefore(startDate, now) || isAfter(startDate, twoWeeksFromNow)) {
-        return res.status(400).json({ error: "Pickup window must be within the next two weeks" });
+      const { timeWindows } = req.body;
+      if (!Array.isArray(timeWindows) || timeWindows.length === 0 || timeWindows.length > 10) {
+        return res.status(400).json({ error: "Must provide between 1 and 10 time windows" });
       }
 
-      if (isAfter(endDate, addHours(startDate, 1))) {
-        return res.status(400).json({ error: "Pickup window cannot exceed 1 hour" });
+      for (const window of timeWindows) {
+        const startDate = new Date(window.pickupStart);
+        const endDate = new Date(window.pickupEnd);
+        const now = new Date();
+        const twoWeeksFromNow = addDays(now, 14);
+
+        if (isBefore(startDate, now) || isAfter(startDate, twoWeeksFromNow)) {
+          return res.status(400).json({ error: "Pickup window must be within the next two weeks" });
+        }
+
+        if (isAfter(endDate, addHours(startDate, 1))) {
+          return res.status(400).json({ error: "Pickup window cannot exceed 1 hour" });
+        }
       }
 
-      // Update item with pickup window
+      // Store the proposed time windows in the database
+      const proposedWindows = timeWindows.map((window, index) => ({
+        ...window,
+        order: index
+      }));
+
+      // Update item with pickup windows and status
       await db
         .update(schema.items)
         .set({ 
-          pickupStart: startDate,
-          pickupEnd: endDate,
+          proposedPickupWindows: proposedWindows,
           status: schema.ITEM_STATUS.PENDING_PICKUP 
         })
         .where(eq(schema.items.id, itemId));
@@ -412,7 +403,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       logger.debug('Updated item and request statuses for pickup:', { 
         itemId,
         newStatus: schema.ITEM_STATUS.PENDING_PICKUP,
-        requestStatus: schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION
+        requestStatus: schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION,
+        proposedWindows
       });
 
       res.json({ success: true });
@@ -486,6 +478,160 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error('Error confirming pickup:', error);
       res.status(500).json({ error: 'Failed to confirm pickup' });
+    }
+  });
+
+  app.patch("/api/items/:id", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      if (item.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized to edit this item" });
+      }
+
+      const data = {
+        ...req.body,
+        price: req.body.price ? Number(req.body.price) : undefined,
+        isGift: typeof req.body.isGift === 'boolean' ? req.body.isGift : undefined
+      };
+
+      const parseResult = insertItemSchema.partial().safeParse(data);
+      if (!parseResult.success) {
+        return res.status(400).json(parseResult.error);
+      }
+
+      const updatedItem = await storage.updateItem(itemId, parseResult.data);
+      res.json(updatedItem);
+    } catch (error) {
+      logger.error('Error updating item:', error);
+      res.status(500).json({ error: 'Failed to update item' });
+    }
+  });
+
+  app.post("/api/items/:id/select-pickup-time", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const { windowIndex } = req.body;
+      if (typeof windowIndex !== 'number') {
+        return res.status(400).json({ error: "Window index is required" });
+      }
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      if (!item.proposedPickupWindows || !item.proposedPickupWindows[windowIndex]) {
+        return res.status(400).json({ error: "Invalid pickup window selected" });
+      }
+
+      const selectedWindow = item.proposedPickupWindows[windowIndex];
+
+      // Convert string dates to Date objects
+      const pickupStart = new Date(selectedWindow.pickupStart);
+      const pickupEnd = new Date(selectedWindow.pickupEnd);
+
+      // Validate dates
+      if (isNaN(pickupStart.getTime()) || isNaN(pickupEnd.getTime())) {
+        return res.status(400).json({ error: "Invalid pickup window dates" });
+      }
+
+      logger.debug('Selected pickup window:', {
+        windowIndex,
+        pickupStart,
+        pickupEnd,
+        originalStart: selectedWindow.pickupStart,
+        originalEnd: selectedWindow.pickupEnd
+      });
+
+      // Update item with selected pickup time
+      await db
+        .update(schema.items)
+        .set({ 
+          pickupStart: pickupStart,
+          pickupEnd: pickupEnd,
+          status: schema.ITEM_STATUS.PENDING_PICKUP
+        })
+        .where(eq(schema.items.id, itemId));
+
+      // Update request status
+      await db
+        .update(schema.itemRequests)
+        .set({ status: schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
+        .where(
+          and(
+            eq(schema.itemRequests.itemId, itemId),
+            eq(schema.itemRequests.requesterId, req.user.id)
+          )
+        );
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error selecting pickup time:', error);
+      res.status(500).json({ error: 'Failed to select pickup time' });
+    }
+  });
+
+  app.get("/api/user/requests", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const requests = await storage.getUserRequests(req.user.id);
+      logger.debug('Fetching user requests:', {
+        userId: req.user.id,
+        requestCount: requests?.length
+      });
+      res.json(requests);
+    } catch (error) {
+      logger.error('Error fetching user requests:', error);
+      res.status(500).json({ error: 'Failed to fetch user requests' });
+    }
+  });
+
+  app.get("/api/items/:id/bids", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      if (item.userId !== req.user.id) {
+        return res.sendStatus(403);
+      }
+
+      const bids = await storage.getItemBids(itemId);
+      logger.debug('Fetching item bids:', {
+        itemId,
+        bidCount: bids.length,
+        ownerId: item.userId
+      });
+      res.json(bids);
+    } catch (error) {
+      logger.error('Error fetching bids:', error);
+      res.status(500).json({ error: 'Failed to fetch bids' });
     }
   });
 
