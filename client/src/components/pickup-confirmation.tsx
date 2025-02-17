@@ -3,9 +3,10 @@ import { useMutation } from "@tanstack/react-query";
 import { Item, ItemRequest } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
-import { Check, X, Clock } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertTitle } from "@/components/ui/alert";
+import { Clock } from "lucide-react";
 
 interface PickupConfirmationProps {
   item: Item;
@@ -14,7 +15,7 @@ interface PickupConfirmationProps {
 
 export default function PickupConfirmation({ item, request }: PickupConfirmationProps) {
   const { toast } = useToast();
-
+  
   const confirmMutation = useMutation({
     mutationFn: async (confirmed: boolean) => {
       const response = await apiRequest(

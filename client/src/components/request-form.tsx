@@ -34,7 +34,7 @@ export default function RequestForm({ itemId, hasRequested, isOpen, onOpenChange
       const response = await apiRequest("POST", `/api/items/${itemId}/request`, data);
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to request item");
+        throw new Error(error.message || "Failed to send request");
       }
       return response.json();
     },
@@ -44,10 +44,8 @@ export default function RequestForm({ itemId, hasRequested, isOpen, onOpenChange
         description: "The owner will be notified of your request.",
       });
       form.reset();
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/my-requests`] });
       onOpenChange(false);
-      queryClient.invalidateQueries({
-        queryKey: [`/api/items/${itemId}/my-requests`],
-      });
     },
     onError: (error: Error) => {
       toast({
@@ -69,7 +67,7 @@ export default function RequestForm({ itemId, hasRequested, isOpen, onOpenChange
         <DialogHeader>
           <DialogTitle>Request Item</DialogTitle>
           <DialogDescription>
-            Let the owner know why you're interested in this item.
+            Send a message to the owner explaining why you'd like this item.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -84,12 +82,12 @@ export default function RequestForm({ itemId, hasRequested, isOpen, onOpenChange
               name="message"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Message (Optional)</FormLabel>
+                  <FormLabel>Message</FormLabel>
                   <FormControl>
                     <Textarea {...field} />
                   </FormControl>
                   <FormDescription>
-                    Share why you're interested in this item.
+                    Be clear about why you're interested and how you'll use the item.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

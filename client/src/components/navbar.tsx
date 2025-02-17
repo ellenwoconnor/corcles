@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import RobotLogo from "@/components/robot-logo";
 import { Button } from "@/components/ui/button";
