@@ -64,7 +64,6 @@ export default function ListingPage() {
   const hasRequested = requests?.some((request) => request.status === "pending");
   const hasBid = bids?.some((bid) => bid.status === "pending");
 
-  const pendingRequestsCount = requests?.filter(r => r.status === "pending").length || 0;
 
   // Drawing mutation
   const drawingMutation = useMutation({
@@ -194,9 +193,9 @@ export default function ListingPage() {
                   <h3 className="text-base font-medium">
                     {item.isGift ? "Requests" : "Bids"}
                   </h3>
-                  {item.isGift && pendingRequestsCount > 0 && (
-                    <Badge>
-                      {pendingRequestsCount} pending {pendingRequestsCount === 1 ? 'request' : 'requests'}
+                  {item.isGift && requests && requests.length > 0 && (
+                    <Badge variant="secondary">
+                      {requests.length} {requests.length === 1 ? 'request' : 'requests'}
                     </Badge>
                   )}
                 </div>
@@ -281,7 +280,7 @@ export default function ListingPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {pendingRequestsCount > 0 && !item.pickupStart && (
+                    {requests && requests.filter((r) => r.status === "pending").length > 0 && !item.pickupStart && (
                       <div className="space-y-2">
                         <h3 className="font-medium">Schedule Pickup</h3>
                         <p className="text-sm text-muted-foreground mb-4">
