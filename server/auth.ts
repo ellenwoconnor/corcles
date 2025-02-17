@@ -6,6 +6,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import logger from './logger';
 
 declare global {
   namespace Express {
@@ -61,12 +62,20 @@ export function setupAuth(app: Express) {
   app.post("/api/register", async (req, res, next) => {
     const existingUser = await storage.getUserByUsername(req.body.username);
     if (existingUser) {
+      logger.warn('Registration attempt with existing username:', {
+        username: req.body.username,
+        ip: req.ip
+      });
       return res.status(400).send("Username already exists");
     }
 
     // Check for existing address
     const existingAddress = await storage.getUserByAddress(req.body.address);
     if (existingAddress) {
+      logger.warn('Registration attempt with existing address:', {
+        address: req.body.address,
+        ip: req.ip
+      });
       return res.status(400).send("Address is already registered to another user");
     }
 
@@ -76,22 +85,53 @@ export function setupAuth(app: Express) {
         password: await hashPassword(req.body.password),
       });
 
+      logger.info('User registered successfully:', {
+        userId: user.id,
+        username: user.username,
+        community: user.community
+      });
+
       req.login(user, (err) => {
-        if (err) return next(err);
+        if (err) {
+          logger.error('Error during login after registration:', {
+            error: err,
+            userId: user.id
+          });
+          return next(err);
+        }
         res.status(201).json(user);
       });
     } catch (error) {
+      logger.error('Error during user registration:', {
+        error,
+        username: req.body.username
+      });
       next(error);
     }
   });
 
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
+    logger.info('User logged in:', {
+      userId: req.user.id,
+      username: req.user.username
+    });
     res.status(200).json(req.user);
   });
 
   app.post("/api/logout", (req, res, next) => {
+    const userId = req.user?.id;
+    const username = req.user?.username;
+
     req.logout((err) => {
-      if (err) return next(err);
+      if (err) {
+        logger.error('Error during logout:', {
+          error: err,
+          userId,
+          username
+        });
+        return next(err);
+      }
+      logger.info('User logged out:', { userId, username });
       res.sendStatus(200);
     });
   });

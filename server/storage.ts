@@ -65,24 +65,42 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      logger.debug('Retrieved user:', { userId: id, user: user});
+      return user;
+    } catch (error) {
+      logger.error('Error retrieving user:', { error, userId: id });
+      throw error;
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, username));
-    return user;
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username));
+      logger.debug('Retrieved user by username:', { username, user: user });
+      return user;
+    } catch (error) {
+      logger.error('Error retrieving user by username:', { error, username });
+      throw error;
+    }
   }
 
   async getUserByAddress(address: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.address, address));
-    return user;
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.address, address));
+      logger.debug('Retrieved user by address:', { address, user: user });
+      return user;
+    } catch (error) {
+      logger.error('Error retrieving user by address:', { error, address });
+      throw error;
+    }
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -205,7 +223,7 @@ export class DatabaseStorage implements IStorage {
   async createItem(item: InsertItem & { userId: number }): Promise<Item> {
     try {
       const [newItem] = await db.insert(items).values(item).returning();
-      logger.debug('Created new item:', { itemId: newItem.id });
+      logger.debug('Created new item:', { itemId: newItem.id, item: newItem });
       return newItem;
     } catch (error) {
       logger.error('Error creating item:', { error, item });
@@ -278,7 +296,7 @@ export class DatabaseStorage implements IStorage {
   async createItemRequest(request: InsertItemRequest): Promise<ItemRequest> {
     try {
       const [newRequest] = await db.insert(itemRequests).values(request).returning();
-      logger.debug('Created new item request:', { requestId: newRequest.id });
+      logger.debug('Created new item request:', { requestId: newRequest.id, request: newRequest });
       return newRequest;
     } catch (error) {
       logger.error('Error creating item request:', { error, request });
@@ -297,7 +315,7 @@ export class DatabaseStorage implements IStorage {
       logger.debug('Retrieved item requests:', {
         itemId,
         count: requests.length,
-        statuses: requests.map(r => r.status)
+        requests
       });
 
       return requests;
@@ -319,6 +337,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(itemRequests.requesterId, userId))
         .orderBy(desc(itemRequests.createdAt));
 
+      logger.debug('Retrieved user requests:', { userId, count: requests.length, requests });
       return requests.map(({ request, item }) => ({
         ...request,
         item,
@@ -336,6 +355,7 @@ export class DatabaseStorage implements IStorage {
         .set({ status })
         .where(eq(itemRequests.id, id))
         .returning();
+      logger.debug('Updated item request status:', { requestId: id, status, updatedRequest });
       return updatedRequest;
     } catch (error) {
       logger.error('Error updating item request status:', { error, id, status });
@@ -346,7 +366,7 @@ export class DatabaseStorage implements IStorage {
   async createItemBid(bid: InsertItemBid): Promise<ItemBid> {
     try {
       const [newBid] = await db.insert(itemBids).values(bid).returning();
-      logger.debug('Created new item bid:', { bidId: newBid.id });
+      logger.debug('Created new item bid:', { bidId: newBid.id, bid: newBid });
       return newBid;
     } catch (error) {
       logger.error('Error creating item bid:', { error, bid });
@@ -361,6 +381,7 @@ export class DatabaseStorage implements IStorage {
         .from(itemBids)
         .where(eq(itemBids.itemId, itemId))
         .orderBy(desc(itemBids.amount));
+      logger.debug('Retrieved item bids:', { itemId, count: bids.length, bids });
       return bids;
     } catch (error) {
       logger.error('Error getting item bids:', { error, itemId });
@@ -380,6 +401,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(itemBids.bidderId, userId))
         .orderBy(desc(itemBids.createdAt));
 
+      logger.debug('Retrieved user bids:', { userId, count: bids.length, bids });
       return bids.map(({ bid, item }) => ({
         ...bid,
         item,
@@ -397,6 +419,7 @@ export class DatabaseStorage implements IStorage {
         .set({ status })
         .where(eq(itemBids.id, id))
         .returning();
+      logger.debug('Updated item bid status:', { bidId: id, status, updatedBid });
       return updatedBid;
     } catch (error) {
       logger.error('Error updating item bid status:', { error, id, status });
@@ -437,7 +460,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(items.id, id))
         .returning();
 
-      logger.debug('Updated item:', { itemId: id, updates: item });
+      logger.debug('Updated item:', { itemId: id, updates: item, updatedItem });
       return updatedItem;
     } catch (error) {
       logger.error('Error updating item:', { error, id, item });
