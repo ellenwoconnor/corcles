@@ -194,16 +194,14 @@ export default function ListingPage() {
                     {item.isGift ? "Requests" : "Bids"}
                   </h3>
                   {item.isGift && requests && requests.length > 0 && (
-                    <span className="text-sm text-muted-foreground">
+                    <Badge variant="secondary">
                       {requests.length} {requests.length === 1 ? 'request' : 'requests'}
-                    </span>
+                    </Badge>
                   )}
                 </div>
                 <div className="space-y-2">
                   {item.isGift ? (
-                    <RequestsList 
-                      requests={requests || []} 
-                    />
+                    <RequestsList itemId={item.id} />
                   ) : (
                     <BidsList itemId={item.id} />
                   )}
@@ -218,14 +216,14 @@ export default function ListingPage() {
                       item={item}
                       request={requests.find(r => r.status === "awaiting_pickup_confirmation")!}
                     />
-                  ) : !item.recipientId ? (
+                  ) : (
                     <RequestForm
                       itemId={item.id}
                       hasRequested={hasRequested}
                       isOpen={requestDialogOpen}
                       onOpenChange={setRequestDialogOpen}
                     />
-                  ) : null
+                  )
                 ) : (
                   <BidForm
                     itemId={item.id}
@@ -305,6 +303,26 @@ export default function ListingPage() {
                             {format(new Date(item.pickupEnd!), "p")}
                           </p>
                         </div>
+                        {requests && requests.filter((r) => r.status === "ready_for_drawing").length > 0 && (
+                          <>
+                            <p className="text-sm text-muted-foreground">
+                              Ready to select from {requests.filter((r) => r.status === "ready_for_drawing").length} requests
+                            </p>
+                            <Button
+                              onClick={() => drawingMutation.mutate()}
+                              disabled={drawingMutation.isPending}
+                            >
+                              {drawingMutation.isPending ? (
+                                <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  Drawing...
+                                </>
+                              ) : (
+                                "Select Random Recipient"
+                              )}
+                            </Button>
+                          </>
+                        )}
                       </>
                     )}
                   </div>
