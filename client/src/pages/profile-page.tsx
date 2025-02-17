@@ -4,7 +4,7 @@ import { Item, ItemRequest, ItemBid } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import ItemGrid from "@/components/item-grid";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Package, Gift, Tag, Clock } from "lucide-react";
@@ -139,14 +139,12 @@ export default function ProfilePage() {
                           </div>
                           <Badge
                             variant={
-                              !item.recipientId ? "secondary" :
-                              !item.pickupStart && item.proposedPickupWindows ? "default" :
+                              item.proposedPickupWindows?.length ? "default" :
                               item.pickupStart ? "outline" :
                               "secondary"
                             }
                           >
-                            {!item.recipientId ? "Pending Requests" :
-                             !item.pickupStart && item.proposedPickupWindows ? "Awaiting Confirmation" :
+                            {item.proposedPickupWindows?.length ? "Awaiting Confirmation" :
                              item.pickupStart ? "Pickup Scheduled" :
                              "Pending Requests"}
                           </Badge>
