@@ -27,9 +27,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import { z } from "zod";
-import { Loader2, Pencil, Upload } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Pencil } from "lucide-react";
 
 interface EditListingDialogProps {
   item: Item;
@@ -39,9 +37,6 @@ interface EditListingDialogProps {
 export default function EditListingDialog({ item, trigger }: EditListingDialogProps) {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const { toast } = useToast();
-  const [uploadedImage, setUploadedImage] = useState<string | null>(item.imageUrl);
-  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<z.infer<typeof insertItemSchema>>({
     resolver: zodResolver(insertItemSchema),
@@ -74,58 +69,6 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
     },
   });
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload an image file",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please upload an image smaller than 5MB",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsUploading(true);
-    const formData = new FormData();
-    formData.append('image', file);
-
-    try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to upload image');
-      }
-
-      const { imageUrl } = await response.json();
-      setUploadedImage(imageUrl);
-      form.setValue('imageUrl', imageUrl);
-    } catch (error) {
-      toast({
-        title: "Upload failed",
-        description: "Failed to upload image. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -150,56 +93,10 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit((data) => {
-              if (!data.imageUrl) {
-                toast({
-                  title: "Image required",
-                  description: "Please upload an image for your listing",
-                  variant: "destructive"
-                });
-                return;
-              }
               updateItemMutation.mutate(data);
             })}
             className="space-y-4"
           >
-            <FormField
-              control={form.control}
-              name="imageUrl"
-              render={() => (
-                <FormItem>
-                  <FormLabel>Item Image</FormLabel>
-                  <FormControl>
-                    <div className="space-y-4">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        disabled={isUploading}
-                      />
-                      {uploadedImage && (
-                        <img
-                          src={uploadedImage}
-                          alt="Preview"
-                          className="w-full h-48 object-cover rounded-lg"
-                        />
-                      )}
-                      {isUploading && (
-                        <Alert>
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          <AlertDescription>
-                            Uploading image...
-                          </AlertDescription>
-                        </Alert>
-                      )}
-                    </div>
-                  </FormControl>
-                  <FormDescription>
-                    Upload a new photo of your item. Maximum size: 5MB
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <FormField
               control={form.control}
               name="title"
@@ -269,7 +166,7 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
             <Button
               type="submit"
               className="w-full"
-              disabled={updateItemMutation.isPending || isUploading}
+              disabled={updateItemMutation.isPending}
             >
               {updateItemMutation.isPending ? (
                 <>

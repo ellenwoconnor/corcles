@@ -9,55 +9,11 @@ import { eq, and } from "drizzle-orm";
 import { db } from "./db";
 import logger from './logger';
 import { addHours, isAfter, isBefore, addDays } from "date-fns";
-import express from "express";
 
-// Configure multer for memory storage with increased size limit
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-  },
-  fileFilter: (_req, file, cb) => {
-    if (!file.mimetype.startsWith('image/')) {
-      cb(new Error('Only images are allowed'));
-      return;
-    }
-    cb(null, true);
-  },
-});
+const upload = multer();
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Configure Express to handle larger payloads
-  app.use(express.json({ limit: '10mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
   setupAuth(app);
-
-  // Add new route for image upload with error handling
-  app.post("/api/upload", upload.single('image'), async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-      if (!req.file) {
-        return res.status(400).json({ error: "No image file provided" });
-      }
-
-      // Convert image to base64 for storage
-      const base64Image = req.file.buffer.toString('base64');
-      const imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
-
-      res.json({ imageUrl });
-    } catch (error) {
-      if (error instanceof multer.MulterError) {
-        if (error.code === 'LIMIT_FILE_SIZE') {
-          return res.status(413).json({ 
-            error: 'File is too large. Maximum size is 10MB' 
-          });
-        }
-      }
-      logger.error('Error uploading image:', error);
-      res.status(500).json({ error: 'Failed to upload image' });
-    }
-  });
 
   app.get("/api/items/:id([0-9]+)", async (req, res) => {
     try {
@@ -103,11 +59,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
 
-      logger.debug('Creating new item with data:', {
-        ...req.body,
-        imageUrl: req.body.imageUrl ? '[TRUNCATED]' : undefined
-      });
-
       const data = {
         ...req.body,
         price: Number(req.body.price),
@@ -116,21 +67,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const parseResult = insertItemSchema.safeParse(data);
       if (!parseResult.success) {
-        logger.error('Validation error:', parseResult.error);
-        return res.status(400).json({ 
-          message: "Invalid item data", 
-          errors: parseResult.error.errors 
-        });
+        return res.status(400).json(parseResult.error);
       }
 
       const item = await storage.createItem({
         ...parseResult.data,
         userId: req.user.id,
-      });
-
-      logger.debug('Successfully created item:', { 
-        itemId: item.id, 
-        title: item.title 
       });
 
       res.status(201).json({
@@ -139,10 +81,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       logger.error('Error creating item:', error);
-      res.status(500).json({ 
-        message: 'Failed to create item',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
+      res.status(500).json({ error: 'Failed to create item' });
     }
   });
 

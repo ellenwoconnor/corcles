@@ -27,28 +27,32 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import { z } from "zod";
-import { Loader2, Upload } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+
+const MOCK_IMAGES = [
+  "https://images.unsplash.com/photo-1737282836845-555d9214dfe4",
+  "https://images.unsplash.com/photo-1523194258983-4ef0203f0c47",
+  "https://images.unsplash.com/photo-1477921749929-1b7a5d38b68a",
+  "https://images.unsplash.com/photo-1545147508-91576a5343a2",
+  "https://images.unsplash.com/photo-1737476813012-054eb34c53a9",
+  "https://images.unsplash.com/photo-1725278484721-b20373781f43",
+  "https://images.unsplash.com/photo-1509266145091-5e3e5ef88bc1",
+  "https://images.unsplash.com/photo-1627562309156-3056abea4fe9",
+];
 
 export default function CreateListingDialog() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const { toast } = useToast();
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<z.infer<typeof insertItemSchema>>({
     resolver: zodResolver(insertItemSchema),
     defaultValues: {
       title: "",
       description: "",
-      price: undefined,
-      isGift: true,
-      imageUrl: "",
+      price: 0,
+      isGift: false,
+      imageUrl: MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)],
       community: user?.community ?? "",
     },
-    mode: "onBlur"
   });
 
   const createItemMutation = useMutation({
@@ -57,82 +61,14 @@ export default function CreateListingDialog() {
         ...data,
         price: data.isGift ? null : data.price,
       });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to create listing");
-      }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/items/${user?.community}`] });
       setOpen(false);
       form.reset();
-      setUploadedImage(null);
-      toast({
-        title: "Success",
-        description: "Your listing has been created",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create listing",
-        variant: "destructive",
-      });
     },
   });
-
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload an image file",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please upload an image smaller than 5MB",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsUploading(true);
-    const formData = new FormData();
-    formData.append('image', file);
-
-    try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to upload image');
-      }
-
-      const { imageUrl } = await response.json();
-      setUploadedImage(imageUrl);
-      form.setValue('imageUrl', imageUrl);
-    } catch (error) {
-      toast({
-        title: "Upload failed",
-        description: "Failed to upload image. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -149,56 +85,10 @@ export default function CreateListingDialog() {
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit((data) => {
-              if (!data.imageUrl) {
-                toast({
-                  title: "Image required",
-                  description: "Please upload an image for your listing",
-                  variant: "destructive"
-                });
-                return;
-              }
               createItemMutation.mutate(data);
             })}
             className="space-y-4"
           >
-            <FormField
-              control={form.control}
-              name="imageUrl"
-              render={() => (
-                <FormItem>
-                  <FormLabel>Item Image</FormLabel>
-                  <FormControl>
-                    <div className="space-y-4">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        disabled={isUploading}
-                      />
-                      {uploadedImage && (
-                        <img
-                          src={uploadedImage}
-                          alt="Preview"
-                          className="w-full h-48 object-cover rounded-lg"
-                        />
-                      )}
-                      {isUploading && (
-                        <Alert>
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          <AlertDescription>
-                            Uploading image...
-                          </AlertDescription>
-                        </Alert>
-                      )}
-                    </div>
-                  </FormControl>
-                  <FormDescription>
-                    Upload a clear photo of your item. Maximum size: 5MB
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <FormField
               control={form.control}
               name="title"
@@ -229,30 +119,19 @@ export default function CreateListingDialog() {
               control={form.control}
               name="isGift"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Listing Type</FormLabel>
-                  <div className="flex gap-4">
-                    <Button
-                      type="button"
-                      variant={field.value ? "default" : "outline"}
-                      onClick={() => {
-                        field.onChange(true);
-                        form.setValue("price", 0);
-                      }}
-                    >
-                      Free
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={!field.value ? "default" : "outline"}
-                      onClick={() => {
-                        field.onChange(false);
-                        form.setValue("price", undefined);
-                      }}
-                    >
-                      Set a price
-                    </Button>
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Gift Item</FormLabel>
+                    <FormDescription>
+                      Mark this item as free to gift
+                    </FormDescription>
                   </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
                 </FormItem>
               )}
             />
@@ -266,11 +145,8 @@ export default function CreateListingDialog() {
                     <FormControl>
                       <Input
                         type="number"
-                        min="0"
-                        placeholder="Enter price"
                         {...field}
-                        value={field.value || ''}
-                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />
@@ -281,16 +157,9 @@ export default function CreateListingDialog() {
             <Button
               type="submit"
               className="w-full"
-              disabled={createItemMutation.isPending || isUploading}
+              disabled={createItemMutation.isPending}
             >
-              {createItemMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                "Create Listing"
-              )}
+              Create Listing
             </Button>
           </form>
         </Form>
