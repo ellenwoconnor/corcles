@@ -50,7 +50,7 @@ export default function CreateListingDialog() {
       title: "",
       description: "",
       price: 0,
-      isGift: false,
+      isGift: true,
       imageUrl: MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)],
       community: user?.community ?? "",
     },
@@ -127,7 +127,7 @@ export default function CreateListingDialog() {
                     <Button
                       type="button"
                       variant={field.value ? "default" : "outline"}
-                      className="flex-1"
+                      className="flex-1 rounded-full"
                       onClick={() => {
                         field.onChange(true);
                         form.setValue("price", 0);
@@ -139,7 +139,7 @@ export default function CreateListingDialog() {
                     <Button
                       type="button"
                       variant={!field.value ? "default" : "outline"}
-                      className="flex-1"
+                      className="flex-1 rounded-full"
                       onClick={() => field.onChange(false)}
                     >
                       <DollarSign className="mr-2 h-4 w-4" />
