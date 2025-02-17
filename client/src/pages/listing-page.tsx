@@ -46,6 +46,11 @@ export default function ListingPage() {
     select: (data) => ({
       ...data,
       createdAt: new Date(data.createdAt),
+      proposedPickupWindows: data.proposedPickupWindows?.map(window => ({
+        ...window,
+        pickupStart: new Date(window.pickupStart).toISOString(),
+        pickupEnd: new Date(window.pickupEnd).toISOString()
+      }))
     }),
   });
 
@@ -227,7 +232,7 @@ export default function ListingPage() {
                           <div className="space-y-2">
                             <h3 className="font-medium">Proposed Pickup Windows</h3>
                             <div className="space-y-2">
-                              {(item.proposedPickupWindows as PickupWindow[]).map((window, index) => (
+                              {item.proposedPickupWindows.map((window, index) => (
                                 <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
                                   <p className="text-sm">
                                     {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
