@@ -171,7 +171,7 @@ export default function CreateListingDialog() {
                         step="0.01"
                         placeholder="Enter price in dollars (minimum $0.01)"
                         {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />
