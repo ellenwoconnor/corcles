@@ -96,6 +96,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
 
+      logger.debug('Creating new item with data:', {
+        ...req.body,
+        imageUrl: req.body.imageUrl ? '[TRUNCATED]' : undefined
+      });
+
       const data = {
         ...req.body,
         price: Number(req.body.price),
@@ -104,12 +109,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const parseResult = insertItemSchema.safeParse(data);
       if (!parseResult.success) {
-        return res.status(400).json(parseResult.error);
+        logger.error('Validation error:', parseResult.error);
+        return res.status(400).json({ 
+          message: "Invalid item data", 
+          errors: parseResult.error.errors 
+        });
       }
 
       const item = await storage.createItem({
         ...parseResult.data,
         userId: req.user.id,
+      });
+
+      logger.debug('Successfully created item:', { 
+        itemId: item.id, 
+        title: item.title 
       });
 
       res.status(201).json({
@@ -118,7 +132,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       logger.error('Error creating item:', error);
-      res.status(500).json({ error: 'Failed to create item' });
+      res.status(500).json({ 
+        message: 'Failed to create item',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 

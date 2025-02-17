@@ -57,6 +57,10 @@ export default function CreateListingDialog() {
         ...data,
         price: data.isGift ? null : data.price,
       });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to create listing");
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -64,6 +68,17 @@ export default function CreateListingDialog() {
       setOpen(false);
       form.reset();
       setUploadedImage(null);
+      toast({
+        title: "Success",
+        description: "Your listing has been created",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create listing",
+        variant: "destructive",
+      });
     },
   });
 
