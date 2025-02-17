@@ -280,11 +280,11 @@ export default function ListingPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {requests && requests.filter((r) => r.status === "pending").length > 0 && !item.pickupStart && (
+                    {requests && requests.filter((r) => r.status === "pending").length > 0 && !item.proposedPickupWindows && (
                       <div className="space-y-2">
                         <h3 className="font-medium">Schedule Pickup</h3>
                         <p className="text-sm text-muted-foreground mb-4">
-                          First, set a one-hour window for item pickup. Then you can select a recipient.
+                          First, set time windows for item pickup. Then you can select a recipient.
                         </p>
                         <PickupScheduler
                           itemId={item.id}
@@ -294,14 +294,21 @@ export default function ListingPage() {
                         />
                       </div>
                     )}
-                    {item.pickupStart && (
+                    {item.proposedPickupWindows && (
                       <>
                         <div className="space-y-2">
-                          <h3 className="font-medium">Scheduled Pickup Window</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(item.pickupStart), "PPP p")} -{" "}
-                            {format(new Date(item.pickupEnd!), "p")}
-                          </p>
+                          <h3 className="font-medium">Proposed Pickup Windows</h3>
+                          <div className="space-y-2">
+                            {item.proposedPickupWindows.map((window, index) => (
+                              <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
+                                <p className="text-sm">
+                                  {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
+                                  {format(new Date(window.pickupStart), "h:mm a")} -{" "}
+                                  {format(new Date(window.pickupEnd), "h:mm a")}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                         {requests && requests.filter((r) => r.status === "ready_for_drawing").length > 0 && (
                           <>

@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, Plus } from "lucide-react";
 import {
   Drawer,
   DrawerContent,
@@ -14,6 +14,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface TimeWindow {
   date: Date;
@@ -136,57 +137,87 @@ export default function PickupScheduler({
           </DrawerDescription>
         </DrawerHeader>
         <div className="p-4 space-y-4">
+          {/* Selected Time Windows */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Selected Time Windows ({timeWindows.length}/10)</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Selected Time Windows</label>
+              <span className="text-sm text-muted-foreground">
+                {timeWindows.length}/10 windows
+              </span>
+            </div>
             <div className="space-y-2">
-              {timeWindows.map((window, index) => (
-                <div key={index} className="flex items-center justify-between p-2 bg-secondary rounded-md">
-                  <span>
-                    {format(window.date, "MMM d, yyyy")} at {format(addHours(startOfHour(now), window.hour), "ha")}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeTimeWindow(index)}
+              {timeWindows.length === 0 ? (
+                <Alert>
+                  <AlertDescription>
+                    No time windows selected. Select a date and time below to add windows.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                timeWindows.map((window, index) => (
+                  <div 
+                    key={index} 
+                    className="flex items-center justify-between p-3 bg-secondary rounded-lg border border-border"
                   >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                    <span className="text-sm">
+                      {format(window.date, "EEEE, MMM d")} at{" "}
+                      {format(addHours(startOfHour(window.date), window.hour), "h:mm a")}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeTimeWindow(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
+
+          {/* Date Selection */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Select Date</label>
+            <label className="text-sm font-medium">1. Select Date</label>
             <Calendar
               mode="single"
               selected={selectedDate}
               onSelect={setSelectedDate}
               disabled={(date) => isBefore(date, now) || isAfter(date, twoWeeksFromNow)}
+              className="rounded-md border"
             />
           </div>
+
+          {/* Time Selection */}
           {selectedDate && (
             <div className="space-y-2">
-              <label className="text-sm font-medium">Select Hour</label>
+              <label className="text-sm font-medium">2. Select Hour</label>
               <div className="grid grid-cols-4 gap-2">
                 {availableHours.map((hour) => (
                   <Button
                     key={hour}
                     variant={selectedHour === hour ? "default" : "outline"}
                     onClick={() => setSelectedHour(hour)}
+                    className={selectedHour === hour ? "ring-2 ring-primary" : ""}
                   >
-                    {format(addHours(startOfHour(now), hour), "ha")}
+                    {format(addHours(startOfHour(selectedDate), hour), "h:mm a")}
                   </Button>
                 ))}
               </div>
             </div>
           )}
-          <Button
-            className="w-full"
-            disabled={!selectedDate || selectedHour === undefined}
-            onClick={addTimeWindow}
-          >
-            Add Time Window
-          </Button>
+
+          {/* Add Window Button */}
+          {selectedDate && selectedHour !== undefined && (
+            <Button
+              className="w-full"
+              onClick={addTimeWindow}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Selected Time Window
+            </Button>
+          )}
+
+          {/* Submit Button */}
           <Button
             className="w-full"
             disabled={timeWindows.length === 0 || scheduleMutation.isPending}
