@@ -16,17 +16,17 @@ export default function ProfilePage() {
   const { user } = useAuth();
 
   const { data: userItems, isLoading: itemsLoading } = useQuery<Item[]>({
-    queryKey: ["/api/user/items", user?.id],
+    queryKey: ["/api/user/items"],
     enabled: !!user,
   });
 
   const { data: userRequests, isLoading: requestsLoading } = useQuery<(ItemRequest & { item: Item })[]>({
-    queryKey: ["/api/user/requests", user?.id],
+    queryKey: ["/api/user/requests"],
     enabled: !!user,
   });
 
   const { data: userBids, isLoading: bidsLoading } = useQuery<(ItemBid & { item: Item })[]>({
-    queryKey: ["/api/user/bids", user?.id],
+    queryKey: ["/api/user/bids"],
     enabled: !!user,
   });
 
@@ -139,14 +139,14 @@ export default function ProfilePage() {
                           </div>
                           <Badge
                             variant={
-                              item.proposedPickupWindows?.length ? "default" :
-                              item.pickupStart ? "outline" :
+                              item.status === "completed" ? "outline" :
+                              item.status === "pending_pickup" ? "default" :
                               "secondary"
                             }
                           >
-                            {item.proposedPickupWindows?.length ? "Awaiting Confirmation" :
-                             item.pickupStart ? "Pickup Scheduled" :
-                             "Pending Requests"}
+                            {item.status === "completed" ? "Pickup Complete" :
+                             item.status === "pending_pickup" ? "Pickup Scheduled" :
+                             "Pending"}
                           </Badge>
                         </div>
                       </CardHeader>

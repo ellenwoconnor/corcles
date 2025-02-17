@@ -186,6 +186,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/user/items", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const userItems = await storage.getItems(
+        req.user.community,
+        req.user.id,
+        undefined,
+        true // This is userOnly flag
+      );
+
+      logger.debug('Fetching user items:', {
+        userId: req.user.id,
+        community: req.user.community,
+        itemCount: userItems.length
+      });
+
+      res.json(userItems);
+    } catch (error) {
+      logger.error('Error fetching user items:', error);
+      res.status(500).json({ error: 'Failed to fetch user items' });
+    }
+  });
+
   app.get("/api/items/:id/requests", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -205,65 +229,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const requests = await storage.getItemRequests(itemId);
+      logger.debug('Fetching item requests:', {
+        itemId,
+        requestCount: requests.length,
+        ownerId: item.userId,
+        requesterId: req.user.id
+      });
+
       res.json(requests);
     } catch (error) {
       logger.error('Error fetching requests:', error);
       res.status(500).json({ error: 'Failed to fetch requests' });
-    }
-  });
-
-  app.get("/api/items/:id/bids", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
-      const itemId = parseInt(req.params.id);
-      if (isNaN(itemId)) {
-        return res.status(400).json({ error: "Invalid item ID" });
-      }
-
-      const item = await storage.getItem(itemId);
-      if (!item) {
-        return res.status(404).json({ error: "Item not found" });
-      }
-
-      if (item.userId !== req.user.id) {
-        return res.sendStatus(403);
-      }
-
-      const bids = await storage.getItemBids(itemId);
-      res.json(bids);
-    } catch (error) {
-      logger.error('Error fetching bids:', error);
-      res.status(500).json({ error: 'Failed to fetch bids' });
-    }
-  });
-
-  app.get("/api/user/items", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
-      const userItems = await storage.getItems(
-        req.user.community,
-        req.user.id,
-        undefined,
-        true 
-      );
-      res.json(userItems);
-    } catch (error) {
-      logger.error('Error fetching user items:', error);
-      res.status(500).json({ error: 'Failed to fetch user items' });
-    }
-  });
-
-  app.get("/api/user/requests", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
-      const requests = await storage.getUserRequests(req.user.id);
-      res.json(requests);
-    } catch (error) {
-      logger.error('Error fetching user requests:', error);
-      res.status(500).json({ error: 'Failed to fetch user requests' });
     }
   });
 
