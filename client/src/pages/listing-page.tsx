@@ -43,15 +43,16 @@ export default function ListingPage() {
   const { data: item, isLoading, error } = useQuery<Item & { userHasFavorited?: boolean }>({
     queryKey: [`/api/items/${params?.id}`],
     enabled: !!params?.id,
-    select: (data) => ({
-      ...data,
-      createdAt: new Date(data.createdAt),
-      proposedPickupWindows: data.proposedPickupWindows?.map(window => ({
-        ...window,
-        pickupStart: new Date(window.pickupStart).toISOString(),
-        pickupEnd: new Date(window.pickupEnd).toISOString()
-      }))
-    }),
+    select: (data) => {
+      console.log('Raw item data:', data); // Add debugging log
+      return {
+        ...data,
+        createdAt: new Date(data.createdAt),
+        pickupStart: data.pickupStart ? new Date(data.pickupStart) : null,
+        pickupEnd: data.pickupEnd ? new Date(data.pickupEnd) : null,
+        proposedPickupWindows: data.proposedPickupWindows || []
+      };
+    },
   });
 
   const isOwner = item?.userId === user?.id;
@@ -232,15 +233,18 @@ export default function ListingPage() {
                           <div className="space-y-2">
                             <h3 className="font-medium">Proposed Pickup Windows</h3>
                             <div className="space-y-2">
-                              {item.proposedPickupWindows.map((window, index) => (
-                                <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
-                                  <p className="text-sm">
-                                    {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
-                                    {format(new Date(window.pickupStart), "h:mm a")} -{" "}
-                                    {format(new Date(window.pickupEnd), "h:mm a")}
-                                  </p>
-                                </div>
-                              ))}
+                              {item.proposedPickupWindows.map((window, index) => {
+                                console.log('Processing window:', window); // Add debugging log
+                                return (
+                                  <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
+                                    <p className="text-sm">
+                                      {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
+                                      {format(new Date(window.pickupStart), "h:mm a")} -{" "}
+                                      {format(new Date(window.pickupEnd), "h:mm a")}
+                                    </p>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                           {/* Drawing Section */}
