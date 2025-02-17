@@ -216,14 +216,14 @@ export default function ListingPage() {
                       item={item}
                       request={requests.find(r => r.status === "awaiting_pickup_confirmation")!}
                     />
-                  ) : (
+                  ) : !item.recipientId ? (
                     <RequestForm
                       itemId={item.id}
                       hasRequested={hasRequested}
                       isOpen={requestDialogOpen}
                       onOpenChange={setRequestDialogOpen}
                     />
-                  )
+                  ) : null
                 ) : (
                   <BidForm
                     itemId={item.id}
