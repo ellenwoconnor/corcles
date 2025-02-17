@@ -141,7 +141,6 @@ export default function CreateListingDialog() {
                         form.setValue("price", 0);
                       }}
                     >
-                      <Gift className="mr-2 h-4 w-4" />
                       Free
                     </Button>
                     <Button
@@ -150,7 +149,6 @@ export default function CreateListingDialog() {
                       className="flex-1 rounded-full"
                       onClick={() => field.onChange(false)}
                     >
-                      <DollarSign className="mr-2 h-4 w-4" />
                       Set a price
                     </Button>
                   </div>
