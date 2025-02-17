@@ -2,7 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Item, ItemRequest } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Clock } from "lucide-react";
+import { Clock, CalendarClock } from "lucide-react";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -48,7 +48,7 @@ export default function PickupConfirmation({ item, request }: PickupConfirmation
   return (
     <div className="space-y-4">
       <Alert>
-        <Clock className="h-4 w-4" />
+        <CalendarClock className="h-4 w-4" />
         <AlertTitle>Pickup Confirmation Required</AlertTitle>
         <AlertDescription>
           The owner has proposed a pickup window. Please confirm if this time works for you.
@@ -57,7 +57,8 @@ export default function PickupConfirmation({ item, request }: PickupConfirmation
 
       <div className="space-y-2">
         <h3 className="font-medium">Proposed Pickup Window</h3>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground flex items-center gap-2">
+          <Clock className="h-4 w-4" />
           {format(new Date(item.pickupStart!), "PPP p")} -{" "}
           {format(new Date(item.pickupEnd!), "p")}
         </p>
