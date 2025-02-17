@@ -189,12 +189,12 @@ export default function ListingPage() {
             {/* Owner View */}
             {isOwner ? (
               <div className="border-t border-border pt-3 space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
                   <h3 className="text-base font-medium">
                     {item.isGift ? "Requests" : "Bids"}
                   </h3>
                   {item.isGift && requests && requests.length > 0 && (
-                    <Badge variant="secondary">
+                    <Badge variant="secondary" className="text-xs">
                       {requests.length} {requests.length === 1 ? 'request' : 'requests'}
                     </Badge>
                   )}
