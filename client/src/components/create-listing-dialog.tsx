@@ -119,24 +119,29 @@ export default function CreateListingDialog() {
               control={form.control}
               name="isGift"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Gift Item</FormLabel>
-                    <FormDescription>
-                      Mark this item as free to gift
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={(checked) => {
-                        field.onChange(checked);
-                        if (checked) {
-                          form.setValue("price", 0);
-                        }
+                <FormItem>
+                  <FormLabel>Listing Type</FormLabel>
+                  <div className="flex gap-4">
+                    <Button
+                      type="button"
+                      variant={field.value ? "default" : "outline"}
+                      onClick={() => {
+                        field.onChange(true);
+                        form.setValue("price", 0);
                       }}
-                    />
-                  </FormControl>
+                    >
+                      Free
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={!field.value ? "default" : "outline"}
+                      onClick={() => {
+                        field.onChange(false);
+                      }}
+                    >
+                      Set a price
+                    </Button>
+                  </div>
                 </FormItem>
               )}
             />
