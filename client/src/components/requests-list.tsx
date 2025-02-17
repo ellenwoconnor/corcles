@@ -32,6 +32,10 @@ interface RequestsListProps {
 }
 
 export default function RequestsList({ requests }: RequestsListProps) {
+  if (!requests?.length) {
+    return <></>;
+  }
+
   return requests.map((request) => (
     <Card key={request.id} className="p-3">
       <div className="flex items-start justify-between gap-2">
