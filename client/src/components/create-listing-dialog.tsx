@@ -129,7 +129,12 @@ export default function CreateListingDialog() {
                   <FormControl>
                     <Switch
                       checked={field.value}
-                      onCheckedChange={field.onChange}
+                      onCheckedChange={(checked) => {
+                        field.onChange(checked);
+                        if (checked) {
+                          form.setValue("price", 0);
+                        }
+                      }}
                     />
                   </FormControl>
                 </FormItem>
@@ -145,6 +150,7 @@ export default function CreateListingDialog() {
                     <FormControl>
                       <Input
                         type="number"
+                        min="0"
                         {...field}
                         onChange={(e) => field.onChange(Number(e.target.value))}
                       />
