@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Item, InsertItemRequest, InsertItemBid } from "@shared/schema";
+import { Item, ItemRequest, ItemBid } from "@shared/schema";
 import { useRoute } from "wouter";
 import { formatDistanceToNow, format } from "date-fns";
 import { Loader2, Pencil, Clock } from "lucide-react";
@@ -63,6 +63,8 @@ export default function ListingPage() {
 
   const hasRequested = requests?.some((request) => request.status === "pending");
   const hasBid = bids?.some((bid) => bid.status === "pending");
+
+  const pendingRequestsCount = requests?.filter(r => r.status === "pending").length || 0;
 
   // Drawing mutation
   const drawingMutation = useMutation({
@@ -192,6 +194,11 @@ export default function ListingPage() {
                   <h3 className="text-base font-medium">
                     {item.isGift ? "Requests" : "Bids"}
                   </h3>
+                  {item.isGift && pendingRequestsCount > 0 && (
+                    <Badge>
+                      {pendingRequestsCount} pending {pendingRequestsCount === 1 ? 'request' : 'requests'}
+                    </Badge>
+                  )}
                 </div>
                 <div className="space-y-2">
                   {item.isGift ? (
@@ -274,7 +281,7 @@ export default function ListingPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {!item.pickupStart && requests && requests.filter(r => r.status === "pending").length > 0 ? (
+                    {pendingRequestsCount > 0 && !item.pickupStart && (
                       <div className="space-y-2">
                         <h3 className="font-medium">Schedule Pickup</h3>
                         <p className="text-sm text-muted-foreground mb-4">
@@ -287,7 +294,8 @@ export default function ListingPage() {
                           }}
                         />
                       </div>
-                    ) : (
+                    )}
+                    {item.pickupStart && (
                       <>
                         <div className="space-y-2">
                           <h3 className="font-medium">Scheduled Pickup Window</h3>
