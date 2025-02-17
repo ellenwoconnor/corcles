@@ -303,26 +303,7 @@ export default function ListingPage() {
                             {format(new Date(item.pickupEnd!), "p")}
                           </p>
                         </div>
-                        {requests && requests.filter((r) => r.status === "ready_for_drawing").length > 0 && (
-                          <>
-                            <p className="text-sm text-muted-foreground">
-                              Ready to select from {requests.filter((r) => r.status === "ready_for_drawing").length} requests
-                            </p>
-                            <Button
-                              onClick={() => drawingMutation.mutate()}
-                              disabled={drawingMutation.isPending}
-                            >
-                              {drawingMutation.isPending ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Drawing...
-                                </>
-                              ) : (
-                                "Select Random Recipient"
-                              )}
-                            </Button>
-                          </>
-                        )}
+                        
                       </>
                     )}
                   </div>
