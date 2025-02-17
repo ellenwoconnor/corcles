@@ -567,12 +567,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const selectedWindow = item.proposedPickupWindows[windowIndex];
 
+      // Convert string dates to Date objects
+      const pickupStart = new Date(selectedWindow.pickupStart);
+      const pickupEnd = new Date(selectedWindow.pickupEnd);
+
+      // Validate dates
+      if (isNaN(pickupStart.getTime()) || isNaN(pickupEnd.getTime())) {
+        return res.status(400).json({ error: "Invalid pickup window dates" });
+      }
+
+      logger.debug('Selected pickup window:', {
+        windowIndex,
+        pickupStart,
+        pickupEnd,
+        originalStart: selectedWindow.pickupStart,
+        originalEnd: selectedWindow.pickupEnd
+      });
+
       // Update item with selected pickup time
       await db
         .update(schema.items)
         .set({ 
-          pickupStart: selectedWindow.pickupStart,
-          pickupEnd: selectedWindow.pickupEnd,
+          pickupStart: pickupStart,
+          pickupEnd: pickupEnd,
           status: schema.ITEM_STATUS.PENDING_PICKUP
         })
         .where(eq(schema.items.id, itemId));
