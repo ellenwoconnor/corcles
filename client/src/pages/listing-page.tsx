@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Item, InsertItemRequest, InsertItemBid, ItemRequest, ItemBid } from "@shared/schema";
@@ -47,6 +47,20 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { Check, X } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Edit, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+
 
 function RequestsList({ itemId }: { itemId: number }) {
   const { data: requests } = useQuery<ItemRequest[]>({
@@ -329,12 +343,176 @@ function PickupConfirmation({ item, request }: { item: Item; request: ItemReques
   );
 }
 
+function EditListingDialog({ 
+  item,
+  open,
+  onOpenChange
+}: { 
+  item: Item;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { toast } = useToast();
+  const insertItemSchema = z.object({
+    title: z.string().min(1, {message: "Title is required"}),
+    description: z.string().optional(),
+    price: z.number().min(0).optional(),
+    isGift: z.boolean(),
+    imageUrl: z.string().url({message: "Invalid image URL"}).optional(),
+    community: z.string().optional(),
+  })
+  const editForm = useForm<z.infer<typeof insertItemSchema>>({
+    resolver: zodResolver(insertItemSchema),
+    defaultValues: {
+      title: item.title,
+      description: item.description,
+      price: item.price || undefined,
+      isGift: item.isGift,
+      imageUrl: item.imageUrl,
+      community: item.community,
+    },
+  });
+
+  const editMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof insertItemSchema>) => {
+      const response = await apiRequest(
+        "PATCH",
+        `/api/items/${item.id}`,
+        data
+      );
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to update item");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Item updated",
+        description: "Your listing has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}`] });
+      onOpenChange(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update item",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Edit Listing</DialogTitle>
+          <DialogDescription>
+            Update your listing details.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...editForm}>
+          <form
+            onSubmit={editForm.handleSubmit((data) => {
+              editMutation.mutate(data);
+            })}
+            className="space-y-4"
+          >
+            <FormField
+              control={editForm.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={editForm.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={editForm.control}
+              name="isGift"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      This is a gift (free)
+                    </FormLabel>
+                  </div>
+                </FormItem>
+              )}
+            />
+            {!editForm.watch("isGift") && (
+              <FormField
+                control={editForm.control}
+                name="price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price ($)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(e.target.value ? Number(e.target.value) : "")
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={editMutation.isPending}
+            >
+              {editMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Listing"
+              )}
+            </Button>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function ListingPage() {
   const [, params] = useRoute("/item/:id");
   const itemId = params?.id;
   const { user } = useAuth();
   const { toast } = useToast();
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const { data: item, isLoading, error } = useQuery<Item & { userHasFavorited?: boolean }>({
     queryKey: [`/api/items/${itemId}`],
@@ -480,6 +658,12 @@ export default function ListingPage() {
     );
   }
 
+  useEffect(() => {
+    if (item && isOwner) {
+      setEditDialogOpen(false);
+    }
+  }, [item, isOwner]);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -530,6 +714,63 @@ export default function ListingPage() {
                     Waiting for the recipient to confirm the pickup window
                   </AlertDescription>
                 </Alert>
+              </div>
+            )}
+            {isOwner && (
+              <div className="flex gap-2 border-t border-border pt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditDialogOpen(true)}
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm">
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete your listing.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={async () => {
+                          try {
+                            const response = await apiRequest(
+                              "DELETE",
+                              `/api/items/${item.id}`
+                            );
+                            if (!response.ok) {
+                              throw new Error("Failed to delete item");
+                            }
+                            toast({
+                              title: "Item deleted",
+                              description: "Your listing has been deleted successfully.",
+                            });
+                            window.location.href = "/";
+                          } catch (error) {
+                            toast({
+                              title: "Failed to delete item",
+                              description: error.message,
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             )}
             {isOwner ? (
@@ -780,6 +1021,13 @@ export default function ListingPage() {
             )}
           </div>
         </div>
+        {isOwner && item && (
+          <EditListingDialog
+            item={item}
+            open={editDialogOpen}
+            onOpenChange={setEditDialogOpen}
+          />
+        )}
       </main>
     </div>
   );
