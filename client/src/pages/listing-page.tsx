@@ -201,7 +201,9 @@ export default function ListingPage() {
                 </div>
                 <div className="space-y-2">
                   {item.isGift ? (
-                    <RequestsList itemId={item.id} />
+                    <RequestsList 
+                      requests={requests || []} 
+                    />
                   ) : (
                     <BidsList itemId={item.id} />
                   )}
@@ -303,7 +305,6 @@ export default function ListingPage() {
                             {format(new Date(item.pickupEnd!), "p")}
                           </p>
                         </div>
-                        
                       </>
                     )}
                   </div>
