@@ -47,6 +47,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { Check, X } from "lucide-react";
+import EditListingDialog from "@/components/edit-listing-dialog";
 
 function RequestsList({ itemId }: { itemId: number }) {
   const { data: requests } = useQuery<ItemRequest[]>({
@@ -533,10 +534,20 @@ export default function ListingPage() {
               </div>
             )}
             {isOwner ? (
-              <div className="border-t border-border pt-3">
-                <h3 className="text-base font-medium mb-2">
-                  {item.isGift ? "Requests" : "Bids"}
-                </h3>
+              <div className="border-t border-border pt-3 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-medium">
+                    {item.isGift ? "Requests" : "Bids"}
+                  </h3>
+                  <EditListingDialog
+                    item={item}
+                    trigger={
+                      <Button variant="outline" size="sm">
+                        Edit Listing
+                      </Button>
+                    }
+                  />
+                </div>
                 <div className="space-y-2">
                   {item.isGift ? (
                     requests ? (
