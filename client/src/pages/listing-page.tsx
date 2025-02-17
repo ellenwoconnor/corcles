@@ -540,9 +540,6 @@ export default function ListingPage() {
                 <Alert>
                   <Clock className="h-4 w-4" />
                   <AlertTitle>Pickup Confirmation Pending</AlertTitle>
-                  <AlertDescription>
-                    Waiting for the recipient to confirm the pickup window
-                  </AlertDescription>
                 </Alert>
               </div>
             )}
@@ -723,9 +720,6 @@ export default function ListingPage() {
                             <Alert className="mt-2">
                               <Clock className="h-4 w-4" />
                               <AlertTitle>Awaiting Confirmation</AlertTitle>
-                              <AlertDescription>
-                                Waiting for the recipient to confirm the pickup window
-                              </AlertDescription>
                             </Alert>
                           )}
                         </div>
