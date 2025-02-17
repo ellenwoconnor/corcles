@@ -48,7 +48,7 @@ export default function CreateListingDialog() {
     defaultValues: {
       title: "",
       description: "",
-      price: 0,
+      price: undefined,
       isGift: true,
       imageUrl: MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)],
       community: user?.community ?? "",
@@ -159,7 +159,8 @@ export default function CreateListingDialog() {
                         min="0"
                         placeholder="Enter price"
                         {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
+                        value={field.value || ''}
+                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />
