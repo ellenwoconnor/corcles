@@ -2,6 +2,12 @@ import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export interface PickupWindow {
+  pickupStart: string;
+  pickupEnd: string;
+  order?: number;
+}
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -132,7 +138,10 @@ export const insertItemBidSchema = createInsertSchema(itemBids).omit({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertItem = z.infer<typeof insertItemSchema>;
-export type Item = typeof items.$inferSelect & { userDisplayName?: string };
+export type Item = typeof items.$inferSelect & { 
+  userDisplayName?: string;
+  proposedPickupWindows?: PickupWindow[];
+};
 export type InsertItemRequest = z.infer<typeof insertItemRequestSchema>;
 export type ItemRequest = typeof itemRequests.$inferSelect;
 export type InsertItemBid = z.infer<typeof insertItemBidSchema>;

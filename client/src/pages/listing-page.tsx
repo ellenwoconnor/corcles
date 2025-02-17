@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Item, ItemRequest, ItemBid } from "@shared/schema";
+import { Item, ItemRequest, ItemBid, PickupWindow } from "@shared/schema";
 import { useRoute } from "wouter";
 import { formatDistanceToNow, format } from "date-fns";
 import { Loader2, Pencil, Clock } from "lucide-react";
@@ -52,13 +52,13 @@ export default function ListingPage() {
 
   // Requests and bids queries
   const { data: requests } = useQuery<ItemRequest[]>({
-    queryKey: [isOwner ? `/api/items/${params?.id}/requests` : `/api/items/${params?.id}/my-requests`],
+    queryKey: [`/api/items/${params?.id}/${isOwner ? 'requests' : 'my-requests'}`],
     enabled: !!params?.id && !!user,
   });
 
   const { data: bids } = useQuery<ItemBid[]>({
     queryKey: [`/api/items/${params?.id}/bids`],
-    enabled: !!params?.id && !!user,
+    enabled: !!params?.id && !!user && !item?.isGift,
   });
 
   const hasRequested = requests?.some((request) => request.status === "pending");
@@ -226,7 +226,7 @@ export default function ListingPage() {
                           <div className="space-y-2">
                             <h3 className="font-medium">Proposed Pickup Windows</h3>
                             <div className="space-y-2">
-                              {item.proposedPickupWindows.map((window: { pickupStart: string, pickupEnd: string }, index: number) => (
+                              {(item.proposedPickupWindows as PickupWindow[]).map((window, index) => (
                                 <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
                                   <p className="text-sm">
                                     {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
@@ -294,7 +294,6 @@ export default function ListingPage() {
               </div>
             )}
 
-            {/* Owner Pickup Management - Removed as it is redundant with the new Owner View section */}
 
 
           </div>

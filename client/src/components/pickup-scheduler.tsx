@@ -118,6 +118,10 @@ export default function PickupScheduler({
 
     setTimeWindows([...timeWindows, { date: selectedDate, hour: selectedHour }]);
     setSelectedHour(undefined);
+    toast({
+      title: "Time window added",
+      description: `Added ${format(addHours(startOfHour(selectedDate), selectedHour), "EEEE, MMM d 'at' h:mm a")}`,
+    });
   };
 
   const removeTimeWindow = (index: number) => {
@@ -181,7 +185,10 @@ export default function PickupScheduler({
             <Calendar
               mode="single"
               selected={selectedDate}
-              onSelect={setSelectedDate}
+              onSelect={(date) => {
+                setSelectedDate(date);
+                setSelectedHour(undefined); // Reset hour when date changes
+              }}
               disabled={(date) => isBefore(date, now) || isAfter(date, twoWeeksFromNow)}
               className="rounded-md border"
             />
