@@ -169,13 +169,21 @@ export class DatabaseStorage implements IStorage {
 
       const itemResults = await query.orderBy(desc(items.createdAt));
 
+      // Process the pickup windows for all items
+      const processedItems = itemResults.map(item => ({
+        ...item,
+        proposedPickupWindows: item.proposedPickupWindows 
+          ? (item.proposedPickupWindows as PickupWindow[])
+          : undefined
+      }));
+
       logger.debug('Retrieved items:', { 
         community, 
         userId,
         userItemsOnly,
         searchTerm: search, 
-        count: itemResults.length,
-        items: itemResults.map(item => ({
+        count: processedItems.length,
+        items: processedItems.map(item => ({
           id: item.id,
           title: item.title,
           userId: item.userId,
@@ -183,7 +191,7 @@ export class DatabaseStorage implements IStorage {
         }))
       });
 
-      return itemResults as (Item & { userHasFavorited: boolean })[];
+      return processedItems as (Item & { userHasFavorited: boolean })[];
     } catch (error) {
       logger.error('Error retrieving items:', { error, community, searchTerm: search });
       throw error;
@@ -212,14 +220,24 @@ export class DatabaseStorage implements IStorage {
         .from(items)
         .where(eq(items.id, id));
 
+      if (!item) return undefined;
+
+      // Cast the pickup windows to the correct type
+      const processedItem = {
+        ...item,
+        proposedPickupWindows: item.proposedPickupWindows 
+          ? (item.proposedPickupWindows as PickupWindow[])
+          : undefined
+      };
+
       logger.debug("getItem query result:", {
         id,
         userId,
-        found: !!item,
-        item
+        found: !!processedItem,
+        item: processedItem
       });
 
-      return item;
+      return processedItem as (Item & { userHasFavorited: boolean });
     } catch (error) {
       logger.error('Error retrieving item:', { error, id });
       throw error;
