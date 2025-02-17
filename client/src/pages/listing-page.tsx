@@ -271,16 +271,16 @@ export default function ListingPage() {
               /* Buyer View */
               <div className="flex gap-4">
                 {item.isGift ? (
-                  item.pickupStart ? (
+                  requests?.some(r => r.status === "accepted" || r.status === "completed") ? (
                     <div className="space-y-4 border-t border-border pt-4">
                       <div className="space-y-2">
                         <h3 className="font-medium">Scheduled Pickup</h3>
                         <p className="text-sm text-muted-foreground">
-                          {format(new Date(item.pickupStart), "PPP p")} -{" "}
+                          {format(new Date(item.pickupStart!), "PPP p")} -{" "}
                           {format(new Date(item.pickupEnd!), "p")}
                         </p>
                         <Badge variant="outline">
-                          {item.status === 'completed' ? 'Pickup Complete' : 'Pickup Scheduled'}
+                          {requests.some(r => r.status === "completed") ? 'Pickup Complete' : 'Pickup Scheduled'}
                         </Badge>
                       </div>
                     </div>
