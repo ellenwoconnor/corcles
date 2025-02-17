@@ -28,6 +28,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import { z } from "zod";
+import { useToast } from "@/hooks/use-toast";
 
 const MOCK_IMAGES = [
   "https://images.unsplash.com/photo-1737282836845-555d9214dfe4",
@@ -42,6 +43,7 @@ const MOCK_IMAGES = [
 
 export default function CreateListingDialog() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
 
   const form = useForm<z.infer<typeof insertItemSchema>>({
@@ -73,9 +75,18 @@ export default function CreateListingDialog() {
       queryClient.invalidateQueries({ queryKey: [`/api/items/${user?.community}`] });
       setOpen(false);
       form.reset();
+      toast({
+        title: "Success",
+        description: "Listing created successfully",
+      });
     },
     onError: (error: Error) => {
       console.error("Failed to create listing:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create listing",
+        variant: "destructive",
+      });
     }
   });
 
