@@ -7,7 +7,7 @@ import { useRoute } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
-import { Loader2, MessageSquare } from "lucide-react";
+import { Loader2, MessageSquare, Pencil } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Dialog,
@@ -498,13 +498,26 @@ export default function ListingPage() {
               <h1 className="text-3xl font-bold tracking-tight mb-2">
                 {item.title}
               </h1>
-              {item.isGift ? (
-                <div className="inline-block bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
-                  Free
-                </div>
-              ) : (
-                <p className="text-2xl font-bold text-primary">${item.price}</p>
-              )}
+              <div className="flex items-center gap-4">
+                {item.isGift ? (
+                  <div className="inline-block bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+                    Free
+                  </div>
+                ) : (
+                  <p className="text-2xl font-bold text-primary">${item.price}</p>
+                )}
+                {isOwner && (
+                  <EditListingDialog
+                    item={item}
+                    trigger={
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <Pencil className="h-4 w-4" />
+                        Edit Listing
+                      </Button>
+                    }
+                  />
+                )}
+              </div>
             </div>
 
             <div>
@@ -539,14 +552,6 @@ export default function ListingPage() {
                   <h3 className="text-base font-medium">
                     {item.isGift ? "Requests" : "Bids"}
                   </h3>
-                  <EditListingDialog
-                    item={item}
-                    trigger={
-                      <Button variant="outline" size="sm">
-                        Edit Listing
-                      </Button>
-                    }
-                  />
                 </div>
                 <div className="space-y-2">
                   {item.isGift ? (

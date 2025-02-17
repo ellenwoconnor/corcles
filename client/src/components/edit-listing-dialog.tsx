@@ -27,7 +27,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import { z } from "zod";
-import { Loader2 } from "lucide-react";
+import { Loader2, Pencil } from "lucide-react";
 
 interface EditListingDialogProps {
   item: Item;
@@ -72,7 +72,16 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {trigger || <Button variant="outline">Edit Listing</Button>}
+        {trigger || (
+          <Button 
+            variant="secondary" 
+            size="default"
+            className="gap-2"
+          >
+            <Pencil className="h-4 w-4" />
+            Edit Listing
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
