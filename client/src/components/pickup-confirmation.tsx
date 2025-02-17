@@ -53,10 +53,17 @@ export default function PickupConfirmation({ item, request }: PickupConfirmation
       <div className="space-y-4 border-t border-border pt-4">
         <div className="space-y-2">
           <h3 className="font-medium">Scheduled Pickup</h3>
-          <p className="text-sm text-muted-foreground">
-            {format(new Date(item.pickupStart!), "PPP p")} -{" "}
-            {format(new Date(item.pickupEnd!), "p")}
-          </p>
+          <div className="space-y-2">
+            {item.proposedPickupWindows.map((window, index) => (
+              <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
+                <p className="text-sm">
+                  {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
+                  {format(new Date(window.pickupStart), "h:mm a")} -{" "}
+                  {format(new Date(window.pickupEnd), "h:mm a")}
+                </p>
+              </div>
+            ))}
+          </div>
           <Badge variant="outline">
             {request.status === "completed" ? "Pickup Complete" : "Pickup Scheduled"}
           </Badge>
