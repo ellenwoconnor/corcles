@@ -134,7 +134,7 @@ export default function CreateListingDialog() {
                       }}
                     >
                       <Gift className="mr-2 h-4 w-4" />
-                      Free Gift
+                      Free
                     </Button>
                     <Button
                       type="button"
@@ -143,7 +143,7 @@ export default function CreateListingDialog() {
                       onClick={() => field.onChange(false)}
                     >
                       <DollarSign className="mr-2 h-4 w-4" />
-                      For Sale
+                      Set a price
                     </Button>
                   </div>
                 </FormItem>
