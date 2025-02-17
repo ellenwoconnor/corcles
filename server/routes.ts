@@ -9,6 +9,7 @@ import { eq, and } from "drizzle-orm";
 import { db } from "./db";
 import logger from './logger';
 import { addHours, isAfter, isBefore, addDays } from "date-fns";
+import express from "express";
 
 // Configure multer for memory storage
 const upload = multer({
@@ -26,6 +27,10 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Configure Express to handle larger payloads
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
   setupAuth(app);
 
   // Add new route for image upload
