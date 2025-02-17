@@ -378,26 +378,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to schedule pickup for this item" });
       }
 
-      const { pickupStart, pickupEnd } = req.body;
-      const startDate = new Date(pickupStart);
-      const endDate = new Date(pickupEnd);
-      const now = new Date();
-      const twoWeeksFromNow = addDays(now, 14);
-
-      if (isBefore(startDate, now) || isAfter(startDate, twoWeeksFromNow)) {
-        return res.status(400).json({ error: "Pickup window must be within the next two weeks" });
+      const { timeWindows } = req.body;
+      if (!Array.isArray(timeWindows) || timeWindows.length === 0 || timeWindows.length > 10) {
+        return res.status(400).json({ error: "Must provide between 1 and 10 time windows" });
       }
 
-      if (isAfter(endDate, addHours(startDate, 1))) {
-        return res.status(400).json({ error: "Pickup window cannot exceed 1 hour" });
+      for (const window of timeWindows) {
+        const startDate = new Date(window.pickupStart);
+        const endDate = new Date(window.pickupEnd);
+        const now = new Date();
+        const twoWeeksFromNow = addDays(now, 14);
+
+        if (isBefore(startDate, now) || isAfter(startDate, twoWeeksFromNow)) {
+          return res.status(400).json({ error: "Pickup window must be within the next two weeks" });
+        }
+
+        if (isAfter(endDate, addHours(startDate, 1))) {
+          return res.status(400).json({ error: "Pickup window cannot exceed 1 hour" });
+        }
       }
 
-      // Update item with pickup window
+      // Store the proposed time windows in the database
+      const proposedWindows = timeWindows.map((window, index) => ({
+        ...window,
+        order: index
+      }));
+
+      // Update item with pickup windows and status
       await db
         .update(schema.items)
         .set({ 
-          pickupStart: startDate,
-          pickupEnd: endDate,
+          proposedPickupWindows: proposedWindows,
           status: schema.ITEM_STATUS.PENDING_PICKUP 
         })
         .where(eq(schema.items.id, itemId));
@@ -416,7 +427,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       logger.debug('Updated item and request statuses for pickup:', { 
         itemId,
         newStatus: schema.ITEM_STATUS.PENDING_PICKUP,
-        requestStatus: schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION
+        requestStatus: schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION,
+        proposedWindows
       });
 
       res.json({ success: true });

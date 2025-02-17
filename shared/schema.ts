@@ -48,6 +48,7 @@ export const items = pgTable("items", {
   recipientId: integer("recipient_id"),
   pickupStart: timestamp("pickup_start"),
   pickupEnd: timestamp("pickup_end"),
+  proposedPickupWindows: jsonb("proposed_pickup_windows").array(),
 });
 
 export const itemRequests = pgTable("item_requests", {
