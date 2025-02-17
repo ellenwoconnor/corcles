@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Item, InsertItemRequest, InsertItemBid } from "@shared/schema";
 import { useRoute } from "wouter";
 import { formatDistanceToNow, format } from "date-fns";
-import { Loader2, Pencil } from "lucide-react";
+import { Loader2, Pencil, Clock } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle } from "@/components/ui/alert";
@@ -179,6 +179,7 @@ export default function ListingPage() {
             {requests?.some(r => r.status === "awaiting_pickup_confirmation") && (
               <div className="mb-4">
                 <Alert>
+                  <Clock className="h-4 w-4" />
                   <AlertTitle>Pickup Confirmation Pending</AlertTitle>
                 </Alert>
               </div>
@@ -205,9 +206,9 @@ export default function ListingPage() {
               <div className="flex gap-4">
                 {item.isGift ? (
                   requests?.some(r => r.status === "awaiting_pickup_confirmation") ? (
-                    <PickupConfirmation 
-                      item={item} 
-                      request={requests.find(r => r.status === "awaiting_pickup_confirmation")!} 
+                    <PickupConfirmation
+                      item={item}
+                      request={requests.find(r => r.status === "awaiting_pickup_confirmation")!}
                     />
                   ) : (
                     <RequestForm
