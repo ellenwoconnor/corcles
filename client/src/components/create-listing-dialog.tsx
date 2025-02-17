@@ -137,6 +137,7 @@ export default function CreateListingDialog() {
                       variant={!field.value ? "default" : "outline"}
                       onClick={() => {
                         field.onChange(false);
+                        form.setValue("price", undefined);
                       }}
                     >
                       Set a price
@@ -156,6 +157,7 @@ export default function CreateListingDialog() {
                       <Input
                         type="number"
                         min="0"
+                        placeholder="Enter price"
                         {...field}
                         onChange={(e) => field.onChange(Number(e.target.value))}
                       />
