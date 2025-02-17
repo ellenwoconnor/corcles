@@ -23,6 +23,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertItemSchema } from "@shared/schema";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { DollarSign, Gift } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
@@ -120,19 +121,31 @@ export default function CreateListingDialog() {
               control={form.control}
               name="isGift"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Gift Item</FormLabel>
-                    <FormDescription>
-                      Mark this item as free to gift
-                    </FormDescription>
+                <FormItem className="space-y-4">
+                  <FormLabel>Item Type</FormLabel>
+                  <div className="flex gap-4">
+                    <Button
+                      type="button"
+                      variant={field.value ? "default" : "outline"}
+                      className="flex-1"
+                      onClick={() => {
+                        field.onChange(true);
+                        form.setValue("price", 0);
+                      }}
+                    >
+                      <Gift className="mr-2 h-4 w-4" />
+                      Free Gift
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={!field.value ? "default" : "outline"}
+                      className="flex-1"
+                      onClick={() => field.onChange(false)}
+                    >
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      For Sale
+                    </Button>
                   </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
                 </FormItem>
               )}
             />
@@ -146,10 +159,16 @@ export default function CreateListingDialog() {
                     <FormControl>
                       <Input
                         type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="Enter price"
                         {...field}
                         onChange={(e) => field.onChange(Number(e.target.value))}
                       />
                     </FormControl>
+                    <FormDescription>
+                      Enter the price in dollars
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
