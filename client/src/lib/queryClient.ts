@@ -49,7 +49,7 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       staleTime: 0, // Changed from Infinity to 0 to ensure fresh data on re-focus
       retry: false,
-      cacheTime: 1000 * 60 * 5, // 5 minutes cache time
+      gcTime: 1000 * 60 * 5, // 5 minutes garbage collection time (changed from cacheTime)
     },
     mutations: {
       retry: false,
