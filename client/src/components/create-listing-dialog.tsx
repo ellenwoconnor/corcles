@@ -171,9 +171,9 @@ export default function CreateListingDialog() {
             <Button
               type="submit"
               className="w-full"
-              disabled={createItemMutation.isPending}
+              disabled={createItemMutation.isPending || !form.watch("title")}
             >
-              Create Listing
+              {!form.watch("title") ? "Title required" : "Create Listing"}
             </Button>
           </form>
         </Form>
