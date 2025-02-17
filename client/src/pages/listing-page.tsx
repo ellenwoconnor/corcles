@@ -274,7 +274,7 @@ export default function ListingPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {!item.pickupStart ? (
+                    {!item.pickupStart && requests && requests.filter(r => r.status === "pending").length > 0 ? (
                       <div className="space-y-2">
                         <h3 className="font-medium">Schedule Pickup</h3>
                         <p className="text-sm text-muted-foreground mb-4">
