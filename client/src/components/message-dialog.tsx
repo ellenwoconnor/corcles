@@ -12,7 +12,7 @@ import { useWebSocket } from "@/hooks/use-websocket";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageSquare } from "lucide-react";
 import { z } from "zod";
 
 interface Message {
@@ -29,30 +29,31 @@ interface MessageDialogProps {
   recipientId: number;
   requestId: number;
   currentUserId: number;
+  otherPartyId: number;
 }
 
-export function MessageDialog({ recipientId, requestId, currentUserId }: MessageDialogProps) {
+export function MessageDialog({ recipientId, requestId, currentUserId, otherPartyId }: MessageDialogProps) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   const { socket } = useWebSocket();
   const { toast } = useToast();
 
-  console.log('MessageDialog mounted with props:', { recipientId, requestId, currentUserId });
+  console.log('MessageDialog mounted with props:', { recipientId, requestId, currentUserId, otherPartyId });
 
   const form = useForm<MessageFormValues>({
     resolver: zodResolver(insertMessageSchema),
     defaultValues: {
       content: "",
       senderId: currentUserId,
-      recipientId,
+      recipientId: otherPartyId,
       requestId
     }
   });
 
   const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
-    queryKey: ['/api/messages', recipientId, requestId],
+    queryKey: ['/api/messages', otherPartyId, requestId],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/messages/${recipientId}/${requestId}`);
+      const response = await apiRequest('GET', `/api/messages/${otherPartyId}/${requestId}`);
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to fetch messages');
@@ -69,7 +70,7 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'new_message' && data.requestId === requestId) {
-          queryClient.invalidateQueries({ queryKey: ['/api/messages', recipientId, requestId] });
+          queryClient.invalidateQueries({ queryKey: ['/api/messages', otherPartyId, requestId] });
         }
       } catch (error) {
         console.error('Error handling WebSocket message:', error);
@@ -81,7 +82,7 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
     return () => {
       socket.removeEventListener('message', handleMessage);
     };
-  }, [socket, requestId, recipientId, queryClient]);
+  }, [socket, requestId, otherPartyId, queryClient]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async (data: MessageFormValues) => {
@@ -107,7 +108,7 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
     },
     onSuccess: () => {
       form.reset();
-      queryClient.invalidateQueries({ queryKey: ['/api/messages', recipientId, requestId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/messages', otherPartyId, requestId] });
       toast({
         title: "Message sent",
         description: "Your message has been sent successfully."
@@ -131,7 +132,10 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Messages</Button>
+        <Button variant="outline" className="flex gap-2">
+          <MessageSquare className="h-4 w-4" />
+          Messages
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>

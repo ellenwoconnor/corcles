@@ -8,6 +8,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { MessageDialog } from "./message-dialog";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 
 const requestSchema = z.object({
   message: z.string().optional(),
@@ -15,13 +17,26 @@ const requestSchema = z.object({
 
 interface RequestFormProps {
   itemId: number;
+  itemOwnerId: number;
   hasRequested: boolean;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  currentRequest?: {
+    id: number;
+    status: string;
+  };
 }
 
-export default function RequestForm({ itemId, hasRequested, isOpen, onOpenChange }: RequestFormProps) {
+export default function RequestForm({ 
+  itemId, 
+  itemOwnerId,
+  hasRequested, 
+  isOpen, 
+  onOpenChange,
+  currentRequest 
+}: RequestFormProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const form = useForm<z.infer<typeof requestSchema>>({
     resolver: zodResolver(requestSchema),
     defaultValues: {
@@ -55,6 +70,9 @@ export default function RequestForm({ itemId, hasRequested, isOpen, onOpenChange
       });
     },
   });
+
+  // Only show messages if there's an existing request and a logged in user
+  const showMessages = currentRequest && user;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -93,13 +111,23 @@ export default function RequestForm({ itemId, hasRequested, isOpen, onOpenChange
                 </FormItem>
               )}
             />
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={requestMutation.isPending}
-            >
-              Send Request
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="submit"
+                className="flex-1"
+                disabled={requestMutation.isPending}
+              >
+                Send Request
+              </Button>
+              {showMessages && (
+                <MessageDialog
+                  recipientId={itemOwnerId}
+                  requestId={currentRequest.id}
+                  currentUserId={user.id}
+                  otherPartyId={itemOwnerId}
+                />
+              )}
+            </div>
           </form>
         </Form>
       </DialogContent>
