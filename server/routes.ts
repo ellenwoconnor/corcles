@@ -1,11 +1,12 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import multer from "multer";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import * as schema from "@shared/schema";
-import { insertItemSchema, insertItemRequestSchema, insertItemBidSchema } from "@shared/schema";
-import { eq, and, not } from "drizzle-orm";
+import { insertItemSchema, insertItemRequestSchema, insertItemBidSchema, insertMessageSchema } from "@shared/schema";
+import { eq, and, not, or } from "drizzle-orm";
 import { db } from "./db";
 import logger from './logger';
 import { addHours, isAfter, isBefore, addDays } from "date-fns";
@@ -14,6 +15,116 @@ const upload = multer();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
+
+  // Initialize WebSocket server and connected clients map
+  const httpServer = createServer(app);
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  const connectedClients = new Map<number, WebSocket>();
+
+  // Add messaging routes
+  app.post("/api/messages/send", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const { recipientId, content, requestId } = req.body;
+
+      // Validate if users can message each other
+      const canMessage = await storage.canUsersMessage(req.user.id, recipientId);
+      if (!canMessage) {
+        return res.status(403).json({ error: "You cannot message this user" });
+      }
+
+      const parseResult = insertMessageSchema.safeParse({
+        senderId: req.user.id,
+        recipientId,
+        content,
+        requestId
+      });
+
+      if (!parseResult.success) {
+        return res.status(400).json(parseResult.error);
+      }
+
+      const message = await storage.sendMessage(parseResult.data);
+
+      // Notify connected WebSocket clients
+      const recipientWs = connectedClients.get(recipientId);
+      if (recipientWs?.readyState === WebSocket.OPEN) {
+        recipientWs.send(JSON.stringify({
+          type: 'new_message',
+          data: message
+        }));
+      }
+
+      res.status(201).json(message);
+    } catch (error) {
+      logger.error('Error sending message:', error);
+      res.status(500).json({ error: 'Failed to send message' });
+    }
+  });
+
+  app.get("/api/messages/:userId/:requestId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const userId = parseInt(req.params.userId);
+      const requestId = parseInt(req.params.requestId);
+
+      if (isNaN(userId) || isNaN(requestId)) {
+        return res.status(400).json({ error: "Invalid user ID or request ID" });
+      }
+
+      const canMessage = await storage.canUsersMessage(req.user.id, userId);
+      if (!canMessage) {
+        return res.status(403).json({ error: "You cannot view messages with this user" });
+      }
+
+      const messages = await storage.getConversation(req.user.id, userId, requestId);
+
+      // Mark messages as read
+      await storage.markMessagesAsRead(req.user.id, userId, requestId);
+
+      res.json(messages);
+    } catch (error) {
+      logger.error('Error fetching messages:', error);
+      res.status(500).json({ error: 'Failed to fetch messages' });
+    }
+  });
+
+  app.get("/api/messages/unread-count", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const count = await storage.getUnreadMessageCount(req.user.id);
+      res.json({ count });
+    } catch (error) {
+      logger.error('Error getting unread message count:', error);
+      res.status(500).json({ error: 'Failed to get unread message count' });
+    }
+  });
+
+  // Set up WebSocket connection handling
+  wss.on('connection', (ws, req) => {
+    // @ts-ignore - req.user is added by passport
+    const userId = req.user?.id;
+    if (!userId) {
+      ws.close();
+      return;
+    }
+
+    logger.debug('WebSocket client connected:', { userId });
+    connectedClients.set(userId, ws);
+
+    ws.on('close', () => {
+      logger.debug('WebSocket client disconnected:', { userId });
+      connectedClients.delete(userId);
+    });
+
+    ws.on('error', (error) => {
+      logger.error('WebSocket error:', { error, userId });
+      ws.close();
+    });
+  });
 
   app.get("/api/items/:id([0-9]+)", async (req, res) => {
     try {
@@ -499,13 +610,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to edit this item" });
       }
 
+      // Fix: Create a partial schema from the base schema
+      const partialItemSchema = insertItemSchema.extend({}).partial();
       const data = {
         ...req.body,
         price: req.body.price ? Number(req.body.price) : undefined,
         isGift: typeof req.body.isGift === 'boolean' ? req.body.isGift : undefined
       };
 
-      const parseResult = insertItemSchema.partial().safeParse(data);
+      const parseResult = partialItemSchema.safeParse(data);
       if (!parseResult.success) {
         return res.status(400).json(parseResult.error);
       }
@@ -678,6 +791,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
   return httpServer;
 }

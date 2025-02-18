@@ -4,6 +4,7 @@ import {
   favoriteTable,
   itemRequests,
   itemBids,
+  messages,
   type User,
   type InsertUser,
   type Item,
@@ -12,11 +13,14 @@ import {
   type InsertItemRequest,
   type ItemBid,
   type InsertItemBid,
+  type Message,
+  type InsertMessage,
+  type PickupWindow,
   ITEM_STATUS,
   REQUEST_STATUS
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql, ilike } from "drizzle-orm";
+import { eq, and, desc, sql, ilike, or, notInArray } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -52,6 +56,13 @@ export interface IStorage {
   updateItemStatusAfterPickupSchedule(itemId: number): Promise<void>;
   updateItem(id: number, item: Partial<InsertItem>): Promise<Item>;
   sessionStore: session.Store;
+
+  // Message-related methods
+  canUsersMessage(senderId: number, recipientId: number): Promise<boolean>;
+  sendMessage(message: InsertMessage): Promise<Message>;
+  getConversation(userId1: number, userId2: number, requestId: number): Promise<Message[]>;
+  markMessagesAsRead(recipientId: number, senderId: number, requestId: number): Promise<void>;
+  getUnreadMessageCount(userId: number): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -488,6 +499,135 @@ export class DatabaseStorage implements IStorage {
       return updatedItem;
     } catch (error) {
       logger.error('Error updating item:', { error, id, item });
+      throw error;
+    }
+  }
+
+  async canUsersMessage(senderId: number, recipientId: number): Promise<boolean> {
+    try {
+      // Check if there's an active request between these users
+      const [request] = await db
+        .select()
+        .from(itemRequests)
+        .where(
+          and(
+            or(
+              and(
+                eq(itemRequests.requesterId, senderId),
+                sql`EXISTS (
+                  SELECT 1 FROM ${items}
+                  WHERE ${items.id} = ${itemRequests.itemId}
+                  AND ${items.userId} = ${recipientId}
+                )`
+              ),
+              and(
+                eq(itemRequests.requesterId, recipientId),
+                sql`EXISTS (
+                  SELECT 1 FROM ${items}
+                  WHERE ${items.id} = ${itemRequests.itemId}
+                  AND ${items.userId} = ${senderId}
+                )`
+              )
+            ),
+            notInArray(itemRequests.status, [REQUEST_STATUS.PENDING])
+          )
+        );
+
+      return !!request;
+    } catch (error) {
+      logger.error('Error checking if users can message:', { error, senderId, recipientId });
+      throw error;
+    }
+  }
+
+  async sendMessage(message: InsertMessage): Promise<Message> {
+    try {
+      const [newMessage] = await db.insert(messages).values(message).returning();
+      logger.debug('Created new message:', { 
+        messageId: newMessage.id,
+        senderId: newMessage.senderId,
+        recipientId: newMessage.recipientId,
+        requestId: newMessage.requestId
+      });
+      return newMessage;
+    } catch (error) {
+      logger.error('Error sending message:', { error, message });
+      throw error;
+    }
+  }
+
+  async getConversation(userId1: number, userId2: number, requestId: number): Promise<Message[]> {
+    try {
+      const conversation = await db
+        .select()
+        .from(messages)
+        .where(
+          and(
+            eq(messages.requestId, requestId),
+            or(
+              and(
+                eq(messages.senderId, userId1),
+                eq(messages.recipientId, userId2)
+              ),
+              and(
+                eq(messages.senderId, userId2),
+                eq(messages.recipientId, userId1)
+              )
+            )
+          )
+        )
+        .orderBy(messages.createdAt);
+
+      logger.debug('Retrieved conversation:', { 
+        userId1,
+        userId2,
+        requestId,
+        messageCount: conversation.length
+      });
+
+      return conversation;
+    } catch (error) {
+      logger.error('Error getting conversation:', { error, userId1, userId2, requestId });
+      throw error;
+    }
+  }
+
+  async markMessagesAsRead(recipientId: number, senderId: number, requestId: number): Promise<void> {
+    try {
+      await db
+        .update(messages)
+        .set({ readAt: sql`CURRENT_TIMESTAMP` })
+        .where(
+          and(
+            eq(messages.recipientId, recipientId),
+            eq(messages.senderId, senderId),
+            eq(messages.requestId, requestId),
+            sql`${messages.readAt} IS NULL`
+          )
+        );
+
+      logger.debug('Marked messages as read:', { recipientId, senderId, requestId });
+    } catch (error) {
+      logger.error('Error marking messages as read:', { error, recipientId, senderId, requestId });
+      throw error;
+    }
+  }
+
+  async getUnreadMessageCount(userId: number): Promise<number> {
+    try {
+      const [result] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(messages)
+        .where(
+          and(
+            eq(messages.recipientId, userId),
+            sql`${messages.readAt} IS NULL`
+          )
+        );
+
+      return Number(result.count) || 0;
+    } catch (error) {
+      logger.error('Error getting unread message count:', { error, userId });
       throw error;
     }
   }
