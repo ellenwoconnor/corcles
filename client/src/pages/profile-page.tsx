@@ -263,7 +263,11 @@ export default function ProfilePage() {
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div>
-                          <CardTitle>{bid.item.title}</CardTitle>
+                          <CardTitle>
+                            <Link href={`/item/${bid.item.id}`} className="hover:underline">
+                              {bid.item.title}
+                            </Link>
+                          </CardTitle>
                           <CardDescription>
                             Bid placed{" "}
                             {formatDistanceToNow(new Date(bid.createdAt), {
