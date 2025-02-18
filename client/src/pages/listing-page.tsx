@@ -311,6 +311,17 @@ export default function ListingPage() {
                         />
                       </div>
                     </div>
+                  ) : requests?.some(r => r.status === "accepted") ? (
+                    <div className="space-y-4 border-t border-border pt-4">
+                      <div className="space-y-2">
+                        <h3 className="font-medium">Scheduled Pickup</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {format(new Date(item.pickupStart!), "PPP p")} -{" "}
+                          {format(new Date(item.pickupEnd!), "p")}
+                        </p>
+                        <Badge variant="outline">Pickup Scheduled</Badge>
+                      </div>
+                    </div>
                   ) : requests?.some(r => r.status === "pending") ? (
                     <div className="space-y-4 border-t border-border pt-4">
                       <div className="space-y-2">
