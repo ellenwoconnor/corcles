@@ -17,10 +17,17 @@ export function useWebSocket() {
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
+      console.log('WebSocket already connected');
       return;
     }
 
     if (reconnectAttemptRef.current >= maxReconnectAttempts) {
+      console.log('Max reconnection attempts reached');
+      toast({
+        title: "Connection Error",
+        description: "Unable to establish real-time connection. Please refresh the page.",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -30,14 +37,15 @@ export function useWebSocket() {
         wsRef.current.close();
       }
 
-      // Create WebSocket URL with same protocol and host
+      // Create WebSocket URL with same protocol and host as current page
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/ws`;
+      console.log('Connecting to WebSocket:', wsUrl);
 
-      // Create new WebSocket connection
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
+        console.log('WebSocket connected');
         setIsConnected(true);
         reconnectAttemptRef.current = 0;
         if (reconnectTimeoutRef.current) {
@@ -49,16 +57,20 @@ export function useWebSocket() {
       ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
+          console.log('WebSocket message received:', message);
 
           switch (message.type) {
             case 'new_message':
-              // Invalidate queries to refresh message list
+              // Invalidate both sender and recipient message queries
               queryClient.invalidateQueries({ 
-                queryKey: ['/api/messages', message.data.requestId]
+                queryKey: ['/api/messages', message.data.senderId, message.data.requestId]
+              });
+              queryClient.invalidateQueries({ 
+                queryKey: ['/api/messages', message.data.recipientId, message.data.requestId]
               });
               break;
             case 'connection_established':
-              // Connection confirmed with user ID
+              console.log('WebSocket connection confirmed:', message.data);
               break;
             default:
               console.warn('Unknown message type:', message.type);
@@ -74,12 +86,16 @@ export function useWebSocket() {
       };
 
       ws.onclose = () => {
+        console.log('WebSocket closed');
         setIsConnected(false);
+
+        // Increment reconnection attempts
         reconnectAttemptRef.current += 1;
 
         if (reconnectAttemptRef.current < maxReconnectAttempts) {
           if (!reconnectTimeoutRef.current) {
             const delay = Math.min(1000 * Math.pow(2, reconnectAttemptRef.current), 10000);
+            console.log(`Attempting to reconnect in ${delay}ms`);
             reconnectTimeoutRef.current = setTimeout(() => {
               connect();
               reconnectTimeoutRef.current = undefined;

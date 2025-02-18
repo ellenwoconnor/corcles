@@ -5,16 +5,29 @@ import multer from "multer";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import * as schema from "@shared/schema";
-import { insertItemSchema, insertItemRequestSchema, insertItemBidSchema, insertMessageSchema } from "@shared/schema";
-import { eq, and, not, or } from "drizzle-orm";
+import { insertItemSchema, insertMessageSchema } from "@shared/schema";
+import { eq, and } from "drizzle-orm";
 import { db } from "./db";
 import logger from './logger';
-import { addHours, isAfter, isBefore, addDays } from "date-fns";
 import session from 'express-session';
 
 const upload = multer();
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize session middleware with explicit cookie settings
+  const sessionMiddleware = session({
+    store: storage.sessionStore,
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+  });
+
+  app.use(sessionMiddleware);
   setupAuth(app);
 
   // Initialize WebSocket server and connected clients map
@@ -25,6 +38,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Log WebSocket server initialization
   logger.info('WebSocket server initialized on path: /ws');
 
+  wss.on('connection', async (ws, req) => {
+    try {
+      // Debug log incoming connection
+      logger.debug('WebSocket connection attempt:', { 
+        headers: req.headers,
+        cookie: req.headers.cookie,
+        path: req.url
+      });
+
+      // Parse session before establishing connection
+      await new Promise<void>((resolve, reject) => {
+        sessionMiddleware(req as any, {} as any, (err: any) => {
+          if (err) {
+            logger.error('Session parsing error:', err);
+            reject(err);
+            return;
+          }
+          resolve();
+        });
+      });
+
+      // Check for authenticated user
+      // @ts-ignore - req.user is added by passport session deserialize
+      const user = req.user;
+
+      // Debug log session state
+      logger.debug('WebSocket session state:', {
+        hasSession: !!(req as any).session,
+        hasUser: !!user,
+        userId: user?.id
+      });
+
+      if (!user?.id) {
+        logger.warn('WebSocket connection attempt without authenticated user');
+        ws.close();
+        return;
+      }
+
+      logger.info('WebSocket client connected:', { 
+        userId: user.id,
+        totalConnections: connectedClients.size + 1
+      });
+
+      // Store the WebSocket connection
+      connectedClients.set(user.id, ws);
+
+      // Send connection confirmation
+      ws.send(JSON.stringify({
+        type: 'connection_established',
+        data: { userId: user.id }
+      }));
+
+      // Set up WebSocket event handlers
+      ws.on('close', () => {
+        logger.info('WebSocket client disconnected:', { 
+          userId: user.id,
+          remainingConnections: connectedClients.size - 1
+        });
+        connectedClients.delete(user.id);
+      });
+
+      ws.on('error', (error) => {
+        logger.error('WebSocket error:', {
+          error: error.message,
+          stack: error.stack,
+          userId: user.id
+        });
+        ws.close();
+      });
+
+    } catch (error) {
+      logger.error('Error during WebSocket connection setup:', {
+        error: error.message,
+        stack: (error as Error).stack
+      });
+      ws.close();
+    }
+  });
+
   // Add messaging routes
   app.post("/api/messages/send", async (req, res) => {
     try {
@@ -33,7 +125,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { recipientId, content, requestId } = req.body;
       logger.info('Received message request:', { recipientId, requestId });
 
-      // Validate if users can message each other
       const canMessage = await storage.canUsersMessage(req.user.id, recipientId);
       if (!canMessage) {
         return res.status(403).json({ error: "You cannot message this user" });
@@ -77,84 +168,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to send message' });
     }
   });
-
-  // Set up WebSocket connection handling
-  wss.on('connection', async (ws, req) => {
-    try {
-      const cookieHeader = req.headers.cookie;
-      if (!cookieHeader) {
-        logger.warn('WebSocket connection attempt without cookies');
-        ws.close();
-        return;
-      }
-
-      // Set up session middleware for WebSocket
-      const sessionMiddleware = session({
-        store: storage.sessionStore,
-        secret: process.env.SESSION_SECRET || 'your-secret-key',
-        resave: false,
-        saveUninitialized: false,
-        cookie: {
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax'
-        }
-      });
-
-      // Parse session from WebSocket request
-      await new Promise((resolve, reject) => {
-        sessionMiddleware(req as any, {} as any, (err: any) => {
-          if (err) {
-            logger.error('Session parsing error:', err);
-            reject(err);
-            return;
-          }
-          resolve(undefined);
-        });
-      });
-
-      // @ts-ignore - req.user is added by passport session deserialize
-      const user = req.user;
-
-      if (!user?.id) {
-        logger.warn('WebSocket connection attempt without authenticated user');
-        ws.close();
-        return;
-      }
-
-      logger.info('WebSocket client connected:', { 
-        userId: user.id,
-        totalConnections: connectedClients.size + 1
-      });
-
-      // Store the WebSocket connection
-      connectedClients.set(user.id, ws);
-
-      // Send connection confirmation
-      ws.send(JSON.stringify({
-        type: 'connection_established',
-        data: { userId: user.id }
-      }));
-
-      // Set up WebSocket event handlers
-      ws.on('close', () => {
-        logger.info('WebSocket client disconnected:', { 
-          userId: user.id,
-          remainingConnections: connectedClients.size - 1
-        });
-        connectedClients.delete(user.id);
-      });
-
-      ws.on('error', (error) => {
-        logger.error('WebSocket error:', { error, userId: user.id });
-        ws.close();
-      });
-
-    } catch (error) {
-      logger.error('Error during WebSocket connection setup:', error);
-      ws.close();
-    }
-  });
-
   app.get("/api/messages/:userId/:requestId", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
