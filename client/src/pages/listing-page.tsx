@@ -234,14 +234,29 @@ export default function ListingPage() {
                             <h3 className="font-medium">Proposed Pickup Windows</h3>
                             <div className="space-y-2">
                               {item.proposedPickupWindows.map((window, index) => {
-                                console.log('Processing window:', window); // Add debugging log
+                                const isSelectedWindow = item.pickupStart && 
+                                  new Date(window.pickupStart).getTime() === new Date(item.pickupStart).getTime() &&
+                                  new Date(window.pickupEnd).getTime() === new Date(item.pickupEnd).getTime();
+
                                 return (
-                                  <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
-                                    <p className="text-sm">
-                                      {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
-                                      {format(new Date(window.pickupStart), "h:mm a")} -{" "}
-                                      {format(new Date(window.pickupEnd), "h:mm a")}
-                                    </p>
+                                  <div 
+                                    key={index} 
+                                    className={`p-3 rounded-lg border ${
+                                      isSelectedWindow 
+                                        ? "bg-primary/10 border-primary" 
+                                        : "bg-secondary border-border"
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-sm">
+                                        {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
+                                        {format(new Date(window.pickupStart), "h:mm a")} -{" "}
+                                        {format(new Date(window.pickupEnd), "h:mm a")}
+                                      </p>
+                                      {isSelectedWindow && (
+                                        <Badge variant="outline" className="ml-2">Selected Time</Badge>
+                                      )}
+                                    </div>
                                   </div>
                                 );
                               })}
@@ -283,30 +298,80 @@ export default function ListingPage() {
                   requests?.some(r => r.status === "accepted" || r.status === "completed") ? (
                     <div className="space-y-4 border-t border-border pt-4">
                       <div className="space-y-2">
+                        <h3 className="font-medium">Pickup Time Confirmed</h3>
+                        <div className="p-3 bg-primary/10 rounded-lg border border-primary">
+                          <p className="text-sm font-medium">
+                            Selected Time Window:
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(item.pickupStart!), "EEEE, MMMM d")} at{" "}
+                            {format(new Date(item.pickupStart!), "h:mm a")} -{" "}
+                            {format(new Date(item.pickupEnd!), "h:mm a")}
+                          </p>
+                        </div>
+                        {item.proposedPickupWindows && item.proposedPickupWindows.length > 1 && (
+                          <div className="mt-4">
+                            <p className="text-sm font-medium mb-2">Other Available Windows:</p>
+                            <div className="space-y-2">
+                              {item.proposedPickupWindows
+                                .filter(window => 
+                                  window.pickupStart !== item.pickupStart &&
+                                  window.pickupEnd !== item.pickupEnd
+                                )
+                                .map((window, index) => (
+                                  <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
+                                    <p className="text-sm text-muted-foreground">
+                                      {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
+                                      {format(new Date(window.pickupStart), "h:mm a")} -{" "}
+                                      {format(new Date(window.pickupEnd), "h:mm a")}
+                                    </p>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                        <Badge variant="outline" className="mt-2">Pickup Scheduled</Badge>
+                      </div>
+                    </div>
+                  ) : item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && requests?.some(r => r.status === "awaiting_pickup_confirmation") ? (
+                    <div className="space-y-4 border-t border-border pt-4">
+                      <div className="space-y-2">
+                        <h3 className="font-medium">Available Pickup Times</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Please select a time that works for you
+                        </p>
+                        <PickupTimeSelector
+                          itemId={item.id}
+                          windows={item.proposedPickupWindows as PickupWindow[]}
+                          onSelected={() => {
+                            queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
+                            queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}/my-requests`] });
+                            queryClient.invalidateQueries({ queryKey: ["/api/user/requests"] });
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ) : requests?.some(r => r.status === "accepted") ? (
+                    <div className="space-y-4 border-t border-border pt-4">
+                      <div className="space-y-2">
                         <h3 className="font-medium">Scheduled Pickup</h3>
                         <p className="text-sm text-muted-foreground">
                           {format(new Date(item.pickupStart!), "PPP p")} -{" "}
                           {format(new Date(item.pickupEnd!), "p")}
                         </p>
-                        <Badge variant="outline">
-                          {requests.some(r => r.status === "completed") ? 'Pickup Complete' : 'Pickup Scheduled'}
-                        </Badge>
+                        <Badge variant="outline">Pickup Scheduled</Badge>
                       </div>
                     </div>
-                  ) : requests?.some(r => r.status === "awaiting_pickup_confirmation") ? (
-                    <PickupConfirmation
-                      item={item}
-                      request={requests.find(r => r.status === "awaiting_pickup_confirmation")!}
-                    />
-                  ) : item.proposedPickupWindows && item.proposedPickupWindows.length > 0 ? (
-                    <PickupTimeSelector
-                      itemId={item.id}
-                      windows={item.proposedPickupWindows}
-                      onSelected={() => {
-                        queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
-                        queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}/my-requests`] });
-                      }}
-                    />
+                  ) : requests?.some(r => r.status === "pending") ? (
+                    <div className="space-y-4 border-t border-border pt-4">
+                      <div className="space-y-2">
+                        <h3 className="font-medium">Request Pending</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Waiting for the owner to schedule pickup windows.
+                        </p>
+                        <Badge variant="secondary">Pending</Badge>
+                      </div>
+                    </div>
                   ) : hasRequested ? (
                     <div className="space-y-4 border-t border-border pt-4">
                       <div className="space-y-2">
