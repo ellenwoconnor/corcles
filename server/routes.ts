@@ -149,6 +149,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
+      logger.debug('WebSocket connection attempt with cookies:', { cookieHeader });
+
       // Create a Promise-based session parser
       const getSession = () => new Promise((resolve, reject) => {
         const sessionParser = session({
@@ -159,7 +161,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         sessionParser(req as any, {} as any, (err: any) => {
-          if (err) reject(err);
+          if (err) {
+            logger.error('Session parsing error:', err);
+            reject(err);
+          }
           resolve(req);
         });
       });
