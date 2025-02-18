@@ -106,7 +106,7 @@ export default function ProfilePage() {
                   <Clock className="h-4 w-4" />
                   <AlertTitle>Action Needed</AlertTitle>
                   <AlertDescription>
-                    You have items that need pickup windows scheduled
+                    Visit your listings to schedule pickup windows
                   </AlertDescription>
                 </Alert>
               )}
@@ -223,17 +223,10 @@ export default function ProfilePage() {
                     </CardHeader>
                     <CardContent>
                       <p className="text-muted-foreground mb-2">{request.message}</p>
-                      {request.status === "awaiting_pickup_confirmation" && request.item.pickupStart && (
-                        <div className="mt-4">
-                          <h4 className="font-medium mb-2">Proposed Pickup Window</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(request.item.pickupStart), "PPP p")} - {format(new Date(request.item.pickupEnd!), "p")}
-                          </p>
-                          <div className="flex gap-2 mt-4">
-                            <Button>Confirm Pickup Time</Button>
-                            <Button variant="outline">Request Different Time</Button>
-                          </div>
-                        </div>
+                      {request.status === "awaiting_pickup_confirmation" && (
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Visit the listing page to confirm pickup time
+                        </p>
                       )}
                       {request.status === "accepted" && request.item.pickupStart && (
                         <p className="text-sm text-muted-foreground">
