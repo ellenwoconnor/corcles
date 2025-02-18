@@ -128,10 +128,6 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId, recipien
     onSuccess: () => {
       form.reset();
       queryClient.invalidateQueries({ queryKey: ['/api/messages', currentUserId, requestId] });
-      toast({
-        title: "Message sent",
-        description: "Your message has been sent successfully."
-      });
     },
     onError: (error: Error) => {
       console.error('Failed to send message:', error);
