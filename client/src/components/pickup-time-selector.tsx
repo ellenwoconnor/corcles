@@ -6,16 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { PickupWindow } from "@shared/schema";
 import { Loader2, Clock } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
 import { MessageDialog } from "./message-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 interface PickupTimeSelectorProps {
   itemId: number;
@@ -36,8 +27,6 @@ export default function PickupTimeSelector({
 }: PickupTimeSelectorProps) {
   const { toast } = useToast();
   const [selectedWindow, setSelectedWindow] = useState<number>();
-  const [isDeclineDialogOpen, setIsDeclineDialogOpen] = useState(false);
-  const [declineNote, setDeclineNote] = useState("");
 
   console.log('PickupTimeSelector mounted:', {
     itemId,
@@ -48,13 +37,11 @@ export default function PickupTimeSelector({
   });
 
   const selectTimeMutation = useMutation({
-    mutationFn: async (options: { decline?: boolean; windowIndex?: number }) => {
+    mutationFn: async (windowIndex: number) => {
       const response = await apiRequest(
         "POST",
         `/api/items/${itemId}/select-pickup-time`,
-        options.decline
-          ? { decline: true, note: declineNote }
-          : { windowIndex: options.windowIndex }
+        { windowIndex }
       );
 
       if (!response.ok) {
@@ -66,16 +53,13 @@ export default function PickupTimeSelector({
     onSuccess: () => {
       toast({
         title: "Success!",
-        description: !isDeclineDialogOpen
-          ? "Your time selection has been confirmed."
-          : "The owner will be notified that the times don't work for you.",
+        description: "Your time selection has been confirmed."
       });
 
       queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/my-requests`] });
       queryClient.invalidateQueries({ queryKey: ['/api/user/requests'] });
 
-      setIsDeclineDialogOpen(false);
       onSelected();
     },
     onError: (error: Error) => {
@@ -104,7 +88,7 @@ export default function PickupTimeSelector({
               key={index}
               onClick={() => {
                 setSelectedWindow(index);
-                selectTimeMutation.mutate({ windowIndex: index });
+                selectTimeMutation.mutate(index);
               }}
               disabled={selectTimeMutation.isPending}
               className={`text-left px-3 py-2 rounded-md text-sm transition-colors
@@ -123,56 +107,6 @@ export default function PickupTimeSelector({
             </button>
           ))}
         </div>
-
-        <Dialog open={isDeclineDialogOpen} onOpenChange={setIsDeclineDialogOpen}>
-          <DialogTrigger asChild>
-            <button
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors w-full text-center mt-1"
-              disabled={selectTimeMutation.isPending}
-            >
-              None of these times work for me
-            </button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Decline Time Windows</DialogTitle>
-              <DialogDescription>
-                Let the owner know why these times don't work for you (optional)
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <Textarea
-                placeholder="Optional message to the owner..."
-                value={declineNote}
-                onChange={(e) => setDeclineNote(e.target.value)}
-                className="min-h-[100px]"
-              />
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsDeclineDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  disabled={selectTimeMutation.isPending}
-                  onClick={() => selectTimeMutation.mutate({ decline: true })}
-                >
-                  {selectTimeMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    "Send Response"
-                  )}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   );
