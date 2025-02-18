@@ -40,7 +40,7 @@ export default function PickupSchedulingContainer({
 
   // Display selected pickup window if one exists
   const showSelectedTime = item.pickupStart && item.pickupEnd;
-  const showMessageDialog = user && (showSelectedTime || schedulingComplete);
+  const showMessageDialog = user && showSelectedTime;
 
   // Show cancel button only if there's a selected time and user is owner or recipient
   const showCancelButton = showSelectedTime && (isOwner || isRecipient);
@@ -63,7 +63,7 @@ export default function PickupSchedulingContainer({
               {showCancelButton && (
                 <CancelButton 
                   itemId={item.id}
-                  onCanceled={onScheduled}
+                  onCanceled={handleSchedulingComplete}
                 />
               )}
             </div>
@@ -78,25 +78,7 @@ export default function PickupSchedulingContainer({
             itemId={item.id}
             onScheduled={handleSchedulingComplete}
           />
-        ) : (
-          // Show proposed windows if they exist and no time is selected yet
-          !showSelectedTime && item.proposedPickupWindows?.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="font-medium">Proposed Pickup Windows</h3>
-              <div className="space-y-2">
-                {item.proposedPickupWindows.map((window: PickupWindow, index: number) => (
-                  <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
-                    <p className="text-sm">
-                      {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
-                      {format(new Date(window.pickupStart), "h:mm a")} -{" "}
-                      {format(new Date(window.pickupEnd), "h:mm a")}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )
-        )
+        ) : null
       ) : (
         // Requester view - show time selector to pick from proposed times if no time is selected yet
         !showSelectedTime && 
@@ -113,7 +95,7 @@ export default function PickupSchedulingContainer({
         )
       )}
 
-      {/* Show message dialog only once and only after scheduling is complete or time is selected */}
+      {/* Show message dialog only once and only after time is selected */}
       {showMessageDialog && (
         <MessageDialog
           requestId={requestId}

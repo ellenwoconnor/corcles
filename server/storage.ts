@@ -665,6 +665,31 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
+  async canUsersMessage(senderId: number, recipientId: number): Promise<boolean> {
+    try {
+      // Check if the users have any shared item requests
+      const requests = await db
+        .select()
+        .from(itemRequests)
+        .where(
+          or(
+            and(
+              eq(itemRequests.requesterId, senderId),
+              eq(itemRequests.userId, recipientId)
+            ),
+            and(
+              eq(itemRequests.requesterId, recipientId),
+              eq(itemRequests.userId, senderId)
+            )
+          )
+        );
+
+      return requests.length > 0;
+    } catch (error) {
+      logger.error('Error checking if users can message:', { error, senderId, recipientId });
+      throw error;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

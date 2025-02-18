@@ -11,8 +11,10 @@ import { db } from "./db";
 import logger from './logger';
 import { addHours, isAfter, isBefore, addDays } from "date-fns";
 import session from 'express-session';
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
-const upload = multer();
+const PostgresSessionStore = connectPg(session);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -143,22 +145,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // Create a Promise-based session parser
+      // Create a Promise-based session parser with better error handling
       const getSession = () => new Promise((resolve, reject) => {
         const sessionParser = session({
-          store: storage.sessionStore,
+          store: new PostgresSessionStore({ 
+            pool,
+            createTableIfMissing: true,
+            tableName: 'session'
+          }),
           secret: process.env.SESSION_SECRET || 'your-secret-key',
           resave: false,
-          saveUninitialized: false
+          saveUninitialized: false,
+          cookie: {
+            secure: process.env.NODE_ENV === 'production',
+            httpOnly: true,
+            sameSite: 'lax'
+          }
         });
 
         sessionParser(req as any, {} as any, (err: any) => {
-          if (err) reject(err);
+          if (err) {
+            logger.error('Session parsing error:', err);
+            reject(err);
+          }
           resolve(req);
         });
       });
 
-      await getSession();
+      try {
+        await getSession();
+      } catch (err) {
+        logger.error('Failed to parse session:', err);
+        ws.close();
+        return;
+      }
 
       // @ts-ignore - req.user is added by passport session
       const userId = req.user?.id;
@@ -172,8 +192,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
         totalConnections: connectedClients.size + 1
       });
+
+      // Store connection with error handling
       connectedClients.set(userId, ws);
 
+      // Handle WebSocket events
       ws.on('close', () => {
         logger.info('WebSocket client disconnected:', { 
           userId,
@@ -185,12 +208,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ws.on('error', (error) => {
         logger.error('WebSocket error:', { error, userId });
         ws.close();
+        connectedClients.delete(userId);
       });
 
-      // Send initial connection success message
+      // Send initial connection success message with more details
       ws.send(JSON.stringify({
         type: 'connection_established',
-        data: { userId }
+        data: { 
+          userId,
+          timestamp: new Date().toISOString()
+        }
       }));
 
     } catch (error) {

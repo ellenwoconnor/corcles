@@ -21,7 +21,7 @@ export function CancelButton({ itemId, onCanceled }: CancelButtonProps) {
     try {
       await apiRequest(`/api/items/${itemId}/cancel-pickup`, {
         method: "POST",
-        body: { reason: reason.trim() || undefined }
+        body: JSON.stringify({ reason: reason.trim() || undefined })
       });
 
       toast({
@@ -30,7 +30,7 @@ export function CancelButton({ itemId, onCanceled }: CancelButtonProps) {
       });
 
       setIsOpen(false);
-      onCanceled();
+      onCanceled?.();
     } catch (error) {
       toast({
         title: "Error",
