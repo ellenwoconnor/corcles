@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import logger, { requestLogger } from "./logger";
-import { db } from "./db";
+import { db } from "./db-dev";
 import { sql } from 'drizzle-orm';
 
 const app = express();

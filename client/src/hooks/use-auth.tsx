@@ -58,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryClient.setQueryData(["/api/user"], user);
     },
     onError: (error: Error) => {
+      console.log(error);
       toast({
         title: "Registration failed",
         description: error.message,
