@@ -38,12 +38,7 @@ export default function PickupSchedulingContainer({
 
   // Display selected pickup window if one exists
   const showSelectedTime = item.pickupStart && item.pickupEnd;
-  // Only show message dialog when scheduling is complete or time is selected
   const showMessageDialog = user && (showSelectedTime || schedulingComplete);
-  // Only show time selector when there are proposed windows and no time is selected yet
-  const showTimeSelector = !isOwner && !showSelectedTime && item.proposedPickupWindows?.length > 0;
-  // Only show scheduler for owner when no windows are proposed and no time is selected
-  const showScheduler = isOwner && !showSelectedTime && !item.proposedPickupWindows?.length;
 
   if (!user) return null;
 
@@ -63,41 +58,49 @@ export default function PickupSchedulingContainer({
         </Alert>
       )}
 
-      {showScheduler && (
-        <PickupScheduler
-          itemId={item.id}
-          onScheduled={handleSchedulingComplete}
-        />
-      )}
-
-      {isOwner && !showSelectedTime && item.proposedPickupWindows?.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="font-medium">Proposed Pickup Windows</h3>
-          <div className="space-y-2">
-            {item.proposedPickupWindows.map((window: PickupWindow, index: number) => (
-              <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
-                <p className="text-sm">
-                  {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
-                  {format(new Date(window.pickupStart), "h:mm a")} -{" "}
-                  {format(new Date(window.pickupEnd), "h:mm a")}
-                </p>
+      {isOwner ? (
+        // Owner view - show scheduler to propose times if no windows are proposed yet
+        !showSelectedTime && !item.proposedPickupWindows?.length ? (
+          <PickupScheduler
+            itemId={item.id}
+            onScheduled={handleSchedulingComplete}
+          />
+        ) : (
+          // Show proposed windows if they exist and no time is selected yet
+          !showSelectedTime && item.proposedPickupWindows?.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="font-medium">Proposed Pickup Windows</h3>
+              <div className="space-y-2">
+                {item.proposedPickupWindows.map((window: PickupWindow, index: number) => (
+                  <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
+                    <p className="text-sm">
+                      {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
+                      {format(new Date(window.pickupStart), "h:mm a")} -{" "}
+                      {format(new Date(window.pickupEnd), "h:mm a")}
+                    </p>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          )
+        )
+      ) : (
+        // Requester view - show time selector to pick from proposed times if no time is selected yet
+        !showSelectedTime && 
+        item.proposedPickupWindows && 
+        item.proposedPickupWindows.length > 0 && (
+          <PickupTimeSelector
+            itemId={item.id}
+            itemOwnerId={item.userId}
+            currentUserId={user.id}
+            requestId={requestId}
+            windows={item.proposedPickupWindows}
+            onSelected={handleSchedulingComplete}
+          />
+        )
       )}
 
-      {showTimeSelector && (
-        <PickupTimeSelector
-          itemId={item.id}
-          itemOwnerId={item.userId}
-          currentUserId={user.id}
-          requestId={requestId}
-          windows={item.proposedPickupWindows}
-          onSelected={handleSchedulingComplete}
-        />
-      )}
-
+      {/* Show message dialog only once and only after scheduling is complete or time is selected */}
       {showMessageDialog && (
         <MessageDialog
           requestId={requestId}
