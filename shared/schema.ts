@@ -28,10 +28,32 @@ export const favoriteTable = pgTable("favorites", {
 });
 
 export const ITEM_STATUS = {
-  AVAILABLE: 'available',
-  PENDING_PICKUP: 'pending_pickup',
+  PENDING_REQUESTS: 'pending_requests', // No requests received
+  PENDING_SCHEDULING: 'pending_scheduling', // Has pending requests only
+  IN_TRANSACTION: 'in_transaction', // At least one non-pending request
+  CLOSED: 'closed', // All requests rejected/completed
   COMPLETED: 'completed'
 } as const;
+
+export function getItemStatus(requests: ItemRequest[]): string {
+  if (!requests?.length) {
+    return ITEM_STATUS.PENDING_REQUESTS;
+  }
+
+  const hasNonPendingRequest = requests.some(r => r.status !== REQUEST_STATUS.PENDING && r.status !== REQUEST_STATUS.REJECTED);
+  const allRejectedOrCompleted = requests.every(r => r.status === REQUEST_STATUS.REJECTED || r.status === REQUEST_STATUS.COMPLETED);
+  const allPending = requests.every(r => r.status === REQUEST_STATUS.PENDING);
+
+  if (hasNonPendingRequest) {
+    return ITEM_STATUS.IN_TRANSACTION;
+  } else if (allRejectedOrCompleted) {
+    return ITEM_STATUS.CLOSED;
+  } else if (allPending) {
+    return ITEM_STATUS.PENDING_SCHEDULING;
+  }
+  
+  return ITEM_STATUS.PENDING_REQUESTS;
+}
 
 export const REQUEST_STATUS = {
   PENDING: 'pending',
