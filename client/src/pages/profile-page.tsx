@@ -152,9 +152,14 @@ export default function ProfilePage() {
                       </CardHeader>
                       <CardContent>
                         {item.pickupStart && (
-                          <p className="text-sm text-muted-foreground">
-                            Pickup: {format(new Date(item.pickupStart), "PPP p")} - {format(new Date(item.pickupEnd!), "p")}
-                          </p>
+                          <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                            <h3 className="font-medium mb-2">Pickup Scheduled</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(item.pickupStart), "EEEE, MMMM d")} at{" "}
+                              {format(new Date(item.pickupStart), "h:mm a")} -{" "}
+                              {format(new Date(item.pickupEnd!), "h:mm a")}
+                            </p>
+                          </div>
                         )}
                       </CardContent>
                     </Card>
@@ -235,9 +240,14 @@ export default function ProfilePage() {
                         </div>
                       )}
                       {request.status === "accepted" && request.item.pickupStart && (
-                        <p className="text-sm text-muted-foreground">
-                          Pickup: {format(new Date(request.item.pickupStart), "PPP p")} - {format(new Date(request.item.pickupEnd!), "p")}
-                        </p>
+                        <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                          <h3 className="font-medium mb-2">Pickup Scheduled</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(request.item.pickupStart), "EEEE, MMMM d")} at{" "}
+                            {format(new Date(request.item.pickupStart), "h:mm a")} -{" "}
+                            {format(new Date(request.item.pickupEnd!), "h:mm a")}
+                          </p>
+                        </div>
                       )}
                     </CardContent>
                   </Card>
