@@ -593,15 +593,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .set({ 
           pickupStart: pickupStart,
           pickupEnd: pickupEnd,
-          status: 'pending_pickup'
+          status: 'pending_pickup',
+          recipientId: req.user.id 
         })
         .where(eq(schema.items.id, itemId));
 
-      // Update all pending requests to awaiting_pickup_confirmation
+      // Update the requester's request to accepted
       await db
         .update(schema.itemRequests)
         .set({ 
-          status: 'awaiting_pickup_confirmation'
+          status: 'accepted'
         })
         .where(
           and(
