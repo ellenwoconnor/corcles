@@ -7,6 +7,7 @@ import PickupScheduler from "./pickup-scheduler";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
+import { MessageDialog } from "./message-dialog";
 
 interface PickupSchedulingContainerProps {
   item: Item;
@@ -65,16 +66,46 @@ export default function PickupSchedulingContainer({
               {format(new Date(item.pickupEnd!), "h:mm a")}
             </p>
             <Badge variant="outline">Pickup Scheduled</Badge>
+            <MessageDialog
+              requestId={requestId}
+              currentUserId={user.id}
+              otherPartyId={otherPartyId}
+              recipientId={otherPartyId}
+            />
           </div>
         </Alert>
       )}
 
       {isOwner ? (
-        // Owner view - show scheduler to propose times
-        <PickupScheduler
-          itemId={item.id}
-          onScheduled={handleSchedulingComplete}
-        />
+        // Owner view - show scheduler to propose times if no windows are proposed yet
+        !item.proposedPickupWindows?.length ? (
+          <PickupScheduler
+            itemId={item.id}
+            onScheduled={handleSchedulingComplete}
+          />
+        ) : (
+          // Show proposed windows if they exist
+          <div className="space-y-2">
+            <h3 className="font-medium">Proposed Pickup Windows</h3>
+            <div className="space-y-2">
+              {item.proposedPickupWindows.map((window: PickupWindow, index: number) => (
+                <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
+                  <p className="text-sm">
+                    {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
+                    {format(new Date(window.pickupStart), "h:mm a")} -{" "}
+                    {format(new Date(window.pickupEnd), "h:mm a")}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <MessageDialog
+              requestId={requestId}
+              currentUserId={user.id}
+              otherPartyId={otherPartyId}
+              recipientId={otherPartyId}
+            />
+          </div>
+        )
       ) : (
         // Requester view - show time selector to pick from proposed times
         <PickupTimeSelector
