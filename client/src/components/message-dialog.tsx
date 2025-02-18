@@ -12,7 +12,7 @@ import { useWebSocket } from "@/hooks/use-websocket";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { z } from "zod";
 
 interface Message {
@@ -123,12 +123,6 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
           <DialogTitle>Messages</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col space-y-4">
-          {!isConnected && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-md p-2">
-              <AlertCircle className="h-4 w-4" />
-              <span>Connecting to message service...</span>
-            </div>
-          )}
           <ScrollArea className="h-[300px] pr-4">
             {messagesLoading ? (
               <div className="flex items-center justify-center h-full">
