@@ -30,11 +30,11 @@ export function useWebSocket() {
         wsRef.current.close();
       }
 
-      // Create WebSocket URL with same protocol and host as current page
+      // Create WebSocket URL with same protocol and host
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/ws`;
 
-      // Create WebSocket - credentials (cookies) will be sent automatically
+      // Create new WebSocket connection
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {

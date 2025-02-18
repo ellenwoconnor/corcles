@@ -78,23 +78,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Set up WebSocket connection handling with enhanced logging and session parsing
+  // Set up WebSocket connection handling
   wss.on('connection', async (ws, req) => {
     try {
-      // Log the full headers for debugging
       const cookieHeader = req.headers.cookie;
-      logger.debug('WebSocket connection attempt:', { 
-        headers: req.headers,
-        cookies: cookieHeader
-      });
-
       if (!cookieHeader) {
         logger.warn('WebSocket connection attempt without cookies');
         ws.close();
         return;
       }
 
-      // Configure session middleware
+      // Set up session middleware for WebSocket
       const sessionMiddleware = session({
         store: storage.sessionStore,
         secret: process.env.SESSION_SECRET || 'your-secret-key',
@@ -106,7 +100,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
 
-      // Parse session using Promise
+      // Parse session from WebSocket request
       await new Promise((resolve, reject) => {
         sessionMiddleware(req as any, {} as any, (err: any) => {
           if (err) {
@@ -118,12 +112,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       });
 
-      // @ts-ignore - req.user is added by passport session
+      // @ts-ignore - req.user is added by passport session deserialize
       const user = req.user;
-      logger.debug('WebSocket session parsed:', { 
-        sessionPresent: !!req.session,
-        user: user ? { id: user.id, username: user.username } : null
-      });
 
       if (!user?.id) {
         logger.warn('WebSocket connection attempt without authenticated user');
@@ -136,15 +126,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalConnections: connectedClients.size + 1
       });
 
-      // Store the connection with the user ID
+      // Store the WebSocket connection
       connectedClients.set(user.id, ws);
 
-      // Send initial connection success message
+      // Send connection confirmation
       ws.send(JSON.stringify({
         type: 'connection_established',
         data: { userId: user.id }
       }));
 
+      // Set up WebSocket event handlers
       ws.on('close', () => {
         logger.info('WebSocket client disconnected:', { 
           userId: user.id,
