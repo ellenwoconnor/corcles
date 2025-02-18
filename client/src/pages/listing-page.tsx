@@ -293,7 +293,7 @@ export default function ListingPage() {
                         </Badge>
                       </div>
                     </div>
-                  ) : item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && requests?.some(r => r.status === "awaiting_pickup_confirmation") ? (
+                  ) : item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && requests?.some(r => r.status === "pending") ? (
                     <div className="space-y-4 border-t border-border pt-4">
                       <div className="space-y-2">
                         <h3 className="font-medium">Available Pickup Times</h3>
@@ -306,6 +306,7 @@ export default function ListingPage() {
                           onSelected={() => {
                             queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
                             queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}/my-requests`] });
+                            queryClient.invalidateQueries({ queryKey: ["/api/user/requests"] });
                           }}
                         />
                       </div>

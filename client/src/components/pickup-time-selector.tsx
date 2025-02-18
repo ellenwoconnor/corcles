@@ -52,7 +52,7 @@ export default function PickupTimeSelector({
       toast({
         title: "Success!",
         description: !isDeclineDialogOpen
-          ? "The owner will be notified of your selection."
+          ? "Your time selection has been confirmed."
           : "The owner will be notified that the times don't work for you.",
       });
 
@@ -60,7 +60,6 @@ export default function PickupTimeSelector({
       queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/my-requests`] });
       queryClient.invalidateQueries({ queryKey: ['/api/user/requests'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/requests`] });
 
       setIsDeclineDialogOpen(false);
       onSelected();
@@ -81,10 +80,14 @@ export default function PickupTimeSelector({
           <Button
             key={index}
             variant={selectedWindow === index ? "default" : "outline"}
-            className={`w-full justify-start hover:bg-secondary/80 transition-colors cursor-pointer ${
-              selectedWindow === index ? "ring-2 ring-primary bg-primary text-primary-foreground" : "bg-card"
+            className={`w-full justify-start hover:bg-secondary/80 transition-colors ${
+              selectedWindow === index ? "ring-2 ring-primary" : ""
             }`}
-            onClick={() => setSelectedWindow(index)}
+            onClick={() => {
+              setSelectedWindow(index);
+              selectTimeMutation.mutate({ windowIndex: index });
+            }}
+            disabled={selectTimeMutation.isPending}
           >
             <Clock className="w-4 h-4 mr-2 shrink-0" />
             <span className="text-left">
@@ -96,72 +99,51 @@ export default function PickupTimeSelector({
         ))}
       </div>
 
-      <div className="flex gap-2">
-        <Button
-          className="flex-1"
-          disabled={selectedWindow === undefined || selectTimeMutation.isPending}
-          onClick={() => {
-            if (selectedWindow !== undefined) {
-              selectTimeMutation.mutate({ windowIndex: selectedWindow });
-            }
-          }}
-        >
-          {selectTimeMutation.isPending && !isDeclineDialogOpen ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Confirming selection...
-            </>
-          ) : (
-            "Confirm Selected Time"
-          )}
-        </Button>
-
-        <Dialog open={isDeclineDialogOpen} onOpenChange={setIsDeclineDialogOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="flex-1">
-              <X className="mr-2 h-4 w-4" />
-              None Work
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Decline Time Windows</DialogTitle>
-              <DialogDescription>
-                Let the owner know why these times don't work for you (optional)
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <Textarea
-                placeholder="Optional message to the owner..."
-                value={declineNote}
-                onChange={(e) => setDeclineNote(e.target.value)}
-                className="min-h-[100px]"
-              />
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsDeclineDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  disabled={selectTimeMutation.isPending}
-                  onClick={() => selectTimeMutation.mutate({ decline: true })}
-                >
-                  {selectTimeMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    "Send Response"
-                  )}
-                </Button>
-              </div>
+      <Dialog open={isDeclineDialogOpen} onOpenChange={setIsDeclineDialogOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline" className="w-full" disabled={selectTimeMutation.isPending}>
+            <X className="mr-2 h-4 w-4" />
+            None of These Times Work
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Decline Time Windows</DialogTitle>
+            <DialogDescription>
+              Let the owner know why these times don't work for you (optional)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <Textarea
+              placeholder="Optional message to the owner..."
+              value={declineNote}
+              onChange={(e) => setDeclineNote(e.target.value)}
+              className="min-h-[100px]"
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsDeclineDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={selectTimeMutation.isPending}
+                onClick={() => selectTimeMutation.mutate({ decline: true })}
+              >
+                {selectTimeMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Send Response"
+                )}
+              </Button>
             </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
