@@ -5,7 +5,7 @@ import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import * as schema from "@shared/schema";
 import { insertItemSchema, insertItemRequestSchema, insertItemBidSchema } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, not } from "drizzle-orm";
 import { db } from "./db";
 import logger from './logger';
 import { addHours, isAfter, isBefore, addDays } from "date-fns";
@@ -554,7 +554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json({ success: true });
       }
 
-      // Handle acceptance case (existing code)
+      // Handle acceptance case
       if (typeof windowIndex !== 'number') {
         return res.status(400).json({ error: "Window index is required" });
       }
@@ -587,24 +587,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         originalEnd: selectedWindow.pickupEnd
       });
 
-      // Update item with selected pickup time
+      // Update item with selected pickup time and status
       await db
         .update(schema.items)
         .set({ 
           pickupStart: pickupStart,
           pickupEnd: pickupEnd,
-          status: schema.ITEM_STATUS.PENDING_PICKUP
+          status: 'pending_pickup'
         })
         .where(eq(schema.items.id, itemId));
 
-      // Update request status
+      // Update all pending requests to awaiting_pickup_confirmation
       await db
         .update(schema.itemRequests)
-        .set({ status: schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
+        .set({ 
+          status: 'awaiting_pickup_confirmation'
+        })
         .where(
           and(
             eq(schema.itemRequests.itemId, itemId),
             eq(schema.itemRequests.requesterId, req.user.id)
+          )
+        );
+
+      // Update other requests to rejected
+      await db
+        .update(schema.itemRequests)
+        .set({ 
+          status: 'rejected'
+        })
+        .where(
+          and(
+            eq(schema.itemRequests.itemId, itemId),
+            not(eq(schema.itemRequests.requesterId, req.user.id))
           )
         );
 

@@ -55,8 +55,13 @@ export default function PickupTimeSelector({
           ? "The owner will be notified of your selection."
           : "The owner will be notified that the times don't work for you.",
       });
+
+      // Invalidate all related queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/my-requests`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user/requests'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/requests`] });
+
       setIsDeclineDialogOpen(false);
       onSelected();
     },
@@ -71,7 +76,6 @@ export default function PickupTimeSelector({
 
   return (
     <div className="space-y-4">
-      <h3 className="font-medium">Available Pickup Times</h3>
       <div className="space-y-2">
         {windows.map((window, index) => (
           <Button
