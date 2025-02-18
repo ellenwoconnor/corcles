@@ -70,9 +70,9 @@ export default function RequestsList({ requests, currentUserId }: RequestsListPr
               {request.status !== 'pending' && currentUserId && (
                 <div className="mt-2">
                   <MessageDialog
-                    recipientId={request.requesterId}
                     requestId={request.id}
                     currentUserId={currentUserId}
+                    otherPartyId={request.requesterId}
                   />
                 </div>
               )}

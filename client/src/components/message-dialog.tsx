@@ -26,13 +26,12 @@ interface Message {
 type MessageFormValues = z.infer<typeof insertMessageSchema>;
 
 interface MessageDialogProps {
-  recipientId: number;
   requestId: number;
   currentUserId: number;
   otherPartyId: number;
 }
 
-export function MessageDialog({ recipientId, requestId, currentUserId, otherPartyId }: MessageDialogProps) {
+export function MessageDialog({ requestId, currentUserId, otherPartyId }: MessageDialogProps) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   const { socket } = useWebSocket();
