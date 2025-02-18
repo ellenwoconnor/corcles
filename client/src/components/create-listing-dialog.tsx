@@ -143,9 +143,6 @@ export default function CreateListingDialog() {
                     />
                   </FormControl>
                   <FormMessage />
-                  <FormDescription>
-                    Add details to help others understand your item better
-                  </FormDescription>
                 </FormItem>
               )}
             />
