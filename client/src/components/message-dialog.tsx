@@ -37,10 +37,13 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
   const { socket } = useWebSocket();
   const { toast } = useToast();
 
+  console.log('MessageDialog mounted with props:', { recipientId, requestId, currentUserId });
+
   const form = useForm<MessageFormValues>({
     resolver: zodResolver(insertMessageSchema),
     defaultValues: {
       content: "",
+      senderId: currentUserId,
       recipientId,
       requestId
     }
@@ -80,14 +83,19 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
     };
   }, [socket, requestId, recipientId, queryClient]);
 
-  const { mutate: sendMessage, isPending } = useMutation({
+  const sendMessageMutation = useMutation({
     mutationFn: async (data: MessageFormValues) => {
       if (!data.content.trim()) {
         throw new Error("Message cannot be empty");
       }
 
       console.log('Sending message:', data);
-      const response = await apiRequest('POST', '/api/messages/send', data);
+      const response = await apiRequest('POST', '/api/messages/send', {
+        content: data.content,
+        recipientId: data.recipientId,
+        requestId: data.requestId,
+        senderId: currentUserId
+      });
 
       if (!response.ok) {
         const error = await response.json();
@@ -115,14 +123,10 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
     }
   });
 
-  const onSubmit = (values: MessageFormValues) => {
+  const handleSubmit = form.handleSubmit((values) => {
     console.log('Form submitted with values:', values);
-    sendMessage({
-      content: values.content,
-      recipientId: recipientId,
-      requestId: requestId
-    });
-  };
+    sendMessageMutation.mutate(values);
+  });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -141,7 +145,7 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
               </div>
             ) : (
               <div className="flex flex-col space-y-2">
-                {messages.map((message: Message) => (
+                {messages.map((message) => (
                   <div
                     key={message.id}
                     className={`rounded-lg p-3 ${
@@ -161,7 +165,7 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
             )}
           </ScrollArea>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <FormField
                 control={form.control}
                 name="content"
@@ -180,9 +184,9 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
               <Button 
                 type="submit" 
                 className="w-full" 
-                disabled={isPending}
+                disabled={sendMessageMutation.isPending}
               >
-                {isPending ? (
+                {sendMessageMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Sending...
