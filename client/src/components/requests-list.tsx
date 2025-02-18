@@ -66,14 +66,13 @@ export default function RequestsList({ requests, currentUserId }: RequestsListPr
               {request.message && (
                 <p className="text-sm text-muted-foreground">{request.message}</p>
               )}
-              {/* Show messaging UI for non-pending requests */}
+              {/* Only show messaging for non-pending requests */}
               {request.status !== 'pending' && currentUserId && (
                 <div className="mt-2">
                   <MessageDialog
-                    recipientId={request.requesterId === currentUserId ? request.itemOwnerId : request.requesterId}
+                    recipientId={request.requesterId}
                     requestId={request.id}
                     currentUserId={currentUserId}
-                    otherPartyId={request.requesterId === currentUserId ? request.itemOwnerId : request.requesterId}
                   />
                 </div>
               )}
