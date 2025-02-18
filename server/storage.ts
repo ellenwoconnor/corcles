@@ -43,7 +43,7 @@ export interface IStorage {
   getItem(
     id: number,
     userId?: number,
-  ): Promise<(Item & { userHasFavorited: boolean }) | undefined>;
+  ): Promise<(Item & { userHasFavorited: boolean, isTransacting: boolean }) | undefined>;
   createItem(item: InsertItem & { userId: number }): Promise<Item>;
   createItemRequest(request: InsertItemRequest): Promise<ItemRequest>;
   getItemRequests(itemId: number): Promise<ItemRequest[]>;
@@ -212,7 +212,7 @@ export class DatabaseStorage implements IStorage {
   async getItem(
     id: number,
     userId?: number,
-  ): Promise<(Item & { userHasFavorited: boolean }) | undefined> {
+  ): Promise<(Item & { userHasFavorited: boolean, isTransacting: boolean }) | undefined> {
     try {
       const [item] = await db
         .select({
@@ -233,12 +233,23 @@ export class DatabaseStorage implements IStorage {
 
       if (!item) return undefined;
 
+      const requests = await db
+        .select()
+        .from(itemRequests)
+        .where(eq(itemRequests.itemId, id));
+
+      const isTransacting = requests.some(request =>
+        ['ready_for_drawing', 'awaiting_pickup_confirmation', 'accepted'].includes(request.status)
+      );
+
+
       // Cast the pickup windows to the correct type
       const processedItem = {
         ...item,
         proposedPickupWindows: item.proposedPickupWindows 
           ? (item.proposedPickupWindows as PickupWindow[])
-          : undefined
+          : undefined,
+        isTransacting
       };
 
       logger.debug("getItem query result:", {
@@ -248,7 +259,7 @@ export class DatabaseStorage implements IStorage {
         item: processedItem
       });
 
-      return processedItem as (Item & { userHasFavorited: boolean });
+      return processedItem as (Item & { userHasFavorited: boolean, isTransacting: boolean });
     } catch (error) {
       logger.error('Error retrieving item:', { error, id });
       throw error;
