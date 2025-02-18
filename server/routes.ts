@@ -33,11 +33,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { recipientId, content, requestId } = req.body;
       logger.info('Received message request:', { recipientId, requestId });
 
-      // Validate if users can message each other
-      const canMessage = await storage.canUsersMessage(req.user.id, recipientId);
-      if (!canMessage) {
-        return res.status(403).json({ error: "You cannot message this user" });
-      }
+      
 
       const parseResult = insertMessageSchema.safeParse({
         senderId: req.user.id,
