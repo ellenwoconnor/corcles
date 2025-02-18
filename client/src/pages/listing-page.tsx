@@ -283,14 +283,39 @@ export default function ListingPage() {
                   requests?.some(r => r.status === "accepted" || r.status === "completed") ? (
                     <div className="space-y-4 border-t border-border pt-4">
                       <div className="space-y-2">
-                        <h3 className="font-medium">Scheduled Pickup</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(item.pickupStart!), "PPP p")} -{" "}
-                          {format(new Date(item.pickupEnd!), "p")}
-                        </p>
-                        <Badge variant="outline">
-                          {requests.some(r => r.status === "completed") ? 'Pickup Complete' : 'Pickup Scheduled'}
-                        </Badge>
+                        <h3 className="font-medium">Pickup Time Confirmed</h3>
+                        <div className="p-3 bg-primary/10 rounded-lg border border-primary">
+                          <p className="text-sm font-medium">
+                            Selected Time Window:
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(item.pickupStart!), "EEEE, MMMM d")} at{" "}
+                            {format(new Date(item.pickupStart!), "h:mm a")} -{" "}
+                            {format(new Date(item.pickupEnd!), "h:mm a")}
+                          </p>
+                        </div>
+                        {item.proposedPickupWindows && item.proposedPickupWindows.length > 1 && (
+                          <div className="mt-4">
+                            <p className="text-sm font-medium mb-2">Other Available Windows:</p>
+                            <div className="space-y-2">
+                              {item.proposedPickupWindows
+                                .filter(window => 
+                                  window.pickupStart !== item.pickupStart &&
+                                  window.pickupEnd !== item.pickupEnd
+                                )
+                                .map((window, index) => (
+                                  <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
+                                    <p className="text-sm text-muted-foreground">
+                                      {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
+                                      {format(new Date(window.pickupStart), "h:mm a")} -{" "}
+                                      {format(new Date(window.pickupEnd), "h:mm a")}
+                                    </p>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                        <Badge variant="outline" className="mt-2">Pickup Scheduled</Badge>
                       </div>
                     </div>
                   ) : item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && requests?.some(r => r.status === "awaiting_pickup_confirmation") ? (
