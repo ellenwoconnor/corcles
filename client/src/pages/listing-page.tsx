@@ -21,7 +21,6 @@ import PickupConfirmation from "@/components/pickup-confirmation";
 import RequestForm from "@/components/request-form";
 import BidForm from "@/components/bid-form";
 import PickupTimeSelector from "@/components/pickup-time-selector";
-import PickupCoordinator from "@/components/pickup-coordinator"; // Import the new component
 
 // Form schemas
 const requestSchema = z.object({
@@ -222,33 +221,77 @@ export default function ListingPage() {
                         requests={requests || []}
                         currentUserId={user?.id}
                       />
-                      {/* Pickup Scheduling Section - Now handled by PickupCoordinator */}
-                      <PickupCoordinator
-                        item={item}
-                        requests={requests}
-                        className="border-t border-border pt-4"
-                      />
-                      {/* Show Proposed Windows if they exist */}
-
-                      {/* Drawing Section */}
-                      {requests && requests.filter((r) => r.status === "ready_for_drawing").length > 0 && (
-                        <>
-                          <p className="text-sm text-muted-foreground">
-                            Ready to select from {requests.filter((r) => r.status === "ready_for_drawing").length} requests
+                      {/* Pickup Scheduling Section - Only show if there are pending requests and no windows proposed */}
+                      {isOwner && item.isGift && hasPendingRequests && !item.proposedPickupWindows?.length && (
+                        <div className="space-y-2">
+                          <h3 className="font-medium">Schedule Pickup</h3>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            First, set time windows for item pickup. Then you can select a recipient.
                           </p>
-                          <Button
-                            onClick={() => drawingMutation.mutate()}
-                            disabled={drawingMutation.isPending}
-                          >
-                            {drawingMutation.isPending ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Drawing...
-                              </>
-                            ) : (
-                              "Select Random Recipient"
-                            )}
-                          </Button>
+                          <PickupScheduler
+                            itemId={item.id}
+                            onScheduled={() => {
+                              queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
+                            }}
+                          />
+                        </div>
+                      )}
+                      {/* Show Proposed Windows if they exist */}
+                      {item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && (
+                        <>
+                          <div className="space-y-2">
+                            <h3 className="font-medium">Proposed Pickup Windows</h3>
+                            <div className="space-y-2">
+                              {item.proposedPickupWindows.map((window: PickupWindow, index: number) => {
+                                const isSelectedWindow = item.pickupStart &&
+                                  new Date(window.pickupStart).getTime() === item.pickupStart.getTime() &&
+                                  new Date(window.pickupEnd).getTime() === item.pickupEnd.getTime();
+
+                                return (
+                                  <div
+                                    key={index}
+                                    className={`p-3 rounded-lg border ${
+                                      isSelectedWindow
+                                        ? "bg-primary/10 border-primary"
+                                        : "bg-secondary border-border"
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-sm">
+                                        {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
+                                        {format(new Date(window.pickupStart), "h:mm a")} -{" "}
+                                        {format(new Date(window.pickupEnd), "h:mm a")}
+                                      </p>
+                                      {isSelectedWindow && (
+                                        <Badge variant="outline" className="ml-2">Selected Time</Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          {/* Drawing Section */}
+                          {requests && requests.filter((r) => r.status === "ready_for_drawing").length > 0 && (
+                            <>
+                              <p className="text-sm text-muted-foreground">
+                                Ready to select from {requests.filter((r) => r.status === "ready_for_drawing").length} requests
+                              </p>
+                              <Button
+                                onClick={() => drawingMutation.mutate()}
+                                disabled={drawingMutation.isPending}
+                              >
+                                {drawingMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Drawing...
+                                  </>
+                                ) : (
+                                  "Select Random Recipient"
+                                )}
+                              </Button>
+                            </>
+                          )}
                         </>
                       )}
                     </>
@@ -262,11 +305,83 @@ export default function ListingPage() {
               <div className="flex gap-4">
                 {item.isGift ? (
                   <>
-                    <PickupCoordinator
-                      item={item}
-                      requests={requests}
-                      className="border-t border-border pt-4"
-                    />
+                    {requests?.some(r => r.status === "accepted" || r.status === "completed") ? (
+                      <div className="space-y-4 border-t border-border pt-4">
+                        <div className="space-y-2">
+                          <div className="p-4 bg-primary/10 rounded-lg border border-primary">
+                            <h3 className="font-medium mb-2">Pickup Scheduled</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(item.pickupStart!), "EEEE, MMMM d")} at{" "}
+                              {format(new Date(item.pickupStart!), "h:mm a")} -{" "}
+                              {format(new Date(item.pickupEnd!), "h:mm a")}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ) : item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && requests?.some(r => r.status === "awaiting_pickup_confirmation") ? (
+                      <div className="space-y-4 border-t border-border pt-4">
+                        <div className="space-y-2">
+                          <h3 className="font-medium">Available Pickup Times</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Please select a time that works for you
+                          </p>
+                          <PickupTimeSelector
+                            itemId={item.id}
+                            windows={item.proposedPickupWindows as PickupWindow[]}
+                            onSelected={() => {
+                              queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
+                              queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}/my-requests`] });
+                              queryClient.invalidateQueries({ queryKey: ["/api/user/requests"] });
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ) : requests?.some(r => r.status === "accepted") ? (
+                      <div className="space-y-4 border-t border-border pt-4">
+                        <div className="space-y-2">
+                          <h3 className="font-medium">Scheduled Pickup</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(item.pickupStart!), "PPP p")} -{" "}
+                            {format(new Date(item.pickupEnd!), "p")}
+                          </p>
+                          <Badge variant="outline">Pickup Scheduled</Badge>
+                          {requests && requests[0] && (
+                            <MessageDialog
+                              requestId={requests[0].id}
+                              currentUserId={user?.id || 0}
+                              otherPartyId={item.userId}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    ) : requests?.some(r => r.status === "pending") ? (
+                      <div className="space-y-4 border-t border-border pt-4 w-full">
+                        <div className="space-y-2">
+                          <h3 className="font-medium">Request Pending</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Waiting for the owner to schedule pickup windows.
+                          </p>
+                          <Badge variant="secondary">Pending</Badge>
+                        </div>
+                      </div>
+                    ) : hasRequested ? (
+                      <div className="space-y-4 border-t border-border pt-4 w-full">
+                        <div className="space-y-2">
+                          <h3 className="font-medium">Request Pending</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Your request is being reviewed by the owner.
+                          </p>
+                          <Badge variant="secondary">Pending</Badge>
+                        </div>
+                      </div>
+                    ) : (
+                      <RequestForm
+                        itemId={item.id}
+                        hasRequested={!!hasRequested}
+                        isOpen={requestDialogOpen}
+                        onOpenChange={setRequestDialogOpen}
+                      />
+                    )}
                   </>
                 ) : (
                   <BidForm
