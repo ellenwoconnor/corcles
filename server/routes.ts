@@ -21,12 +21,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   const connectedClients = new Map<number, WebSocket>();
 
+  // Log WebSocket server initialization
+  logger.info('WebSocket server initialized on path: /ws');
+
   // Add messaging routes
   app.post("/api/messages/send", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
 
       const { recipientId, content, requestId } = req.body;
+      logger.info('Received message request:', { recipientId, requestId });
 
       // Validate if users can message each other
       const canMessage = await storage.canUsersMessage(req.user.id, recipientId);
@@ -54,6 +58,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           type: 'new_message',
           data: message
         }));
+        logger.info('Sent WebSocket notification to recipient:', { recipientId });
       }
 
       res.status(201).json(message);
@@ -103,20 +108,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Set up WebSocket connection handling
+  // Set up WebSocket connection handling with enhanced logging
   wss.on('connection', (ws, req) => {
     // @ts-ignore - req.user is added by passport
     const userId = req.user?.id;
     if (!userId) {
+      logger.warn('WebSocket connection attempt without authentication');
       ws.close();
       return;
     }
 
-    logger.debug('WebSocket client connected:', { userId });
+    logger.info('WebSocket client connected:', { 
+      userId,
+      totalConnections: connectedClients.size + 1
+    });
     connectedClients.set(userId, ws);
 
     ws.on('close', () => {
-      logger.debug('WebSocket client disconnected:', { userId });
+      logger.info('WebSocket client disconnected:', { 
+        userId,
+        remainingConnections: connectedClients.size - 1
+      });
       connectedClients.delete(userId);
     });
 
