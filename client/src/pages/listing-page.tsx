@@ -213,22 +213,21 @@ export default function ListingPage() {
                     <>
                       <RequestsList requests={requests || []} />
                       {/* Pickup Scheduling Section */}
-                      {requests && 
-                       requests.some(r => r.status === "pending") && 
-                       !item.proposedPickupWindows?.length && (
-                        <div className="space-y-2">
-                          <h3 className="font-medium">Schedule Pickup</h3>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            First, set time windows for item pickup. Then you can select a recipient.
-                          </p>
-                          <PickupScheduler
-                            itemId={item.id}
-                            onScheduled={() => {
-                              queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
-                            }}
-                          />
-                        </div>
-                      )}
+                      {requests &&
+                        requests.some(r => r.status === "awaiting_pickup_confirmation") && (
+                          <div className="space-y-2">
+                            <h3 className="font-medium">Schedule Pickup</h3>
+                            <p className="text-sm text-muted-foreground mb-4">
+                              First, set time windows for item pickup. Then you can select a recipient.
+                            </p>
+                            <PickupScheduler
+                              itemId={item.id}
+                              onScheduled={() => {
+                                queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
+                              }}
+                            />
+                          </div>
+                        )}
                       {/* Show Proposed Windows if they exist */}
                       {item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && (
                         <>
@@ -247,10 +246,10 @@ export default function ListingPage() {
                             </div>
                           </div>
                           {/* Drawing Section */}
-                          {requests && requests.filter(r => r.status === "pending").length > 0 && (
+                          {requests && requests.some(r => r.status === "awaiting_pickup_confirmation") && (
                             <>
                               <p className="text-sm text-muted-foreground">
-                                Ready to select from {requests.filter(r => r.status === "pending").length} requests
+                                Ready to select from {requests.filter(r => r.status === "awaiting_pickup_confirmation").length} requests
                               </p>
                               <Button
                                 onClick={() => drawingMutation.mutate()}
