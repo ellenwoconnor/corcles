@@ -140,9 +140,10 @@ export default function ProfilePage() {
                           <Badge
                             variant={
                               item.status === "completed" ? "outline" :
-                              item.status === "pending_pickup" ? "default" :
+                              item.status === "pending_pickup" ? "secondary" :
                               "secondary"
                             }
+                            className={item.status === "pending_pickup" ? "bg-background text-foreground border" : ""}
                           >
                             {item.status === "completed" ? "Pickup Complete" :
                              item.status === "pending_pickup" ? "Pickup Scheduled" :
@@ -218,6 +219,7 @@ export default function ProfilePage() {
                               ? "secondary"
                               : "destructive"
                           }
+                          className={request.status === "accepted" ? "bg-background text-foreground border" : ""}
                         >
                           {request.status === "awaiting_pickup_confirmation"
                             ? "Confirm Pickup"
