@@ -161,7 +161,6 @@ export type InsertItem = z.infer<typeof insertItemSchema>;
 export type Item = typeof items.$inferSelect & {
   userDisplayName?: string;
   proposedPickupWindows?: PickupWindow[];
-  isTransacting?: boolean;
 };
 export type InsertItemRequest = z.infer<typeof insertItemRequestSchema>;
 export type ItemRequest = typeof itemRequests.$inferSelect;
