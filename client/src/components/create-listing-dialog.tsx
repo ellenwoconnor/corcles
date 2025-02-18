@@ -135,9 +135,12 @@ export default function CreateListingDialog() {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>Description (optional)</FormLabel>
                   <FormControl>
-                    <Textarea {...field} />
+                    <Textarea 
+                      {...field} 
+                      placeholder="Describe the item's brand, dimensions, condition, or other relevant information."
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

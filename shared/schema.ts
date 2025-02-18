@@ -42,7 +42,7 @@ export const REQUEST_STATUS = {
 export const items = pgTable("items", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
-  description: text("description").notNull(),
+  description: text("description"),
   price: integer("price"),
   isGift: boolean("is_gift").notNull().default(false),
   imageUrl: text("image_url").notNull(),
@@ -105,7 +105,7 @@ export const insertItemSchema = createInsertSchema(items).omit({
   pickupEnd: true
 }).extend({
   title: z.string().min(1, "Title is required"),
-  description: z.string().min(1, "Description is required"),
+  description: z.string().optional(),
   price: z.number().nullable().optional(),
   imageFile: z.instanceof(File).optional(),
 }).refine((data) => {

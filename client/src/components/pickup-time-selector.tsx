@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { format } from "date-fns";
 import { useMutation } from "@tanstack/react-query";
@@ -56,7 +57,6 @@ export default function PickupTimeSelector({
           : "The owner will be notified that the times don't work for you.",
       });
 
-      // Invalidate all related queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/my-requests`] });
       queryClient.invalidateQueries({ queryKey: ['/api/user/requests'] });
@@ -74,37 +74,41 @@ export default function PickupTimeSelector({
   });
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
+    <div className="space-y-2">
+      <div className="grid grid-cols-1 gap-1.5">
         {windows.map((window, index) => (
-          <Button
+          <button
             key={index}
-            variant={selectedWindow === index ? "default" : "outline"}
-            className={`w-full justify-start hover:bg-secondary/80 transition-colors ${
-              selectedWindow === index ? "ring-2 ring-primary" : ""
-            }`}
             onClick={() => {
               setSelectedWindow(index);
               selectTimeMutation.mutate({ windowIndex: index });
             }}
             disabled={selectTimeMutation.isPending}
+            className={`text-left px-3 py-2 rounded-md text-sm transition-colors
+              ${selectedWindow === index 
+                ? 'bg-primary text-primary-foreground' 
+                : 'hover:bg-secondary border border-border'}`}
           >
-            <Clock className="w-4 h-4 mr-2 shrink-0" />
-            <span className="text-left">
-              {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
-              {format(new Date(window.pickupStart), "h:mm a")} -{" "}
-              {format(new Date(window.pickupEnd), "h:mm a")}
-            </span>
-          </Button>
+            <div className="flex items-center gap-2">
+              <Clock className="w-3.5 h-3.5" />
+              <span>
+                {format(new Date(window.pickupStart), "EEE, MMM d")} at{" "}
+                {format(new Date(window.pickupStart), "h:mm a")} -{" "}
+                {format(new Date(window.pickupEnd), "h:mm a")}
+              </span>
+            </div>
+          </button>
         ))}
       </div>
 
       <Dialog open={isDeclineDialogOpen} onOpenChange={setIsDeclineDialogOpen}>
         <DialogTrigger asChild>
-          <Button variant="outline" className="w-full" disabled={selectTimeMutation.isPending}>
-            <X className="mr-2 h-4 w-4" />
-            None of These Times Work
-          </Button>
+          <button 
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors w-full text-center mt-1"
+            disabled={selectTimeMutation.isPending}
+          >
+            None of these times work for me
+          </button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
@@ -123,17 +127,19 @@ export default function PickupTimeSelector({
             <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
+                size="sm"
                 onClick={() => setIsDeclineDialogOpen(false)}
               >
                 Cancel
               </Button>
               <Button
+                size="sm"
                 disabled={selectTimeMutation.isPending}
                 onClick={() => selectTimeMutation.mutate({ decline: true })}
               >
                 {selectTimeMutation.isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
                     Sending...
                   </>
                 ) : (
