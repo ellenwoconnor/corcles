@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormDescription, FormMessage } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
@@ -59,8 +59,8 @@ export default function RequestForm({
         description: "The owner will be notified of your request.",
       });
       form.reset();
-      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/my-requests`] });
       onOpenChange(false);
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/my-requests`] });
     },
     onError: (error: Error) => {
       toast({
@@ -71,7 +71,7 @@ export default function RequestForm({
     },
   });
 
-  // Only show messages if there's an existing request and a logged in user
+  // Show messages if there's an existing request and a logged in user
   const showMessages = currentRequest && user;
 
   return (
@@ -100,7 +100,6 @@ export default function RequestForm({
               name="message"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Message</FormLabel>
                   <FormControl>
                     <Textarea {...field} />
                   </FormControl>
@@ -121,10 +120,10 @@ export default function RequestForm({
               </Button>
               {showMessages && (
                 <MessageDialog
-                  recipientId={itemOwnerId}
                   requestId={currentRequest.id}
                   currentUserId={user.id}
                   otherPartyId={itemOwnerId}
+                  recipientId={itemOwnerId}
                 />
               )}
             </div>
