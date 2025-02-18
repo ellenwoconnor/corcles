@@ -21,7 +21,6 @@ import PickupConfirmation from "@/components/pickup-confirmation";
 import RequestForm from "@/components/request-form";
 import BidForm from "@/components/bid-form";
 import PickupTimeSelector from "@/components/pickup-time-selector";
-import MessageDialog from "@/components/message-dialog"; // Assuming this component exists
 
 // Form schemas
 const requestSchema = z.object({
@@ -32,28 +31,6 @@ const bidSchema = z.object({
   amount: z.number().min(1, "Bid amount must be greater than 0"),
   message: z.string().optional(),
 });
-
-// Add Item Status Enum and helper function
-enum ITEM_STATUS {
-  PENDING_REQUESTS = "pending_requests",
-  PENDING_SCHEDULING = "pending_scheduling",
-  CLOSED = "closed",
-  IN_TRANSACTION = "in_transaction",
-}
-
-const getItemStatus = (requests: ItemRequest[]): ITEM_STATUS => {
-  if (requests.length === 0) {
-    return ITEM_STATUS.PENDING_REQUESTS;
-  }
-  if (requests.every(r => r.status === "pending")) {
-    return ITEM_STATUS.PENDING_SCHEDULING;
-  }
-  if (requests.some(r => r.status !== "pending" && r.status !== "rejected" && r.status !== "completed")) {
-    return ITEM_STATUS.IN_TRANSACTION;
-  }
-  return ITEM_STATUS.CLOSED;
-};
-
 
 export default function ListingPage() {
   // Routing and auth
@@ -79,11 +56,6 @@ export default function ListingPage() {
   });
 
   const isOwner = item?.userId === user?.id;
-  const isRecipient = user?.id === item?.recipientId;
-  const hasPendingRequests = requests?.some(r => r.status === "pending");
-  const itemStatus = getItemStatus(requests || []);
-  const isInTransaction = itemStatus === ITEM_STATUS.IN_TRANSACTION;
-  const canMessage = isInTransaction && (isOwner || isRecipient);
 
   // Requests and bids queries
   const { data: requests } = useQuery<ItemRequest[]>({
@@ -96,6 +68,10 @@ export default function ListingPage() {
     enabled: !!params?.id && !!user && !item?.isGift,
   });
 
+  const hasRequested = requests?.some((request) => request.status === "pending");
+  const hasBid = bids?.some((bid) => bid.status === "pending");
+  const isRecipient = user?.id === item?.recipientId;
+  const hasPendingRequests = requests?.some(r => r.status === "pending");
 
   useEffect(() => {
     if (item && requests) {
@@ -107,7 +83,7 @@ export default function ListingPage() {
         hasProposedWindows: !!item.proposedPickupWindows?.length,
         userId: user?.id,
         itemUserId: item.userId,
-        isRecipient: user?.id === item?.recipientId
+        isRecipient: user?.id === item.recipientId
       });
     }
   }, [item, requests, isOwner, user]);
@@ -245,15 +221,6 @@ export default function ListingPage() {
                         requests={requests || []}
                         currentUserId={user?.id}
                       />
-                      {canMessage && requests?.[0] && (
-                        <div className="mt-4">
-                          <MessageDialog
-                            requestId={requests[0].id}
-                            currentUserId={user?.id || 0}
-                            otherPartyId={isOwner ? requests[0].requesterId : item.userId}
-                          />
-                        </div>
-                      )}
                       {/* Pickup Scheduling Section - Only show if there are pending requests and no windows proposed */}
                       {isOwner && item.isGift && hasPendingRequests && !item.proposedPickupWindows?.length && (
                         <div className="space-y-2">
