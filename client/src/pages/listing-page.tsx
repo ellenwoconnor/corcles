@@ -298,15 +298,23 @@ export default function ListingPage() {
                       item={item}
                       request={requests.find(r => r.status === "awaiting_pickup_confirmation")!}
                     />
-                  ) : item.proposedPickupWindows && item.proposedPickupWindows.length > 0 ? (
-                    <PickupTimeSelector
-                      itemId={item.id}
-                      windows={item.proposedPickupWindows}
-                      onSelected={() => {
-                        queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
-                        queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}/my-requests`] });
-                      }}
-                    />
+                  ) : item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && requests?.some(r => r.status === "pending") ? (
+                    <div className="space-y-4 border-t border-border pt-4">
+                      <div className="space-y-2">
+                        <h3 className="font-medium">Available Pickup Times</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Please select a time that works for you
+                        </p>
+                        <PickupTimeSelector
+                          itemId={item.id}
+                          windows={item.proposedPickupWindows as PickupWindow[]}
+                          onSelected={() => {
+                            queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
+                            queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}/my-requests`] });
+                          }}
+                        />
+                      </div>
+                    </div>
                   ) : hasRequested ? (
                     <div className="space-y-4 border-t border-border pt-4">
                       <div className="space-y-2">
