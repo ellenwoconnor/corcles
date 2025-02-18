@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Item, ItemRequest, ItemBid, PickupWindow } from "@shared/schema";
@@ -16,8 +16,7 @@ import Navbar from "@/components/navbar";
 import EditListingDialog from "@/components/edit-listing-dialog";
 import RequestsList from "@/components/requests-list";
 import BidsList from "@/components/bids-list";
-import PickupScheduler from "@/components/pickup-scheduler";
-import PickupConfirmation from "@/components/pickup-confirmation";
+import PickupSchedulingContainer from "@/components/pickup-scheduling-container";
 import RequestForm from "@/components/request-form";
 import BidForm from "@/components/bid-form";
 import PickupTimeSelector from "@/components/pickup-time-selector";
@@ -44,7 +43,7 @@ export default function ListingPage() {
     queryKey: [`/api/items/${params?.id}`],
     enabled: !!params?.id,
     select: (data) => {
-      console.log('Raw item data:', data); // Add debugging log
+      console.log('Raw item data:', data);
       return {
         ...data,
         createdAt: new Date(data.createdAt),
@@ -70,7 +69,23 @@ export default function ListingPage() {
 
   const hasRequested = requests?.some((request) => request.status === "pending");
   const hasBid = bids?.some((bid) => bid.status === "pending");
+  const isRecipient = user?.id === item?.recipientId;
+  const hasPendingRequests = requests?.some(r => r.status === "pending");
 
+  useEffect(() => {
+    if (item && requests) {
+      console.log('Pickup scheduler conditions:', {
+        isOwner,
+        isGift: item.isGift,
+        hasRequests: !!requests,
+        pendingRequestsCount: requests.filter(r => r.status === "pending").length,
+        hasProposedWindows: !!item.proposedPickupWindows?.length,
+        userId: user?.id,
+        itemUserId: item.userId,
+        isRecipient: user?.id === item.recipientId
+      });
+    }
+  }, [item, requests, isOwner, user]);
 
   // Drawing mutation
   const drawingMutation = useMutation({
@@ -201,79 +216,20 @@ export default function ListingPage() {
                 <div className="space-y-4">
                   {item.isGift ? (
                     <>
-                      <RequestsList requests={requests || []} />
-                      {/* Pickup Scheduling Section */}
-                      {requests && requests.filter(r => r.status === "pending").length > 0 && !item.proposedPickupWindows && (
-                        <div className="space-y-2">
-                          <h3 className="font-medium">Schedule Pickup</h3>
-                          <p className="text-sm text-muted-foreground mb-4">
-                            First, set time windows for item pickup. Then you can select a recipient.
-                          </p>
-                          <PickupScheduler
-                            itemId={item.id}
-                            onScheduled={() => {
-                              queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
-                            }}
-                          />
-                        </div>
-                      )}
-                      {/* Show Proposed Windows if they exist */}
-                      {item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && (
-                        <>
-                          <div className="space-y-2">
-                            <h3 className="font-medium">Proposed Pickup Windows</h3>
-                            <div className="space-y-2">
-                              {item.proposedPickupWindows.map((window, index) => {
-                                const isSelectedWindow = item.pickupStart && 
-                                  new Date(window.pickupStart).getTime() === new Date(item.pickupStart).getTime() &&
-                                  new Date(window.pickupEnd).getTime() === new Date(item.pickupEnd).getTime();
-
-                                return (
-                                  <div 
-                                    key={index} 
-                                    className={`p-3 rounded-lg border ${
-                                      isSelectedWindow 
-                                        ? "bg-primary/10 border-primary" 
-                                        : "bg-secondary border-border"
-                                    }`}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <p className="text-sm">
-                                        {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
-                                        {format(new Date(window.pickupStart), "h:mm a")} -{" "}
-                                        {format(new Date(window.pickupEnd), "h:mm a")}
-                                      </p>
-                                      {isSelectedWindow && (
-                                        <Badge variant="outline" className="ml-2">Selected Time</Badge>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                          {/* Drawing Section */}
-                          {requests && requests.filter((r) => r.status === "ready_for_drawing").length > 0 && (
-                            <>
-                              <p className="text-sm text-muted-foreground">
-                                Ready to select from {requests.filter((r) => r.status === "ready_for_drawing").length} requests
-                              </p>
-                              <Button
-                                onClick={() => drawingMutation.mutate()}
-                                disabled={drawingMutation.isPending}
-                              >
-                                {drawingMutation.isPending ? (
-                                  <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Drawing...
-                                  </>
-                                ) : (
-                                  "Select Random Recipient"
-                                )}
-                              </Button>
-                            </>
-                          )}
-                        </>
+                      <RequestsList
+                        requests={requests || []}
+                        currentUserId={user?.id}
+                      />
+                      {/* Pickup Scheduling Container - Only show if there are requests */}
+                      {isOwner && item.isGift && requests?.length > 0 && (
+                        <PickupSchedulingContainer
+                          item={item}
+                          requestId={requests[0].id}
+                          requesterId={requests[0].userId}
+                          onScheduled={() => {
+                            queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
+                          }}
+                        />
                       )}
                     </>
                   ) : (
@@ -285,71 +241,19 @@ export default function ListingPage() {
               /* Buyer View */
               <div className="flex gap-4">
                 {item.isGift ? (
-                  requests?.some(r => r.status === "accepted" || r.status === "completed") ? (
-                    <div className="space-y-4 border-t border-border pt-4">
-                      <div className="space-y-2">
-                        <div className="p-4 bg-primary/10 rounded-lg border border-primary">
-                          <h3 className="font-medium mb-2">Pickup Scheduled</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(item.pickupStart!), "EEEE, MMMM d")} at{" "}
-                            {format(new Date(item.pickupStart!), "h:mm a")} -{" "}
-                            {format(new Date(item.pickupEnd!), "h:mm a")}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ) : item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && requests?.some(r => r.status === "awaiting_pickup_confirmation") ? (
-                    <div className="space-y-4 border-t border-border pt-4">
-                      <div className="space-y-2">
-                        <h3 className="font-medium">Available Pickup Times</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Please select a time that works for you
-                        </p>
-                        <PickupTimeSelector
-                          itemId={item.id}
-                          windows={item.proposedPickupWindows as PickupWindow[]}
-                          onSelected={() => {
-                            queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
-                            queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}/my-requests`] });
-                            queryClient.invalidateQueries({ queryKey: ["/api/user/requests"] });
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ) : requests?.some(r => r.status === "accepted") ? (
-                    <div className="space-y-4 border-t border-border pt-4">
-                      <div className="space-y-2">
-                        <h3 className="font-medium">Scheduled Pickup</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(item.pickupStart!), "PPP p")} -{" "}
-                          {format(new Date(item.pickupEnd!), "p")}
-                        </p>
-                        <Badge variant="outline">Pickup Scheduled</Badge>
-                      </div>
-                    </div>
-                  ) : requests?.some(r => r.status === "pending") ? (
-                    <div className="space-y-4 border-t border-border pt-4">
-                      <div className="space-y-2">
-                        <h3 className="font-medium">Request Pending</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Waiting for the owner to schedule pickup windows.
-                        </p>
-                        <Badge variant="secondary">Pending</Badge>
-                      </div>
-                    </div>
-                  ) : hasRequested ? (
-                    <div className="space-y-4 border-t border-border pt-4">
-                      <div className="space-y-2">
-                        <h3 className="font-medium">Request Pending</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Your request is being reviewed by the owner.
-                        </p>
-                        <Badge variant="secondary">Pending</Badge>
-                      </div>
-                    </div>
+                  requests?.length > 0 ? (
+                    <PickupSchedulingContainer
+                      item={item}
+                      requestId={requests[0].id}
+                      requesterId={user?.id || 0}
+                      onScheduled={() => {
+                        queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
+                      }}
+                    />
                   ) : (
                     <RequestForm
                       itemId={item.id}
+                      itemOwnerId={item.userId}
                       hasRequested={!!hasRequested}
                       isOpen={requestDialogOpen}
                       onOpenChange={setRequestDialogOpen}
@@ -365,9 +269,6 @@ export default function ListingPage() {
                 )}
               </div>
             )}
-
-
-
           </div>
         </div>
       </main>

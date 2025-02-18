@@ -146,7 +146,8 @@ export default function ProfilePage() {
                             className={item.status === "pending_pickup" ? "bg-background text-foreground border" : ""}
                           >
                             {item.status === "completed" ? "Pickup Complete" :
-                             item.status === "pending_pickup" ? "Pickup Scheduled" :
+                             (item.status === "pending_pickup" && item.pickupStart) ? "Pickup Scheduled" :
+                             item.status === "pending_pickup" ? "Arranging Pickup" :
                              "Pending"}
                           </Badge>
                         </div>

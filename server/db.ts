@@ -47,6 +47,14 @@ async function migrate() {
       user_id INTEGER NOT NULL REFERENCES users(id),
       item_id INTEGER NOT NULL REFERENCES items(id),
       UNIQUE(user_id, item_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      content TEXT NOT NULL,
+      sender_id INTEGER NOT NULL REFERENCES users(id),
+      recipient_id INTEGER NOT NULL REFERENCES users(id),
+      request_id INTEGER NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
     )`
   ];
 
