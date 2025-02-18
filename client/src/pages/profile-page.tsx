@@ -224,9 +224,14 @@ export default function ProfilePage() {
                     <CardContent>
                       <p className="text-muted-foreground mb-2">{request.message}</p>
                       {request.status === "awaiting_pickup_confirmation" && (
-                        <p className="text-sm text-muted-foreground mt-2">
-                          Visit the listing page to confirm pickup time
-                        </p>
+                        <div className="mt-4">
+                          <Link href={`/item/${request.item.id}`}>
+                            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium">
+                              <Clock className="mr-2 h-4 w-4" />
+                              Confirm Pickup Time
+                            </Button>
+                          </Link>
+                        </div>
                       )}
                       {request.status === "accepted" && request.item.pickupStart && (
                         <p className="text-sm text-muted-foreground">
