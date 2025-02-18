@@ -5,7 +5,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { PickupWindow } from "@shared/schema";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, Clock } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -77,11 +77,12 @@ export default function PickupTimeSelector({
           <Button
             key={index}
             variant={selectedWindow === index ? "default" : "outline"}
-            className={`w-full justify-start ${
-              selectedWindow === index ? "ring-2 ring-primary" : ""
+            className={`w-full justify-start hover:bg-secondary/80 transition-colors cursor-pointer ${
+              selectedWindow === index ? "ring-2 ring-primary bg-primary text-primary-foreground" : "bg-card"
             }`}
             onClick={() => setSelectedWindow(index)}
           >
+            <Clock className="w-4 h-4 mr-2 shrink-0" />
             <span className="text-left">
               {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
               {format(new Date(window.pickupStart), "h:mm a")} -{" "}
