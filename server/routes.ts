@@ -940,7 +940,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Only allow cancellation by item owner or recipient
-      const canCancel = req.user.id === item.userId || req.user.id === request.requesterId;
+const canCancel = req.user.id === item.userId || req.user.id === request.requesterId;
       if (!canCancel) {
         return res.status(403).json({ error: "Not authorized to cancel this pickup" });
       }

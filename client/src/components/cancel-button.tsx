@@ -19,9 +19,8 @@ export function CancelButton({ itemId, onCanceled }: CancelButtonProps) {
   const handleCancel = async () => {
     setIsSubmitting(true);
     try {
-      await apiRequest(`/api/items/${itemId}/cancel-pickup`, {
-        method: "POST",
-        body: JSON.stringify({ reason: reason.trim() || undefined })
+      await apiRequest("POST", `/api/items/${itemId}/cancel-pickup`, {
+        reason: reason.trim() || undefined
       });
 
       toast({
@@ -30,8 +29,11 @@ export function CancelButton({ itemId, onCanceled }: CancelButtonProps) {
       });
 
       setIsOpen(false);
-      onCanceled?.();
+      if (onCanceled) {
+        onCanceled();
+      }
     } catch (error) {
+      console.error('Error canceling pickup:', error);
       toast({
         title: "Error",
         description: "Failed to cancel pickup. Please try again.",

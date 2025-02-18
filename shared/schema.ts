@@ -67,7 +67,7 @@ export const itemRequests = pgTable("item_requests", {
   status: text("status").notNull().default(REQUEST_STATUS.PENDING),
   message: text("message"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  cancellationInfo: jsonb("cancellation_info"), // New field for tracking cancellations
+  cancellationInfo: jsonb("cancellation_info"), // Changed from cancellationInfo to cancellation_info
 });
 
 export const itemBids = pgTable("item_bids", {
