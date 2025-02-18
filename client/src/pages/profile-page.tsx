@@ -214,7 +214,7 @@ export default function ProfilePage() {
                             request.status === "awaiting_pickup_confirmation"
                               ? "default"
                               : request.status === "accepted"
-                              ? "outline"
+                              ? "secondary"
                               : request.status === "pending"
                               ? "secondary"
                               : "destructive"
