@@ -33,15 +33,13 @@ export default function PickupTimeSelector({
   const [declineNote, setDeclineNote] = useState("");
 
   const selectTimeMutation = useMutation({
-    mutationFn: async (decline: boolean = false) => {
-      if (!decline && selectedWindow === undefined) return;
-
+    mutationFn: async (options: { decline?: boolean; windowIndex?: number }) => {
       const response = await apiRequest(
         "POST",
         `/api/items/${itemId}/select-pickup-time`,
-        decline 
+        options.decline 
           ? { decline: true, note: declineNote }
-          : { windowIndex: selectedWindow }
+          : { windowIndex: options.windowIndex }
       );
 
       if (!response.ok) {
@@ -53,7 +51,7 @@ export default function PickupTimeSelector({
     onSuccess: () => {
       toast({
         title: "Success!",
-        description: selectedWindow !== undefined 
+        description: !isDeclineDialogOpen
           ? "The owner will be notified of your selection."
           : "The owner will be notified that the times don't work for you.",
       });
@@ -97,9 +95,13 @@ export default function PickupTimeSelector({
         <Button
           className="flex-1"
           disabled={selectedWindow === undefined || selectTimeMutation.isPending}
-          onClick={() => selectTimeMutation.mutate(false)}
+          onClick={() => {
+            if (selectedWindow !== undefined) {
+              selectTimeMutation.mutate({ windowIndex: selectedWindow });
+            }
+          }}
         >
-          {selectTimeMutation.isPending ? (
+          {selectTimeMutation.isPending && !isDeclineDialogOpen ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Confirming selection...
@@ -139,7 +141,7 @@ export default function PickupTimeSelector({
                 </Button>
                 <Button
                   disabled={selectTimeMutation.isPending}
-                  onClick={() => selectTimeMutation.mutate(true)}
+                  onClick={() => selectTimeMutation.mutate({ decline: true })}
                 >
                   {selectTimeMutation.isPending ? (
                     <>
