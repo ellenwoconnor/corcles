@@ -293,12 +293,7 @@ export default function ListingPage() {
                         </Badge>
                       </div>
                     </div>
-                  ) : requests?.some(r => r.status === "awaiting_pickup_confirmation") ? (
-                    <PickupConfirmation
-                      item={item}
-                      request={requests.find(r => r.status === "awaiting_pickup_confirmation")!}
-                    />
-                  ) : item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && requests?.some(r => r.status === "pending") ? (
+                  ) : item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && requests?.some(r => r.status === "awaiting_pickup_confirmation") ? (
                     <div className="space-y-4 border-t border-border pt-4">
                       <div className="space-y-2">
                         <h3 className="font-medium">Available Pickup Times</h3>
@@ -315,6 +310,11 @@ export default function ListingPage() {
                         />
                       </div>
                     </div>
+                  ) : requests?.some(r => r.status === "awaiting_pickup_confirmation") ? (
+                    <PickupConfirmation
+                      item={item}
+                      request={requests.find(r => r.status === "awaiting_pickup_confirmation")!}
+                    />
                   ) : hasRequested ? (
                     <div className="space-y-4 border-t border-border pt-4">
                       <div className="space-y-2">
