@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,15 +29,22 @@ interface MessageDialogProps {
   requestId: number;
   currentUserId: number;
   otherPartyId: number;
+  recipientId: number;
 }
 
-export function MessageDialog({ requestId, currentUserId, otherPartyId }: MessageDialogProps) {
+export function MessageDialog({ requestId, currentUserId, otherPartyId, recipientId }: MessageDialogProps) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
-  const { socket } = useWebSocket();
+  const { socket, isConnected } = useWebSocket();
   const { toast } = useToast();
 
-  console.log('MessageDialog mounted with props:', { recipientId, requestId, currentUserId, otherPartyId });
+  console.log('MessageDialog mounted with props:', { 
+    requestId, 
+    currentUserId, 
+    otherPartyId,
+    recipientId,
+    socketConnected: isConnected 
+  });
 
   const form = useForm<MessageFormValues>({
     resolver: zodResolver(insertMessageSchema),
@@ -52,22 +59,28 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId }: Messag
   const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
     queryKey: ['/api/messages', otherPartyId, requestId],
     queryFn: async () => {
+      console.log('Fetching messages for:', { otherPartyId, requestId });
       const response = await apiRequest('GET', `/api/messages/${otherPartyId}/${requestId}`);
       if (!response.ok) {
         const error = await response.json();
+        console.error('Error fetching messages:', error);
         throw new Error(error.message || 'Failed to fetch messages');
       }
-      return response.json();
+      const data = await response.json();
+      console.log('Fetched messages:', data);
+      return data;
     },
     enabled: open
   });
 
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !isConnected) return;
 
+    console.log('Setting up WebSocket listener for requestId:', requestId);
     const handleMessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
+        console.log('Received WebSocket message:', data);
         if (data.type === 'new_message' && data.requestId === requestId) {
           queryClient.invalidateQueries({ queryKey: ['/api/messages', otherPartyId, requestId] });
         }
@@ -81,7 +94,7 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId }: Messag
     return () => {
       socket.removeEventListener('message', handleMessage);
     };
-  }, [socket, requestId, otherPartyId, queryClient]);
+  }, [socket, isConnected, requestId, otherPartyId, queryClient]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async (data: MessageFormValues) => {
@@ -89,11 +102,17 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId }: Messag
         throw new Error("Message cannot be empty");
       }
 
-      console.log('Sending message:', data);
+      console.log('Sending message:', {
+        content: data.content,
+        senderId: currentUserId,
+        recipientId: otherPartyId,
+        requestId
+      });
+
       const response = await apiRequest('POST', '/api/messages/send', {
         content: data.content,
-        recipientId: data.recipientId,
-        requestId: data.requestId,
+        recipientId: otherPartyId,
+        requestId: requestId,
         senderId: currentUserId
       });
 
@@ -131,7 +150,7 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId }: Messag
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="flex gap-2">
+        <Button variant="outline" className="flex gap-2 w-full">
           <MessageSquare className="h-4 w-4" />
           Messages
         </Button>
@@ -146,7 +165,7 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId }: Messag
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
               </div>
-            ) : (
+            ) : messages.length > 0 ? (
               <div className="flex flex-col space-y-2">
                 {messages.map((message) => (
                   <div
@@ -164,6 +183,10 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId }: Messag
                     </span>
                   </div>
                 ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                No messages yet
               </div>
             )}
           </ScrollArea>
