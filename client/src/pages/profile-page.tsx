@@ -230,7 +230,6 @@ export default function ProfilePage() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground mb-2">{request.message}</p>
                       {request.status === "awaiting_pickup_confirmation" && (
                         <div className="mt-2">
                           <Link href={`/item/${request.item.id}`} className="inline-block">
@@ -301,8 +300,7 @@ export default function ProfilePage() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="font-medium mb-2">${bid.amount}</p>
-                      <p className="text-muted-foreground">{bid.message}</p>
+                      <p className="font-medium">${bid.amount}</p>
                     </CardContent>
                   </Card>
                 ))
