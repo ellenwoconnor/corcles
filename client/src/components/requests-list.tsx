@@ -3,7 +3,6 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ItemRequest } from "@shared/schema";
 import { MessageDialog } from "./message-dialog";
-import { useAuth } from "@/hooks/use-auth";
 
 export function getRequestStatusVariant(status: string) {
   switch (status) {
@@ -38,11 +37,10 @@ export function formatRequestStatus(status: string) {
 
 interface RequestsListProps {
   requests: ItemRequest[];
+  currentUserId?: number;
 }
 
-export default function RequestsList({ requests }: RequestsListProps) {
-  const { user } = useAuth();
-
+export default function RequestsList({ requests, currentUserId }: RequestsListProps) {
   if (!requests?.length) {
     return (
       <Card className="p-4">
@@ -69,12 +67,12 @@ export default function RequestsList({ requests }: RequestsListProps) {
                 <p className="text-sm text-muted-foreground">{request.message}</p>
               )}
               {/* Only show messaging for non-pending requests */}
-              {request.status !== 'pending' && user && (
+              {request.status !== 'pending' && currentUserId && (
                 <div className="mt-2">
                   <MessageDialog
                     recipientId={request.requesterId}
                     requestId={request.id}
-                    currentUserId={user.id}
+                    currentUserId={currentUserId}
                   />
                 </div>
               )}

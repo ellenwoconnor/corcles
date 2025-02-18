@@ -201,7 +201,10 @@ export default function ListingPage() {
                 <div className="space-y-4">
                   {item.isGift ? (
                     <>
-                      <RequestsList requests={requests || []} />
+                      <RequestsList 
+                        requests={requests || []} 
+                        currentUserId={user?.id}
+                      />
                       {/* Pickup Scheduling Section */}
                       {requests && requests.filter(r => r.status === "pending").length > 0 && !item.proposedPickupWindows && (
                         <div className="space-y-2">
