@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -81,16 +81,20 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
   }, [socket, requestId, recipientId, queryClient]);
 
   const { mutate: sendMessage, isPending } = useMutation({
-    mutationFn: async (values: MessageFormValues) => {
-      if (!values.content.trim()) {
+    mutationFn: async (data: MessageFormValues) => {
+      if (!data.content.trim()) {
         throw new Error("Message cannot be empty");
       }
 
-      const response = await apiRequest('POST', '/api/messages/send', values);
+      console.log('Sending message:', data);
+      const response = await apiRequest('POST', '/api/messages/send', data);
+
       if (!response.ok) {
         const error = await response.json();
+        console.error('Server error:', error);
         throw new Error(error.message || 'Failed to send message');
       }
+
       return response.json();
     },
     onSuccess: () => {
@@ -112,8 +116,12 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
   });
 
   const onSubmit = (values: MessageFormValues) => {
-    console.log('Submitting message:', values);
-    sendMessage(values);
+    console.log('Form submitted with values:', values);
+    sendMessage({
+      content: values.content,
+      recipientId: recipientId,
+      requestId: requestId
+    });
   };
 
   return (
@@ -165,6 +173,7 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
                         {...field}
                       />
                     </FormControl>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
