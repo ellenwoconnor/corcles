@@ -2,6 +2,8 @@ import { formatDistanceToNow } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ItemRequest } from "@shared/schema";
+import { MessageDialog } from "./message-dialog";
+import { useAuth } from "@/hooks/use-auth";
 
 export function getRequestStatusVariant(status: string) {
   switch (status) {
@@ -39,6 +41,8 @@ interface RequestsListProps {
 }
 
 export default function RequestsList({ requests }: RequestsListProps) {
+  const { user } = useAuth();
+
   if (!requests?.length) {
     return (
       <Card className="p-4">
@@ -63,6 +67,16 @@ export default function RequestsList({ requests }: RequestsListProps) {
               </div>
               {request.message && (
                 <p className="text-sm text-muted-foreground">{request.message}</p>
+              )}
+              {/* Only show messaging for non-pending requests */}
+              {request.status !== 'pending' && user && (
+                <div className="mt-2">
+                  <MessageDialog
+                    recipientId={request.requesterId}
+                    requestId={request.id}
+                    currentUserId={user.id}
+                  />
+                </div>
               )}
             </div>
             <Badge

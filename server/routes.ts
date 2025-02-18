@@ -10,6 +10,8 @@ import { eq, and, not, or } from "drizzle-orm";
 import { db } from "./db";
 import logger from './logger';
 import { addHours, isAfter, isBefore, addDays } from "date-fns";
+import session from 'express-session';
+
 
 const upload = multer();
 
@@ -108,34 +110,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Set up WebSocket connection handling with enhanced logging
-  wss.on('connection', (ws, req) => {
-    // @ts-ignore - req.user is added by passport
-    const userId = req.user?.id;
-    if (!userId) {
-      logger.warn('WebSocket connection attempt without authentication');
-      ws.close();
-      return;
-    }
+  // Set up WebSocket connection handling with enhanced logging and session parsing
+  wss.on('connection', async (ws, req) => {
+    try {
+      // Parse the session from cookies
+      const cookieHeader = req.headers.cookie;
+      if (!cookieHeader) {
+        logger.warn('WebSocket connection attempt without cookies');
+        ws.close();
+        return;
+      }
 
-    logger.info('WebSocket client connected:', { 
-      userId,
-      totalConnections: connectedClients.size + 1
-    });
-    connectedClients.set(userId, ws);
+      // Create a Promise-based session parser
+      const getSession = () => new Promise((resolve, reject) => {
+        const sessionParser = session({
+          store: storage.sessionStore,
+          secret: process.env.SESSION_SECRET || 'your-secret-key',
+          resave: false,
+          saveUninitialized: false
+        });
 
-    ws.on('close', () => {
-      logger.info('WebSocket client disconnected:', { 
-        userId,
-        remainingConnections: connectedClients.size - 1
+        sessionParser(req as any, {} as any, (err: any) => {
+          if (err) reject(err);
+          resolve(req);
+        });
       });
-      connectedClients.delete(userId);
-    });
 
-    ws.on('error', (error) => {
-      logger.error('WebSocket error:', { error, userId });
+      await getSession();
+
+      // @ts-ignore - req.user is added by passport session
+      const userId = req.user?.id;
+      if (!userId) {
+        logger.warn('WebSocket connection attempt without authentication');
+        ws.close();
+        return;
+      }
+
+      logger.info('WebSocket client connected:', { 
+        userId,
+        totalConnections: connectedClients.size + 1
+      });
+      connectedClients.set(userId, ws);
+
+      ws.on('close', () => {
+        logger.info('WebSocket client disconnected:', { 
+          userId,
+          remainingConnections: connectedClients.size - 1
+        });
+        connectedClients.delete(userId);
+      });
+
+      ws.on('error', (error) => {
+        logger.error('WebSocket error:', { error, userId });
+        ws.close();
+      });
+    } catch (error) {
+      logger.error('Error during WebSocket connection setup:', error);
       ws.close();
-    });
+    }
   });
 
   app.get("/api/items/:id([0-9]+)", async (req, res) => {
