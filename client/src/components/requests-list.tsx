@@ -2,6 +2,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ItemRequest } from "@shared/schema";
+//import { MessageDialog } from "./message-dialog"; // Removed import
 
 export function getRequestStatusVariant(status: string) {
   switch (status) {
@@ -36,9 +37,10 @@ export function formatRequestStatus(status: string) {
 
 interface RequestsListProps {
   requests: ItemRequest[];
+  currentUserId?: number;
 }
 
-export default function RequestsList({ requests }: RequestsListProps) {
+export default function RequestsList({ requests, currentUserId }: RequestsListProps) {
   if (!requests?.length) {
     return (
       <Card className="p-4">

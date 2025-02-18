@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { useMutation } from "@tanstack/react-query";
-import { Item, ItemRequest } from "@shared/schema";
+import { Item, ItemRequest, PickupWindow } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Check, X } from "lucide-react";
@@ -37,7 +37,7 @@ export default function PickupConfirmation({ item, request }: PickupConfirmation
       });
       queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}/my-requests`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/user/requests"] }); // Also invalidate profile page requests
+      queryClient.invalidateQueries({ queryKey: ["/api/user/requests"] });
     },
     onError: (error: Error) => {
       toast({
@@ -70,7 +70,7 @@ export default function PickupConfirmation({ item, request }: PickupConfirmation
       <div className="space-y-2">
         <h3 className="font-medium">Proposed Pickup Windows</h3>
         <div className="space-y-2">
-          {item.proposedPickupWindows.map((window, index) => (
+          {(item.proposedPickupWindows || []).map((window: PickupWindow, index: number) => (
             <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
               <p className="text-sm">
                 {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}

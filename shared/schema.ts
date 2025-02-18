@@ -2,11 +2,13 @@ import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export interface PickupWindow {
-  pickupStart: string;
-  pickupEnd: string;
-  order?: number;
-}
+export const pickupWindowSchema = z.object({
+  pickupStart: z.string(),
+  pickupEnd: z.string(),
+  order: z.number().optional()
+});
+
+export type PickupWindow = z.infer<typeof pickupWindowSchema>;
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -76,6 +78,16 @@ export const itemBids = pgTable("item_bids", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  senderId: integer("sender_id").notNull().references(() => users.id),
+  recipientId: integer("recipient_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  requestId: integer("request_id").notNull().references(() => itemRequests.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  readAt: timestamp("read_at"),
+});
+
 export const insertUserSchema = createInsertSchema(users).extend({
   password: z.string().min(6, "Password must be at least 6 characters"),
   displayName: z.string().min(2, "Display name must be at least 2 characters"),
@@ -90,11 +102,11 @@ export const insertUserSchema = createInsertSchema(users).extend({
     .min(5, "Zip code must be 5 digits")
     .max(5, "Zip code must be 5 digits")
     .refine((val) => /^\d{5}$/.test(val), "Zip code must be exactly 5 digits"),
-}).omit({ 
+}).omit({
   community: true
 });
 
-export const insertItemSchema = createInsertSchema(items).omit({ 
+export const insertItemSchema = createInsertSchema(items).omit({
   id: true,
   userId: true,
   createdAt: true,
@@ -135,10 +147,18 @@ export const insertItemBidSchema = createInsertSchema(itemBids).omit({
   message: z.string().optional()
 });
 
+export const insertMessageSchema = createInsertSchema(messages).omit({
+  id: true,
+  createdAt: true,
+  readAt: true,
+}).extend({
+  content: z.string().min(1, "Message cannot be empty").max(1000, "Message is too long"),
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertItem = z.infer<typeof insertItemSchema>;
-export type Item = typeof items.$inferSelect & { 
+export type Item = typeof items.$inferSelect & {
   userDisplayName?: string;
   proposedPickupWindows?: PickupWindow[];
 };
@@ -146,10 +166,12 @@ export type InsertItemRequest = z.infer<typeof insertItemRequestSchema>;
 export type ItemRequest = typeof itemRequests.$inferSelect;
 export type InsertItemBid = z.infer<typeof insertItemBidSchema>;
 export type ItemBid = typeof itemBids.$inferSelect;
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type Message = typeof messages.$inferSelect;
 
 export const MOCK_COMMUNITIES = [
   "Downtown Seattle",
-  "East Village NYC", 
+  "East Village NYC",
   "Mission District SF",
   "Wicker Park Chicago",
   "South End Boston"

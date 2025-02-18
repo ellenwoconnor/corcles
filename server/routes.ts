@@ -1,19 +1,209 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import multer from "multer";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import * as schema from "@shared/schema";
-import { insertItemSchema, insertItemRequestSchema, insertItemBidSchema } from "@shared/schema";
-import { eq, and, not } from "drizzle-orm";
+import { insertItemSchema, insertItemRequestSchema, insertItemBidSchema, insertMessageSchema } from "@shared/schema";
+import { eq, and, not, or } from "drizzle-orm";
 import { db } from "./db";
 import logger from './logger';
 import { addHours, isAfter, isBefore, addDays } from "date-fns";
+import session from 'express-session';
 
 const upload = multer();
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
+
+  // Initialize WebSocket server and connected clients map
+  const httpServer = createServer(app);
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  const connectedClients = new Map<number, WebSocket>();
+
+  // Log WebSocket server initialization
+  logger.info('WebSocket server initialized on path: /ws');
+
+  // Add messaging routes
+  app.post("/api/messages/send", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const { recipientId, content, requestId } = req.body;
+      logger.info('Received message request:', { recipientId, requestId });
+
+      // Validate if users can message each other
+      const canMessage = await storage.canUsersMessage(req.user.id, recipientId);
+      if (!canMessage) {
+        return res.status(403).json({ error: "You cannot message this user" });
+      }
+
+      const parseResult = insertMessageSchema.safeParse({
+        senderId: req.user.id,
+        recipientId,
+        content,
+        requestId
+      });
+
+      if (!parseResult.success) {
+        return res.status(400).json(parseResult.error);
+      }
+
+      const message = await storage.sendMessage(parseResult.data);
+
+      // Notify both sender and recipient via WebSocket
+      const recipientWs = connectedClients.get(recipientId);
+      const senderWs = connectedClients.get(req.user.id);
+
+      const notificationPayload = JSON.stringify({
+        type: 'new_message',
+        data: message
+      });
+
+      if (recipientWs?.readyState === WebSocket.OPEN) {
+        recipientWs.send(notificationPayload);
+        logger.info('Sent WebSocket notification to recipient:', { recipientId });
+      }
+
+      if (senderWs?.readyState === WebSocket.OPEN) {
+        senderWs.send(notificationPayload);
+        logger.info('Sent WebSocket notification to sender:', { senderId: req.user.id });
+      }
+
+      res.status(201).json(message);
+    } catch (error) {
+      logger.error('Error sending message:', error);
+      res.status(500).json({ error: 'Failed to send message' });
+    }
+  });
+
+  app.get("/api/messages/:userId/:requestId", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const userId = parseInt(req.params.userId);
+      const requestId = parseInt(req.params.requestId);
+
+      if (isNaN(userId) || isNaN(requestId)) {
+        return res.status(400).json({ error: "Invalid user ID or request ID" });
+      }
+
+      // Check if the current user is either the sender or recipient of the request
+      const request = await db
+        .select()
+        .from(schema.itemRequests)
+        .where(eq(schema.itemRequests.id, requestId))
+        .limit(1);
+
+      if (!request.length) {
+        return res.status(404).json({ error: "Request not found" });
+      }
+
+      const [itemRequest] = request;
+      const item = await storage.getItem(itemRequest.itemId);
+
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      // Allow message access if user is either the item owner or requester
+      const canAccess = req.user.id === item.userId || req.user.id === itemRequest.requesterId;
+      if (!canAccess) {
+        return res.status(403).json({ error: "You cannot view these messages" });
+      }
+
+      // Get messages for both sender and recipient
+      const messages = await storage.getConversation(item.userId, itemRequest.requesterId, requestId);
+
+      // Mark messages as read for the current user
+      await storage.markMessagesAsRead(req.user.id, userId, requestId);
+
+      res.json(messages);
+    } catch (error) {
+      logger.error('Error fetching messages:', error);
+      res.status(500).json({ error: 'Failed to fetch messages' });
+    }
+  });
+
+  app.get("/api/messages/unread-count", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const count = await storage.getUnreadMessageCount(req.user.id);
+      res.json({ count });
+    } catch (error) {
+      logger.error('Error getting unread message count:', error);
+      res.status(500).json({ error: 'Failed to get unread message count' });
+    }
+  });
+
+  // Set up WebSocket connection handling with enhanced logging and session parsing
+  wss.on('connection', async (ws, req) => {
+    try {
+      // Parse the session from cookies
+      const cookieHeader = req.headers.cookie;
+      if (!cookieHeader) {
+        logger.warn('WebSocket connection attempt without cookies');
+        ws.close();
+        return;
+      }
+
+      // Create a Promise-based session parser
+      const getSession = () => new Promise((resolve, reject) => {
+        const sessionParser = session({
+          store: storage.sessionStore,
+          secret: process.env.SESSION_SECRET || 'your-secret-key',
+          resave: false,
+          saveUninitialized: false
+        });
+
+        sessionParser(req as any, {} as any, (err: any) => {
+          if (err) reject(err);
+          resolve(req);
+        });
+      });
+
+      await getSession();
+
+      // @ts-ignore - req.user is added by passport session
+      const userId = req.user?.id;
+      if (!userId) {
+        logger.warn('WebSocket connection attempt without authentication');
+        ws.close();
+        return;
+      }
+
+      logger.info('WebSocket client connected:', { 
+        userId,
+        totalConnections: connectedClients.size + 1
+      });
+      connectedClients.set(userId, ws);
+
+      ws.on('close', () => {
+        logger.info('WebSocket client disconnected:', { 
+          userId,
+          remainingConnections: connectedClients.size - 1
+        });
+        connectedClients.delete(userId);
+      });
+
+      ws.on('error', (error) => {
+        logger.error('WebSocket error:', { error, userId });
+        ws.close();
+      });
+
+      // Send initial connection success message
+      ws.send(JSON.stringify({
+        type: 'connection_established',
+        data: { userId }
+      }));
+
+    } catch (error) {
+      logger.error('Error during WebSocket connection setup:', error);
+      ws.close();
+    }
+  });
 
   app.get("/api/items/:id([0-9]+)", async (req, res) => {
     try {
@@ -42,13 +232,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { search } = req.query;
       const searchTerm = typeof search === 'string' ? search : undefined;
 
+      // Log the request parameters for debugging
+      logger.debug('Fetching items:', {
+        community: req.params.community,
+        userId: req.user?.id,
+        searchTerm,
+        authenticated: req.isAuthenticated()
+      });
+
       const items = await storage.getItems(
         req.params.community, 
         req.user?.id,
         searchTerm
       );
 
-      res.json(items);
+      // Log the number of items returned
+      logger.debug('Items fetched:', {
+        community: req.params.community,
+        itemCount: items.length
+      });
+
+      res.json(items.map(item => ({
+        ...item,
+        createdAt: new Date(item.createdAt).toISOString()
+      })));
     } catch (error) {
       logger.error('Error fetching items:', error);
       res.status(500).json({ error: 'Failed to fetch items' });
@@ -499,13 +706,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to edit this item" });
       }
 
+      // Fix: Create a partial schema from the base schema
+      const partialItemSchema = insertItemSchema.extend({}).partial();
       const data = {
         ...req.body,
         price: req.body.price ? Number(req.body.price) : undefined,
         isGift: typeof req.body.isGift === 'boolean' ? req.body.isGift : undefined
       };
 
-      const parseResult = insertItemSchema.partial().safeParse(data);
+      const parseResult = partialItemSchema.safeParse(data);
       if (!parseResult.success) {
         return res.status(400).json(parseResult.error);
       }
@@ -678,6 +887,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
   return httpServer;
 }
