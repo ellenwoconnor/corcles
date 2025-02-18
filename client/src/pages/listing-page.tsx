@@ -58,16 +58,12 @@ export default function ListingPage() {
   const isOwner = item?.userId === user?.id;
 
   // Requests and bids queries
-  const { data: requests } = useQuery<ItemRequest[]>({
+  const { data: requests } = useQuery<(ItemRequest & { itemOwnerId: number })[]>({
     queryKey: [`/api/items/${params?.id}/${isOwner ? 'requests' : 'my-requests'}`],
     enabled: !!params?.id && !!user,
   });
 
-  const { data: bids } = useQuery<ItemBid[]>({
-    queryKey: [`/api/items/${params?.id}/bids`],
-    enabled: !!params?.id && !!user && !item?.isGift,
-  });
-
+  const currentRequest = requests?.find(r => r.requesterId === user?.id);
   const hasRequested = requests?.some((request) => request.status === "pending");
   const hasBid = bids?.some((bid) => bid.status === "pending");
   const isRecipient = user?.id === item?.recipientId;
@@ -370,9 +366,11 @@ export default function ListingPage() {
                     ) : (
                       <RequestForm
                         itemId={item.id}
+                        itemOwnerId={item.userId}
                         hasRequested={!!hasRequested}
                         isOpen={requestDialogOpen}
                         onOpenChange={setRequestDialogOpen}
+                        currentRequest={currentRequest}
                       />
                     )}
                   </>
