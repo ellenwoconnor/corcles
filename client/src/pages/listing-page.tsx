@@ -183,16 +183,6 @@ export default function ListingPage() {
               </p>
             </div>
 
-            {/* Pickup Confirmation Alert */}
-            {requests?.some(r => r.status === "awaiting_pickup_confirmation") && (
-              <div className="mb-4">
-                <Alert>
-                  <Clock className="h-4 w-4" />
-                  <AlertTitle>Pickup Confirmation Pending</AlertTitle>
-                </Alert>
-              </div>
-            )}
-
             {/* Owner View */}
             {isOwner ? (
               <div className="border-t border-border pt-3 space-y-4">
