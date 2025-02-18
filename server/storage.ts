@@ -516,42 +516,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async canUsersMessage(senderId: number, recipientId: number): Promise<boolean> {
-    try {
-      // Check if there's an active request between these users
-      const [request] = await db
-        .select()
-        .from(itemRequests)
-        .where(
-          and(
-            or(
-              and(
-                eq(itemRequests.requesterId, senderId),
-                sql`EXISTS (
-                  SELECT 1 FROM ${items}
-                  WHERE ${items.id} = ${itemRequests.itemId}
-                  AND ${items.userId} = ${recipientId}
-                )`
-              ),
-              and(
-                eq(itemRequests.requesterId, recipientId),
-                sql`EXISTS (
-                  SELECT 1 FROM ${items}
-                  WHERE ${items.id} = ${itemRequests.itemId}
-                  AND ${items.userId} = ${senderId}
-                )`
-              )
-            ),
-            notInArray(itemRequests.status, [REQUEST_STATUS.PENDING])
-          )
-        );
-
-      return !!request;
-    } catch (error) {
-      logger.error('Error checking if users can message:', { error, senderId, recipientId });
-      throw error;
-    }
-  }
+  
 
   async sendMessage(message: InsertMessage): Promise<Message> {
     try {
