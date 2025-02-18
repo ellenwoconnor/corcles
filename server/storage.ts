@@ -184,8 +184,10 @@ export class DatabaseStorage implements IStorage {
       const processedItems = itemResults.map(item => ({
         ...item,
         proposedPickupWindows: item.proposedPickupWindows 
-          ? (item.proposedPickupWindows as PickupWindow[])
-          : undefined
+          ? (item.proposedPickupWindows as unknown as PickupWindow[])
+          : undefined,
+        pickupStart: item.pickupStart ? new Date(item.pickupStart).toISOString() : null,
+        pickupEnd: item.pickupEnd ? new Date(item.pickupEnd).toISOString() : null
       }));
 
       logger.debug('Retrieved items:', { 
@@ -198,7 +200,9 @@ export class DatabaseStorage implements IStorage {
           id: item.id,
           title: item.title,
           userId: item.userId,
-          status: item.status
+          status: item.status,
+          pickupStart: item.pickupStart,
+          pickupEnd: item.pickupEnd
         }))
       });
 
@@ -233,19 +237,28 @@ export class DatabaseStorage implements IStorage {
 
       if (!item) return undefined;
 
-      // Cast the pickup windows to the correct type
+      // Process pickup windows and dates consistently
       const processedItem = {
         ...item,
         proposedPickupWindows: item.proposedPickupWindows 
-          ? (item.proposedPickupWindows as PickupWindow[])
-          : undefined
+          ? (item.proposedPickupWindows as unknown as PickupWindow[])
+          : undefined,
+        pickupStart: item.pickupStart ? new Date(item.pickupStart).toISOString() : null,
+        pickupEnd: item.pickupEnd ? new Date(item.pickupEnd).toISOString() : null
       };
 
       logger.debug("getItem query result:", {
         id,
         userId,
         found: !!processedItem,
-        item: processedItem
+        item: {
+          id: processedItem.id,
+          title: processedItem.title,
+          status: processedItem.status,
+          pickupStart: processedItem.pickupStart,
+          pickupEnd: processedItem.pickupEnd,
+          proposedPickupWindows: processedItem.proposedPickupWindows
+        }
       });
 
       return processedItem as (Item & { userHasFavorited: boolean });

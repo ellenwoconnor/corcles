@@ -99,7 +99,7 @@ export default function PickupTimeSelector({
       )}
       <div className="space-y-2">
         <div className="grid grid-cols-1 gap-1.5">
-          {windows.map((window, index) => (
+          {windows.map((window: PickupWindow, index: number) => (
             <button
               key={index}
               onClick={() => {

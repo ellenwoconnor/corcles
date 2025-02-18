@@ -4,6 +4,9 @@ import { Item, PickupWindow } from "@shared/schema";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import PickupTimeSelector from "./pickup-time-selector";
 import PickupScheduler from "./pickup-scheduler";
+import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { Alert } from "@/components/ui/alert";
 
 interface PickupSchedulingContainerProps {
   item: Item;
@@ -45,16 +48,31 @@ export default function PickupSchedulingContainer({
     onScheduled?.();
   };
 
+  // Display selected pickup window if one exists
+  const showSelectedTime = item.pickupStart && item.pickupEnd;
+
   if (!user) return null;
 
   return (
     <div className="space-y-4">
+      {showSelectedTime && (
+        <Alert>
+          <div className="space-y-2">
+            <h3 className="font-medium">Selected Pickup Time</h3>
+            <p className="text-sm text-muted-foreground">
+              {format(new Date(item.pickupStart!), "EEEE, MMMM d")} at{" "}
+              {format(new Date(item.pickupStart!), "h:mm a")} -{" "}
+              {format(new Date(item.pickupEnd!), "h:mm a")}
+            </p>
+            <Badge variant="outline">Pickup Scheduled</Badge>
+          </div>
+        </Alert>
+      )}
+
       {isOwner ? (
         // Owner view - show scheduler to propose times
         <PickupScheduler
           itemId={item.id}
-          requestId={requestId}
-          requesterId={requesterId}
           onScheduled={handleSchedulingComplete}
         />
       ) : (
