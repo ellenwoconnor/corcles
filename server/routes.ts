@@ -53,14 +53,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const message = await storage.sendMessage(parseResult.data);
 
-      // Notify connected WebSocket clients
+      // Notify both sender and recipient via WebSocket
       const recipientWs = connectedClients.get(recipientId);
+      const senderWs = connectedClients.get(req.user.id);
+
+      const notificationPayload = JSON.stringify({
+        type: 'new_message',
+        data: message
+      });
+
       if (recipientWs?.readyState === WebSocket.OPEN) {
-        recipientWs.send(JSON.stringify({
-          type: 'new_message',
-          data: message
-        }));
+        recipientWs.send(notificationPayload);
         logger.info('Sent WebSocket notification to recipient:', { recipientId });
+      }
+
+      if (senderWs?.readyState === WebSocket.OPEN) {
+        senderWs.send(notificationPayload);
+        logger.info('Sent WebSocket notification to sender:', { senderId: req.user.id });
       }
 
       res.status(201).json(message);
@@ -164,6 +173,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         logger.error('WebSocket error:', { error, userId });
         ws.close();
       });
+
+      // Send initial connection success message
+      ws.send(JSON.stringify({
+        type: 'connection_established',
+        data: { userId }
+      }));
+
     } catch (error) {
       logger.error('Error during WebSocket connection setup:', error);
       ws.close();
