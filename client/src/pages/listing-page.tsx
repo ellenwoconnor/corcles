@@ -234,14 +234,29 @@ export default function ListingPage() {
                             <h3 className="font-medium">Proposed Pickup Windows</h3>
                             <div className="space-y-2">
                               {item.proposedPickupWindows.map((window, index) => {
-                                console.log('Processing window:', window); // Add debugging log
+                                const isSelectedWindow = item.pickupStart && 
+                                  new Date(window.pickupStart).getTime() === new Date(item.pickupStart).getTime() &&
+                                  new Date(window.pickupEnd).getTime() === new Date(item.pickupEnd).getTime();
+
                                 return (
-                                  <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
-                                    <p className="text-sm">
-                                      {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
-                                      {format(new Date(window.pickupStart), "h:mm a")} -{" "}
-                                      {format(new Date(window.pickupEnd), "h:mm a")}
-                                    </p>
+                                  <div 
+                                    key={index} 
+                                    className={`p-3 rounded-lg border ${
+                                      isSelectedWindow 
+                                        ? "bg-primary/10 border-primary" 
+                                        : "bg-secondary border-border"
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-sm">
+                                        {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
+                                        {format(new Date(window.pickupStart), "h:mm a")} -{" "}
+                                        {format(new Date(window.pickupEnd), "h:mm a")}
+                                      </p>
+                                      {isSelectedWindow && (
+                                        <Badge variant="outline" className="ml-2">Selected Time</Badge>
+                                      )}
+                                    </div>
                                   </div>
                                 );
                               })}
