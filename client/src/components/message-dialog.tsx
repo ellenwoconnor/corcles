@@ -34,7 +34,7 @@ interface MessageDialogProps {
 export function MessageDialog({ recipientId, requestId, currentUserId }: MessageDialogProps) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
-  const { socket, isConnected } = useWebSocket();
+  const { socket } = useWebSocket();
   const { toast } = useToast();
 
   const form = useForm<MessageFormValues>({
@@ -46,7 +46,6 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
     }
   });
 
-  // Query for fetching messages
   const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
     queryKey: ['/api/messages', recipientId, requestId],
     queryFn: async () => {
@@ -60,7 +59,6 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
     enabled: open
   });
 
-  // Handle WebSocket message updates
   useEffect(() => {
     if (!socket) return;
 
@@ -82,7 +80,6 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
     };
   }, [socket, requestId, recipientId, queryClient]);
 
-  // Mutation for sending messages
   const { mutate: sendMessage, isPending } = useMutation({
     mutationFn: async (values: MessageFormValues) => {
       const response = await apiRequest('POST', '/api/messages/send', values);
@@ -168,7 +165,7 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
               <Button 
                 type="submit" 
                 className="w-full" 
-                disabled={isPending || !isConnected}
+                disabled={isPending || !form.formState.isValid}
               >
                 {isPending ? (
                   <>

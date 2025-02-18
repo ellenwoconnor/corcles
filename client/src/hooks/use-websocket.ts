@@ -14,12 +14,10 @@ export function useWebSocket() {
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      console.log('WebSocket already connected');
       return;
     }
 
     try {
-      // Clear any existing connection
       if (wsRef.current) {
         wsRef.current.close();
       }
@@ -27,14 +25,11 @@ export function useWebSocket() {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/ws`;
 
-      console.log('Connecting to WebSocket:', wsUrl);
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('WebSocket connected');
         setIsConnected(true);
-        // Clear any reconnection timeout
         if (reconnectTimeoutRef.current) {
           clearTimeout(reconnectTimeoutRef.current);
           reconnectTimeoutRef.current = undefined;
@@ -63,20 +58,12 @@ export function useWebSocket() {
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
         setIsConnected(false);
-        toast({
-          variant: "destructive",
-          title: "Connection Error",
-          description: "Failed to connect to messaging service. Retrying...",
-        });
       };
 
       ws.onclose = () => {
-        console.log('WebSocket disconnected');
         setIsConnected(false);
-        // Attempt to reconnect after 5 seconds if not intentionally closed
         if (!reconnectTimeoutRef.current) {
           reconnectTimeoutRef.current = setTimeout(() => {
-            console.log('Attempting to reconnect...');
             connect();
             reconnectTimeoutRef.current = undefined;
           }, 5000);
