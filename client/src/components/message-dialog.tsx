@@ -38,14 +38,6 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId, recipien
   const { socket, isConnected } = useWebSocket();
   const { toast } = useToast();
 
-  console.log('MessageDialog mounted with props:', { 
-    requestId, 
-    currentUserId, 
-    otherPartyId,
-    recipientId,
-    socketConnected: isConnected 
-  });
-
   const form = useForm<MessageFormValues>({
     resolver: zodResolver(insertMessageSchema),
     defaultValues: {
@@ -56,20 +48,16 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId, recipien
     }
   });
 
-  // Fix: Query using currentUserId instead of otherPartyId for the conversation endpoint
+  // Query messages using the request ID
   const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
-    queryKey: ['/api/messages', currentUserId, requestId],
+    queryKey: ['/api/messages', otherPartyId, requestId],
     queryFn: async () => {
-      console.log('Fetching messages for:', { currentUserId, requestId });
-      const response = await apiRequest('GET', `/api/messages/${currentUserId}/${requestId}`);
+      const response = await apiRequest('GET', `/api/messages/${otherPartyId}/${requestId}`);
       if (!response.ok) {
         const error = await response.json();
-        console.error('Error fetching messages:', error);
         throw new Error(error.message || 'Failed to fetch messages');
       }
-      const data = await response.json();
-      console.log('Fetched messages:', data);
-      return data;
+      return response.json();
     },
     enabled: open
   });
@@ -77,13 +65,11 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId, recipien
   useEffect(() => {
     if (!socket || !isConnected) return;
 
-    console.log('Setting up WebSocket listener for requestId:', requestId);
     const handleMessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('Received WebSocket message:', data);
-        if (data.type === 'new_message' && data.requestId === requestId) {
-          queryClient.invalidateQueries({ queryKey: ['/api/messages', currentUserId, requestId] });
+        if (data.type === 'new_message' && data.data.requestId === requestId) {
+          queryClient.invalidateQueries({ queryKey: ['/api/messages', otherPartyId, requestId] });
         }
       } catch (error) {
         console.error('Error handling WebSocket message:', error);
@@ -95,7 +81,7 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId, recipien
     return () => {
       socket.removeEventListener('message', handleMessage);
     };
-  }, [socket, isConnected, requestId, currentUserId, queryClient]);
+  }, [socket, isConnected, requestId, otherPartyId, queryClient]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async (data: MessageFormValues) => {
@@ -103,23 +89,14 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId, recipien
         throw new Error("Message cannot be empty");
       }
 
-      console.log('Sending message:', {
-        content: data.content,
-        senderId: currentUserId,
-        recipientId: otherPartyId,
-        requestId
-      });
-
       const response = await apiRequest('POST', '/api/messages/send', {
         content: data.content,
         recipientId: otherPartyId,
-        requestId: requestId,
-        senderId: currentUserId
+        requestId: requestId
       });
 
       if (!response.ok) {
         const error = await response.json();
-        console.error('Server error:', error);
         throw new Error(error.message || 'Failed to send message');
       }
 
@@ -127,10 +104,9 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId, recipien
     },
     onSuccess: () => {
       form.reset();
-      queryClient.invalidateQueries({ queryKey: ['/api/messages', currentUserId, requestId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/messages', otherPartyId, requestId] });
     },
     onError: (error: Error) => {
-      console.error('Failed to send message:', error);
       toast({
         title: "Failed to send message",
         description: error.message || "There was an error sending your message.",
@@ -140,7 +116,6 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId, recipien
   });
 
   const handleSubmit = form.handleSubmit((values) => {
-    console.log('Form submitted with values:', values);
     sendMessageMutation.mutate(values);
   });
 

@@ -78,6 +78,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Set up WebSocket connection handling with enhanced logging and session parsing
+  wss.on('connection', async (ws, req) => {
+    try {
+      // Log the full headers for debugging
+      const cookieHeader = req.headers.cookie;
+      logger.debug('WebSocket connection attempt:', { 
+        headers: req.headers,
+        cookies: cookieHeader
+      });
+
+      if (!cookieHeader) {
+        logger.warn('WebSocket connection attempt without cookies');
+        ws.close();
+        return;
+      }
+
+      // Configure session middleware
+      const sessionMiddleware = session({
+        store: storage.sessionStore,
+        secret: process.env.SESSION_SECRET || 'your-secret-key',
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax'
+        }
+      });
+
+      // Parse session using Promise
+      await new Promise((resolve, reject) => {
+        sessionMiddleware(req as any, {} as any, (err: any) => {
+          if (err) {
+            logger.error('Session parsing error:', err);
+            reject(err);
+            return;
+          }
+          resolve(undefined);
+        });
+      });
+
+      // @ts-ignore - req.user is added by passport session
+      const user = req.user;
+      logger.debug('WebSocket session parsed:', { 
+        sessionPresent: !!req.session,
+        user: user ? { id: user.id, username: user.username } : null
+      });
+
+      if (!user?.id) {
+        logger.warn('WebSocket connection attempt without authenticated user');
+        ws.close();
+        return;
+      }
+
+      logger.info('WebSocket client connected:', { 
+        userId: user.id,
+        totalConnections: connectedClients.size + 1
+      });
+
+      // Store the connection with the user ID
+      connectedClients.set(user.id, ws);
+
+      // Send initial connection success message
+      ws.send(JSON.stringify({
+        type: 'connection_established',
+        data: { userId: user.id }
+      }));
+
+      ws.on('close', () => {
+        logger.info('WebSocket client disconnected:', { 
+          userId: user.id,
+          remainingConnections: connectedClients.size - 1
+        });
+        connectedClients.delete(user.id);
+      });
+
+      ws.on('error', (error) => {
+        logger.error('WebSocket error:', { error, userId: user.id });
+        ws.close();
+      });
+
+    } catch (error) {
+      logger.error('Error during WebSocket connection setup:', error);
+      ws.close();
+    }
+  });
+
   app.get("/api/messages/:userId/:requestId", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -137,79 +223,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to get unread message count' });
     }
   });
-
-  // Set up WebSocket connection handling with enhanced logging and session parsing
-  wss.on('connection', async (ws, req) => {
-    try {
-      // Parse the session from cookies
-      const cookieHeader = req.headers.cookie;
-      if (!cookieHeader) {
-        logger.warn('WebSocket connection attempt without cookies');
-        ws.close();
-        return;
-      }
-
-      logger.debug('WebSocket connection attempt with cookies:', { cookieHeader });
-
-      // Create a Promise-based session parser
-      const getSession = () => new Promise((resolve, reject) => {
-        const sessionParser = session({
-          store: storage.sessionStore,
-          secret: process.env.SESSION_SECRET || 'your-secret-key',
-          resave: false,
-          saveUninitialized: false
-        });
-
-        sessionParser(req as any, {} as any, (err: any) => {
-          if (err) {
-            logger.error('Session parsing error:', err);
-            reject(err);
-          }
-          resolve(req);
-        });
-      });
-
-      await getSession();
-
-      // @ts-ignore - req.user is added by passport session
-      const userId = req.user?.id;
-      if (!userId) {
-        logger.warn('WebSocket connection attempt without authentication');
-        ws.close();
-        return;
-      }
-
-      logger.info('WebSocket client connected:', { 
-        userId,
-        totalConnections: connectedClients.size + 1
-      });
-      connectedClients.set(userId, ws);
-
-      ws.on('close', () => {
-        logger.info('WebSocket client disconnected:', { 
-          userId,
-          remainingConnections: connectedClients.size - 1
-        });
-        connectedClients.delete(userId);
-      });
-
-      ws.on('error', (error) => {
-        logger.error('WebSocket error:', { error, userId });
-        ws.close();
-      });
-
-      // Send initial connection success message
-      ws.send(JSON.stringify({
-        type: 'connection_established',
-        data: { userId }
-      }));
-
-    } catch (error) {
-      logger.error('Error during WebSocket connection setup:', error);
-      ws.close();
-    }
-  });
-
   app.get("/api/items/:id([0-9]+)", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
