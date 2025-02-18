@@ -2,7 +2,7 @@ import { formatDistanceToNow } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ItemRequest } from "@shared/schema";
-import { MessageDialog } from "./message-dialog";
+//import { MessageDialog } from "./message-dialog"; // Removed import
 
 export function getRequestStatusVariant(status: string) {
   switch (status) {
@@ -65,16 +65,6 @@ export default function RequestsList({ requests, currentUserId }: RequestsListPr
               </div>
               {request.message && (
                 <p className="text-sm text-muted-foreground">{request.message}</p>
-              )}
-              {/* Only show messaging for non-pending requests */}
-              {request.status !== 'pending' && currentUserId && (
-                <div className="mt-2">
-                  <MessageDialog
-                    requestId={request.id}
-                    currentUserId={currentUserId}
-                    otherPartyId={request.requesterId}
-                  />
-                </div>
               )}
             </div>
             <Badge

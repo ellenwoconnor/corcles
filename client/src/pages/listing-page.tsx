@@ -345,6 +345,13 @@ export default function ListingPage() {
                             {format(new Date(item.pickupEnd!), "p")}
                           </p>
                           <Badge variant="outline">Pickup Scheduled</Badge>
+                          {requests && requests[0] && (
+                            <MessageDialog
+                              requestId={requests[0].id}
+                              currentUserId={user?.id || 0}
+                              otherPartyId={item.userId}
+                            />
+                          )}
                         </div>
                       </div>
                     ) : requests?.some(r => r.status === "pending") ? (
