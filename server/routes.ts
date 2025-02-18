@@ -232,13 +232,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { search } = req.query;
       const searchTerm = typeof search === 'string' ? search : undefined;
 
+      // Log the request parameters for debugging
+      logger.debug('Fetching items:', {
+        community: req.params.community,
+        userId: req.user?.id,
+        searchTerm,
+        authenticated: req.isAuthenticated()
+      });
+
       const items = await storage.getItems(
         req.params.community, 
         req.user?.id,
         searchTerm
       );
 
-      res.json(items);
+      // Log the number of items returned
+      logger.debug('Items fetched:', {
+        community: req.params.community,
+        itemCount: items.length
+      });
+
+      res.json(items.map(item => ({
+        ...item,
+        createdAt: new Date(item.createdAt).toISOString()
+      })));
     } catch (error) {
       logger.error('Error fetching items:', error);
       res.status(500).json({ error: 'Failed to fetch items' });

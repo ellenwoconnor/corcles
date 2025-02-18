@@ -12,13 +12,24 @@ export function useWebSocket() {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const [isConnected, setIsConnected] = useState(false);
+  const maxReconnectAttempts = 5;
+  const reconnectAttemptRef = useRef(0);
 
   const connect = useCallback(() => {
+    // Don't try to reconnect if we're already connected
     if (wsRef.current?.readyState === WebSocket.OPEN) {
+      console.log('WebSocket already connected');
+      return;
+    }
+
+    // Check if we've exceeded max reconnection attempts
+    if (reconnectAttemptRef.current >= maxReconnectAttempts) {
+      console.log('Max reconnection attempts reached');
       return;
     }
 
     try {
+      // Close existing connection if any
       if (wsRef.current) {
         wsRef.current.close();
       }
@@ -26,12 +37,15 @@ export function useWebSocket() {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/ws`;
 
-      // Create WebSocket connection - cookies will be sent automatically
+      console.log('Attempting WebSocket connection to:', wsUrl);
+
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
+        console.log('WebSocket connection established');
         setIsConnected(true);
+        reconnectAttemptRef.current = 0; // Reset attempt counter on successful connection
         if (reconnectTimeoutRef.current) {
           clearTimeout(reconnectTimeoutRef.current);
           reconnectTimeoutRef.current = undefined;
@@ -41,10 +55,11 @@ export function useWebSocket() {
       ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
+          console.log('Received WebSocket message:', message);
 
           switch (message.type) {
             case 'new_message':
-              // Invalidate queries to refresh message list for both sender and recipient
+              // Invalidate queries to refresh message list
               queryClient.invalidateQueries({ 
                 queryKey: ['/api/messages', message.data.requestId]
               });
@@ -55,7 +70,7 @@ export function useWebSocket() {
               });
               break;
             case 'connection_established':
-              console.log('WebSocket connection established:', message.data);
+              console.log('WebSocket connection confirmed:', message.data);
               break;
             default:
               console.warn('Unknown message type:', message.type);
@@ -71,12 +86,28 @@ export function useWebSocket() {
       };
 
       ws.onclose = () => {
+        console.log('WebSocket connection closed');
         setIsConnected(false);
-        if (!reconnectTimeoutRef.current) {
-          reconnectTimeoutRef.current = setTimeout(() => {
-            connect();
-            reconnectTimeoutRef.current = undefined;
-          }, 5000);
+
+        // Increment reconnection attempt counter
+        reconnectAttemptRef.current += 1;
+
+        if (reconnectAttemptRef.current < maxReconnectAttempts) {
+          if (!reconnectTimeoutRef.current) {
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttemptRef.current), 10000);
+            console.log(`Scheduling reconnection attempt ${reconnectAttemptRef.current + 1} in ${delay}ms`);
+            reconnectTimeoutRef.current = setTimeout(() => {
+              connect();
+              reconnectTimeoutRef.current = undefined;
+            }, delay);
+          }
+        } else {
+          console.log('Max reconnection attempts reached');
+          toast({
+            title: "Connection Error",
+            description: "Unable to establish real-time connection. Please refresh the page.",
+            variant: "destructive"
+          });
         }
       };
     } catch (error) {

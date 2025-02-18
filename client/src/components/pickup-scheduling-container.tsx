@@ -38,6 +38,7 @@ export default function PickupSchedulingContainer({
 
   // Display selected pickup window if one exists
   const showSelectedTime = item.pickupStart && item.pickupEnd;
+  const showMessageDialog = user && (showSelectedTime || schedulingComplete);
 
   if (!user) return null;
 
@@ -53,49 +54,41 @@ export default function PickupSchedulingContainer({
               {format(new Date(item.pickupEnd!), "h:mm a")}
             </p>
             <Badge variant="outline">Pickup Scheduled</Badge>
-            <MessageDialog
-              requestId={requestId}
-              currentUserId={user.id}
-              otherPartyId={otherPartyId}
-              recipientId={otherPartyId}
-            />
           </div>
         </Alert>
       )}
 
       {isOwner ? (
         // Owner view - show scheduler to propose times if no windows are proposed yet
-        !item.proposedPickupWindows?.length ? (
+        !showSelectedTime && !item.proposedPickupWindows?.length ? (
           <PickupScheduler
             itemId={item.id}
             onScheduled={handleSchedulingComplete}
           />
         ) : (
-          // Show proposed windows if they exist
-          <div className="space-y-2">
-            <h3 className="font-medium">Proposed Pickup Windows</h3>
+          // Show proposed windows if they exist and no time is selected yet
+          !showSelectedTime && item.proposedPickupWindows?.length > 0 && (
             <div className="space-y-2">
-              {item.proposedPickupWindows.map((window: PickupWindow, index: number) => (
-                <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
-                  <p className="text-sm">
-                    {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
-                    {format(new Date(window.pickupStart), "h:mm a")} -{" "}
-                    {format(new Date(window.pickupEnd), "h:mm a")}
-                  </p>
-                </div>
-              ))}
+              <h3 className="font-medium">Proposed Pickup Windows</h3>
+              <div className="space-y-2">
+                {item.proposedPickupWindows.map((window: PickupWindow, index: number) => (
+                  <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
+                    <p className="text-sm">
+                      {format(new Date(window.pickupStart), "EEEE, MMMM d")} at{" "}
+                      {format(new Date(window.pickupStart), "h:mm a")} -{" "}
+                      {format(new Date(window.pickupEnd), "h:mm a")}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <MessageDialog
-              requestId={requestId}
-              currentUserId={user.id}
-              otherPartyId={otherPartyId}
-              recipientId={otherPartyId}
-            />
-          </div>
+          )
         )
       ) : (
-        // Requester view - show time selector to pick from proposed times
-        item.proposedPickupWindows && item.proposedPickupWindows.length > 0 ? (
+        // Requester view - show time selector to pick from proposed times if no time is selected yet
+        !showSelectedTime && 
+        item.proposedPickupWindows && 
+        item.proposedPickupWindows.length > 0 && (
           <PickupTimeSelector
             itemId={item.id}
             itemOwnerId={item.userId}
@@ -104,7 +97,17 @@ export default function PickupSchedulingContainer({
             windows={item.proposedPickupWindows}
             onSelected={handleSchedulingComplete}
           />
-        ) : null
+        )
+      )}
+
+      {/* Show message dialog only once and only after scheduling is complete or time is selected */}
+      {showMessageDialog && (
+        <MessageDialog
+          requestId={requestId}
+          currentUserId={user.id}
+          otherPartyId={otherPartyId}
+          recipientId={otherPartyId}
+        />
       )}
     </div>
   );
