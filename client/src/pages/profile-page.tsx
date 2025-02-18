@@ -106,7 +106,7 @@ export default function ProfilePage() {
                   <Clock className="h-4 w-4" />
                   <AlertTitle>Action Needed</AlertTitle>
                   <AlertDescription>
-                    You have items that need pickup windows scheduled
+                    Visit your listings to schedule pickup windows
                   </AlertDescription>
                 </Alert>
               )}
@@ -140,9 +140,10 @@ export default function ProfilePage() {
                           <Badge
                             variant={
                               item.status === "completed" ? "outline" :
-                              item.status === "pending_pickup" ? "default" :
+                              item.status === "pending_pickup" ? "secondary" :
                               "secondary"
                             }
+                            className={item.status === "pending_pickup" ? "bg-background text-foreground border" : ""}
                           >
                             {item.status === "completed" ? "Pickup Complete" :
                              item.status === "pending_pickup" ? "Pickup Scheduled" :
@@ -152,9 +153,14 @@ export default function ProfilePage() {
                       </CardHeader>
                       <CardContent>
                         {item.pickupStart && (
-                          <p className="text-sm text-muted-foreground">
-                            Pickup: {format(new Date(item.pickupStart), "PPP p")} - {format(new Date(item.pickupEnd!), "p")}
-                          </p>
+                          <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                            <h3 className="font-medium mb-2">Pickup Scheduled</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(item.pickupStart), "EEEE, MMMM d")} at{" "}
+                              {format(new Date(item.pickupStart), "h:mm a")} -{" "}
+                              {format(new Date(item.pickupEnd!), "h:mm a")}
+                            </p>
+                          </div>
                         )}
                       </CardContent>
                     </Card>
@@ -167,13 +173,14 @@ export default function ProfilePage() {
           <TabsContent value="requests">
             <div className="grid gap-4">
               {pendingConfirmations.length > 0 && (
-                <Alert className="mb-4">
-                  <Clock className="h-4 w-4" />
-                  <AlertTitle>Action Needed</AlertTitle>
-                  <AlertDescription>
-                    You have {pendingConfirmations.length} pickup {pendingConfirmations.length === 1 ? 'window' : 'windows'} that need confirmation
-                  </AlertDescription>
-                </Alert>
+                <div className="mb-4 px-3 py-2 bg-primary/5 border border-primary/10 rounded-md">
+                  <div className="flex items-center gap-2 text-sm text-primary">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>
+                      {pendingConfirmations.length} pickup {pendingConfirmations.length === 1 ? 'time' : 'times'} to confirm
+                    </span>
+                  </div>
+                </div>
               )}
               {userRequests?.length === 0 ? (
                 <Card>
@@ -207,11 +214,12 @@ export default function ProfilePage() {
                             request.status === "awaiting_pickup_confirmation"
                               ? "default"
                               : request.status === "accepted"
-                              ? "outline"
+                              ? "secondary"
                               : request.status === "pending"
                               ? "secondary"
                               : "destructive"
                           }
+                          className={request.status === "accepted" ? "bg-background text-foreground border" : ""}
                         >
                           {request.status === "awaiting_pickup_confirmation"
                             ? "Confirm Pickup"
@@ -222,23 +230,25 @@ export default function ProfilePage() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground mb-2">{request.message}</p>
-                      {request.status === "awaiting_pickup_confirmation" && request.item.pickupStart && (
-                        <div className="mt-4">
-                          <h4 className="font-medium mb-2">Proposed Pickup Window</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(request.item.pickupStart), "PPP p")} - {format(new Date(request.item.pickupEnd!), "p")}
-                          </p>
-                          <div className="flex gap-2 mt-4">
-                            <Button>Confirm Pickup Time</Button>
-                            <Button variant="outline">Request Different Time</Button>
-                          </div>
+                      {request.status === "awaiting_pickup_confirmation" && (
+                        <div className="mt-2">
+                          <Link href={`/item/${request.item.id}`} className="inline-block">
+                            <div className="text-sm text-primary hover:text-primary/90 flex items-center gap-1.5 font-medium">
+                              <Clock className="h-3.5 w-3.5" />
+                              Select pickup time
+                            </div>
+                          </Link>
                         </div>
                       )}
                       {request.status === "accepted" && request.item.pickupStart && (
-                        <p className="text-sm text-muted-foreground">
-                          Pickup: {format(new Date(request.item.pickupStart), "PPP p")} - {format(new Date(request.item.pickupEnd!), "p")}
-                        </p>
+                        <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                          <h3 className="font-medium mb-2">Pickup Scheduled</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(request.item.pickupStart), "EEEE, MMMM d")} at{" "}
+                            {format(new Date(request.item.pickupStart), "h:mm a")} -{" "}
+                            {format(new Date(request.item.pickupEnd!), "h:mm a")}
+                          </p>
+                        </div>
                       )}
                     </CardContent>
                   </Card>
@@ -264,7 +274,11 @@ export default function ProfilePage() {
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div>
-                          <CardTitle>{bid.item.title}</CardTitle>
+                          <CardTitle>
+                            <Link href={`/item/${bid.item.id}`} className="hover:underline">
+                              {bid.item.title}
+                            </Link>
+                          </CardTitle>
                           <CardDescription>
                             Bid placed{" "}
                             {formatDistanceToNow(new Date(bid.createdAt), {
@@ -286,8 +300,7 @@ export default function ProfilePage() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="font-medium mb-2">${bid.amount}</p>
-                      <p className="text-muted-foreground">{bid.message}</p>
+                      <p className="font-medium">${bid.amount}</p>
                     </CardContent>
                   </Card>
                 ))
