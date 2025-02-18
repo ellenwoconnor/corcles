@@ -63,7 +63,6 @@ export const itemRequests = pgTable("item_requests", {
   requesterId: integer("requester_id").notNull(),
   status: text("status").notNull().default(REQUEST_STATUS.PENDING),
   message: text("message"),
-  note: text("note"), 
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -141,7 +140,7 @@ export type User = typeof users.$inferSelect;
 export type InsertItem = z.infer<typeof insertItemSchema>;
 export type Item = typeof items.$inferSelect & { 
   userDisplayName?: string;
-  proposedPickupWindows: PickupWindow[]; 
+  proposedPickupWindows?: PickupWindow[];
 };
 export type InsertItemRequest = z.infer<typeof insertItemRequestSchema>;
 export type ItemRequest = typeof itemRequests.$inferSelect;
