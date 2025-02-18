@@ -51,11 +51,6 @@ export default function PickupTimeSelector({
       return response.json();
     },
     onSuccess: () => {
-      toast({
-        title: "Success!",
-        description: "Your time selection has been confirmed."
-      });
-
       queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/my-requests`] });
       queryClient.invalidateQueries({ queryKey: ['/api/user/requests'] });
