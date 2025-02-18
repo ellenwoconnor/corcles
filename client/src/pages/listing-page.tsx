@@ -312,10 +312,15 @@ export default function ListingPage() {
                       </div>
                     </div>
                   ) : requests?.some(r => r.status === "pending") ? (
-                    <PickupConfirmation
-                      item={item}
-                      request={requests.find(r => r.status === "pending")!}
-                    />
+                    <div className="space-y-4 border-t border-border pt-4">
+                      <div className="space-y-2">
+                        <h3 className="font-medium">Request Pending</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Waiting for the owner to schedule pickup windows.
+                        </p>
+                        <Badge variant="secondary">Pending</Badge>
+                      </div>
+                    </div>
                   ) : hasRequested ? (
                     <div className="space-y-4 border-t border-border pt-4">
                       <div className="space-y-2">
