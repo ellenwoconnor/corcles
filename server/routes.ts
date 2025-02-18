@@ -931,16 +931,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(
           and(
             eq(schema.itemRequests.itemId, itemId),
-            eq(schema.itemRequests.status, schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION)
+            or(
+              eq(schema.itemRequests.status, schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION),
+              eq(schema.itemRequests.status, schema.REQUEST_STATUS.ACCEPTED)
+            )
           )
         );
 
       if (!request) {
-        return res.status(404).json({ error: "No pending pickup found" });
+        return res.status(404).json({ error: "No active pickup request found" });
       }
 
       // Only allow cancellation by item owner or recipient
-const canCancel = req.user.id === item.userId || req.user.id === request.requesterId;
+      const canCancel = req.user.id === item.userId || req.user.id === request.requesterId;
       if (!canCancel) {
         return res.status(403).json({ error: "Not authorized to cancel this pickup" });
       }
@@ -957,7 +960,8 @@ const canCancel = req.user.id === item.userId || req.user.id === request.request
         itemId,
         requestId: request.id,
         canceledBy: req.user.id,
-        reason: reason || 'No reason provided'      });
+        reason: reason || 'No reason provided'
+      });
 
       res.json({ success: true });
     } catch (error) {

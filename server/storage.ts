@@ -632,25 +632,25 @@ export class DatabaseStorage implements IStorage {
 
       // Update request status and add cancellation info
       const [updatedRequest] = await db
-        .update(itemRequests)
+        .update(schema.itemRequests)
         .set({ 
-          status: REQUEST_STATUS.CANCELED,
+          status: schema.REQUEST_STATUS.CANCELED,
           cancellationInfo 
         })
-        .where(eq(itemRequests.id, requestId))
+        .where(eq(schema.itemRequests.id, requestId))
         .returning();
 
       // Reset item status and clear pickup information
       await db
-        .update(items)
+        .update(schema.items)
         .set({ 
-          status: ITEM_STATUS.AVAILABLE,
+          status: schema.ITEM_STATUS.AVAILABLE,
           recipientId: null,
           pickupStart: null,
           pickupEnd: null,
           proposedPickupWindows: null
         })
-        .where(eq(items.id, itemId));
+        .where(eq(schema.items.id, itemId));
 
       logger.debug('Canceled pickup request:', { 
         requestId,
@@ -659,7 +659,10 @@ export class DatabaseStorage implements IStorage {
         reason
       });
 
-      return updatedRequest;
+      return {
+        ...updatedRequest,
+        cancellationInfo // Ensure the type is properly passed through
+      };
     } catch (error) {
       logger.error('Error canceling pickup request:', { error, requestId, itemId });
       throw error;
