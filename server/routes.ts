@@ -12,7 +12,6 @@ import logger from './logger';
 import { addHours, isAfter, isBefore, addDays } from "date-fns";
 import session from 'express-session';
 
-
 const upload = multer();
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -90,14 +89,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid user ID or request ID" });
       }
 
-      const canMessage = await storage.canUsersMessage(req.user.id, userId);
-      if (!canMessage) {
-        return res.status(403).json({ error: "You cannot view messages with this user" });
+      // Check if the current user is either the sender or recipient of the request
+      const request = await db
+        .select()
+        .from(schema.itemRequests)
+        .where(eq(schema.itemRequests.id, requestId))
+        .limit(1);
+
+      if (!request.length) {
+        return res.status(404).json({ error: "Request not found" });
       }
 
-      const messages = await storage.getConversation(req.user.id, userId, requestId);
+      const [itemRequest] = request;
+      const item = await storage.getItem(itemRequest.itemId);
 
-      // Mark messages as read
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      // Allow message access if user is either the item owner or requester
+      const canAccess = req.user.id === item.userId || req.user.id === itemRequest.requesterId;
+      if (!canAccess) {
+        return res.status(403).json({ error: "You cannot view these messages" });
+      }
+
+      // Get messages for both sender and recipient
+      const messages = await storage.getConversation(item.userId, itemRequest.requesterId, requestId);
+
+      // Mark messages as read for the current user
       await storage.markMessagesAsRead(req.user.id, userId, requestId);
 
       res.json(messages);

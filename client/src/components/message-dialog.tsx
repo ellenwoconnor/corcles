@@ -56,11 +56,12 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId, recipien
     }
   });
 
+  // Fix: Query using currentUserId instead of otherPartyId for the conversation endpoint
   const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
-    queryKey: ['/api/messages', otherPartyId, requestId],
+    queryKey: ['/api/messages', currentUserId, requestId],
     queryFn: async () => {
-      console.log('Fetching messages for:', { otherPartyId, requestId });
-      const response = await apiRequest('GET', `/api/messages/${otherPartyId}/${requestId}`);
+      console.log('Fetching messages for:', { currentUserId, requestId });
+      const response = await apiRequest('GET', `/api/messages/${currentUserId}/${requestId}`);
       if (!response.ok) {
         const error = await response.json();
         console.error('Error fetching messages:', error);
@@ -82,7 +83,7 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId, recipien
         const data = JSON.parse(event.data);
         console.log('Received WebSocket message:', data);
         if (data.type === 'new_message' && data.requestId === requestId) {
-          queryClient.invalidateQueries({ queryKey: ['/api/messages', otherPartyId, requestId] });
+          queryClient.invalidateQueries({ queryKey: ['/api/messages', currentUserId, requestId] });
         }
       } catch (error) {
         console.error('Error handling WebSocket message:', error);
@@ -94,7 +95,7 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId, recipien
     return () => {
       socket.removeEventListener('message', handleMessage);
     };
-  }, [socket, isConnected, requestId, otherPartyId, queryClient]);
+  }, [socket, isConnected, requestId, currentUserId, queryClient]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async (data: MessageFormValues) => {
@@ -126,7 +127,7 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId, recipien
     },
     onSuccess: () => {
       form.reset();
-      queryClient.invalidateQueries({ queryKey: ['/api/messages', otherPartyId, requestId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/messages', currentUserId, requestId] });
       toast({
         title: "Message sent",
         description: "Your message has been sent successfully."
