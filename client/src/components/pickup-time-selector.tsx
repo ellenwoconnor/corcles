@@ -5,7 +5,16 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { PickupWindow } from "@shared/schema";
-import { Loader2 } from "lucide-react";
+import { Loader2, X } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface PickupTimeSelectorProps {
   itemId: number;
@@ -20,35 +29,42 @@ export default function PickupTimeSelector({
 }: PickupTimeSelectorProps) {
   const { toast } = useToast();
   const [selectedWindow, setSelectedWindow] = useState<number>();
+  const [isDeclineDialogOpen, setIsDeclineDialogOpen] = useState(false);
+  const [declineNote, setDeclineNote] = useState("");
 
   const selectTimeMutation = useMutation({
-    mutationFn: async () => {
-      if (selectedWindow === undefined) return;
+    mutationFn: async (decline: boolean = false) => {
+      if (!decline && selectedWindow === undefined) return;
 
       const response = await apiRequest(
         "POST",
         `/api/items/${itemId}/select-pickup-time`,
-        { windowIndex: selectedWindow }
+        decline 
+          ? { decline: true, note: declineNote }
+          : { windowIndex: selectedWindow }
       );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to select pickup time");
+        throw new Error(error.error || "Failed to process pickup time selection");
       }
       return response.json();
     },
     onSuccess: () => {
       toast({
-        title: "Pickup time selected!",
-        description: "The owner will be notified of your selection.",
+        title: "Success!",
+        description: selectedWindow !== undefined 
+          ? "The owner will be notified of your selection."
+          : "The owner will be notified that the times don't work for you.",
       });
       queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/my-requests`] });
+      setIsDeclineDialogOpen(false);
       onSelected();
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to select pickup time",
+        title: "Action failed",
         description: error.message,
         variant: "destructive",
       });
@@ -76,20 +92,69 @@ export default function PickupTimeSelector({
           </Button>
         ))}
       </div>
-      <Button
-        className="w-full"
-        disabled={selectedWindow === undefined || selectTimeMutation.isPending}
-        onClick={() => selectTimeMutation.mutate()}
-      >
-        {selectTimeMutation.isPending ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Confirming selection...
-          </>
-        ) : (
-          "Confirm Selected Time"
-        )}
-      </Button>
+
+      <div className="flex gap-2">
+        <Button
+          className="flex-1"
+          disabled={selectedWindow === undefined || selectTimeMutation.isPending}
+          onClick={() => selectTimeMutation.mutate(false)}
+        >
+          {selectTimeMutation.isPending ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Confirming selection...
+            </>
+          ) : (
+            "Confirm Selected Time"
+          )}
+        </Button>
+
+        <Dialog open={isDeclineDialogOpen} onOpenChange={setIsDeclineDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline" className="flex-1">
+              <X className="mr-2 h-4 w-4" />
+              None Work
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Decline Time Windows</DialogTitle>
+              <DialogDescription>
+                Let the owner know why these times don't work for you (optional)
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <Textarea
+                placeholder="Optional message to the owner..."
+                value={declineNote}
+                onChange={(e) => setDeclineNote(e.target.value)}
+                className="min-h-[100px]"
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDeclineDialogOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  disabled={selectTimeMutation.isPending}
+                  onClick={() => selectTimeMutation.mutate(true)}
+                >
+                  {selectTimeMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    "Send Response"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }

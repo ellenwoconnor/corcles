@@ -527,7 +527,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid item ID" });
       }
 
-      const { windowIndex } = req.body;
+      const { windowIndex, decline, note } = req.body;
+
+      // Handle decline case
+      if (decline === true) {
+        // Update request status to rejected with optional note
+        await db
+          .update(schema.itemRequests)
+          .set({ 
+            status: schema.REQUEST_STATUS.REJECTED,
+            note: note || null
+          })
+          .where(
+            and(
+              eq(schema.itemRequests.itemId, itemId),
+              eq(schema.itemRequests.requesterId, req.user.id)
+            )
+          );
+
+        logger.debug('Request declined pickup windows:', {
+          itemId,
+          requesterId: req.user.id,
+          note: note || 'No note provided'
+        });
+
+        return res.json({ success: true });
+      }
+
+      // Handle acceptance case (existing code)
       if (typeof windowIndex !== 'number') {
         return res.status(400).json({ error: "Window index is required" });
       }
