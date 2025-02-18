@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
 import { MessageDialog } from "./message-dialog";
+import { CancelButton } from "./cancel-button";
 
 interface PickupSchedulingContainerProps {
   item: Item;
@@ -24,8 +25,9 @@ export default function PickupSchedulingContainer({
   const { user } = useAuth();
   const [schedulingComplete, setSchedulingComplete] = useState(false);
 
-  // Check if the current user is the owner
+  // Check if the current user is the owner or recipient
   const isOwner = user?.id === item.userId;
+  const isRecipient = user?.id === requesterId;
 
   // Determine the other party's ID (owner if viewer is requester, requester if viewer is owner)
   const otherPartyId = isOwner ? requesterId : item.userId;
@@ -40,6 +42,9 @@ export default function PickupSchedulingContainer({
   const showSelectedTime = item.pickupStart && item.pickupEnd;
   const showMessageDialog = user && (showSelectedTime || schedulingComplete);
 
+  // Show cancel button only if there's a selected time and user is owner or recipient
+  const showCancelButton = showSelectedTime && (isOwner || isRecipient);
+
   if (!user) return null;
 
   return (
@@ -53,7 +58,15 @@ export default function PickupSchedulingContainer({
               {format(new Date(item.pickupStart!), "h:mm a")} -{" "}
               {format(new Date(item.pickupEnd!), "h:mm a")}
             </p>
-            <Badge variant="outline">Pickup Scheduled</Badge>
+            <div className="flex items-center justify-between">
+              <Badge variant="outline">Pickup Scheduled</Badge>
+              {showCancelButton && (
+                <CancelButton 
+                  itemId={item.id}
+                  onCanceled={onScheduled}
+                />
+              )}
+            </div>
           </div>
         </Alert>
       )}

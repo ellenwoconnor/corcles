@@ -16,8 +16,9 @@ import {
   type Message,
   type InsertMessage,
   type PickupWindow,
+  type CancellationInfo,
   ITEM_STATUS,
-  REQUEST_STATUS
+  REQUEST_STATUS,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, ilike, or, notInArray } from "drizzle-orm";
@@ -63,6 +64,13 @@ export interface IStorage {
   getConversation(userId1: number, userId2: number, requestId: number): Promise<Message[]>;
   markMessagesAsRead(recipientId: number, senderId: number, requestId: number): Promise<void>;
   getUnreadMessageCount(userId: number): Promise<number>;
+  // Add new method for canceling requests
+  cancelPickupRequest(
+    requestId: number,
+    itemId: number,
+    canceledBy: number,
+    reason?: string
+  ): Promise<ItemRequest>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -516,8 +524,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  
-
   async sendMessage(message: InsertMessage): Promise<Message> {
     try {
       const [newMessage] = await db.insert(messages).values(message).returning();
@@ -606,6 +612,56 @@ export class DatabaseStorage implements IStorage {
       return Number(result.count) || 0;
     } catch (error) {
       logger.error('Error getting unread message count:', { error, userId });
+      throw error;
+    }
+  }
+
+  async cancelPickupRequest(
+    requestId: number,
+    itemId: number,
+    canceledBy: number,
+    reason?: string
+  ): Promise<ItemRequest> {
+    try {
+      // Create cancellation info
+      const cancellationInfo: CancellationInfo = {
+        canceledBy,
+        canceledAt: new Date().toISOString(),
+        reason
+      };
+
+      // Update request status and add cancellation info
+      const [updatedRequest] = await db
+        .update(itemRequests)
+        .set({ 
+          status: REQUEST_STATUS.CANCELED,
+          cancellationInfo 
+        })
+        .where(eq(itemRequests.id, requestId))
+        .returning();
+
+      // Reset item status and clear pickup information
+      await db
+        .update(items)
+        .set({ 
+          status: ITEM_STATUS.AVAILABLE,
+          recipientId: null,
+          pickupStart: null,
+          pickupEnd: null,
+          proposedPickupWindows: null
+        })
+        .where(eq(items.id, itemId));
+
+      logger.debug('Canceled pickup request:', { 
+        requestId,
+        itemId,
+        canceledBy,
+        reason
+      });
+
+      return updatedRequest;
+    } catch (error) {
+      logger.error('Error canceling pickup request:', { error, requestId, itemId });
       throw error;
     }
   }

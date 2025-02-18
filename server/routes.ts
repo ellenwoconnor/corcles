@@ -33,8 +33,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { recipientId, content, requestId } = req.body;
       logger.info('Received message request:', { recipientId, requestId });
 
-      
-
       const parseResult = insertMessageSchema.safeParse({
         senderId: req.user.id,
         recipientId,
@@ -833,6 +831,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error('Error selecting pickup time:', error);
       res.status(500).json({ error: 'Failed to select pickup time' });
+    }
+  });
+
+  app.get("/api/user/requests", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const requests = await storage.getUserRequests(req.user.id);
+      logger.debug('Fetching user requests:', {
+        userId: req.user.id,
+        requestCount: requests?.length
+      });
+      res.json(requests);
+    } catch (error) {
+      logger.error('Error fetching user requests:', error);
+      res.status(500).json({ error: 'Failed to fetch user requests' });
+    }
+  });
+
+  app.get("/api/items/:id/bids", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      if (item.userId !== req.user.id) {
+        return res.sendStatus(403);
+      }
+
+      const bids = await storage.getItemBids(itemId);
+      logger.debug('Fetching item bids:', {
+        itemId,
+        bidCount: bids.length,
+        ownerId: item.userId
+      });
+      res.json(bids);
+    } catch (error) {
+      logger.error('Error fetching bids:', error);
+      res.status(500).json({ error: 'Failed to fetch bids' });
+    }
+  });
+
+  app.post("/api/items/:id/cancel-pickup", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const { reason } = req.body;
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      // Get the current request for this item
+      const [request] = await db
+        .select()
+        .from(schema.itemRequests)
+        .where(
+          and(
+            eq(schema.itemRequests.itemId, itemId),
+            eq(schema.itemRequests.status, schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION)
+          )
+        );
+
+      if (!request) {
+        return res.status(404).json({ error: "No pending pickup found" });
+      }
+
+      // Only allow cancellation by item owner or recipient
+      const canCancel = req.user.id === item.userId || req.user.id === request.requesterId;
+      if (!canCancel) {
+        return res.status(403).json({ error: "Not authorized to cancel this pickup" });
+      }
+
+      // Cancel the pickup request
+      await storage.cancelPickupRequest(
+        request.id,
+        itemId,
+        req.user.id,
+        reason
+      );
+
+      logger.debug('Pickup canceled:', { 
+        itemId,
+        requestId: request.id,
+        canceledBy: req.user.id,
+        reason: reason || 'No reason provided'      });
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error canceling pickup:', error);
+      res.status(500).json({ error: 'Failed to cancel pickup' });
     }
   });
 
