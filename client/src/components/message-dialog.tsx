@@ -21,6 +21,8 @@ interface Message {
   senderId: number;
   recipientId: number;
   createdAt: string;
+  senderName?: string;
+  recipientName?: string;
 }
 
 type MessageFormValues = z.infer<typeof insertMessageSchema>;
@@ -167,13 +169,16 @@ export function MessageDialog({ requestId, currentUserId, otherPartyId, recipien
                 {messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`rounded-lg p-3 ${
+                    className={`flex flex-col rounded-lg p-3 ${
                       message.senderId === currentUserId
                         ? "bg-primary text-primary-foreground ml-auto"
                         : "bg-muted"
                     }`}
                     style={{ maxWidth: "80%" }}
                   >
+                    <span className="text-xs font-semibold mb-1">
+                      {message.senderId === currentUserId ? "You" : message.senderName}
+                    </span>
                     <p className="text-sm">{message.content}</p>
                     <span className="text-xs opacity-70">
                       {format(new Date(message.createdAt), 'MMM d, h:mm a')}
