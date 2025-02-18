@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
@@ -6,11 +6,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertMessageSchema } from "@shared/schema";
-import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, AlertCircle } from "lucide-react";
+import { z } from "zod";
 
 interface Message {
   id: number;
@@ -19,6 +22,8 @@ interface Message {
   recipientId: number;
   createdAt: string;
 }
+
+type MessageFormValues = z.infer<typeof insertMessageSchema>;
 
 interface MessageDialogProps {
   recipientId: number;
@@ -29,9 +34,10 @@ interface MessageDialogProps {
 export function MessageDialog({ recipientId, requestId, currentUserId }: MessageDialogProps) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
-  const ws = useWebSocket();
+  const { socket, isConnected } = useWebSocket();
+  const { toast } = useToast();
 
-  const form = useForm({
+  const form = useForm<MessageFormValues>({
     resolver: zodResolver(insertMessageSchema),
     defaultValues: {
       content: "",
@@ -40,25 +46,66 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
     }
   });
 
-  const { data: messages = [] } = useQuery({
+  // Query for fetching messages
+  const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
     queryKey: ['/api/messages', recipientId, requestId],
-    queryFn: () => fetch(`/api/messages/${recipientId}/${requestId}`).then(res => res.json()),
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/messages/${recipientId}/${requestId}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch messages');
+      }
+      return response.json();
+    },
     enabled: open
   });
 
+  // Handle WebSocket message updates
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'new_message' && data.requestId === requestId) {
+          queryClient.invalidateQueries({ queryKey: ['/api/messages', recipientId, requestId] });
+        }
+      } catch (error) {
+        console.error('Error handling WebSocket message:', error);
+      }
+    };
+
+    socket.addEventListener('message', handleMessage);
+
+    return () => {
+      socket.removeEventListener('message', handleMessage);
+    };
+  }, [socket, requestId, recipientId, queryClient]);
+
+  // Mutation for sending messages
   const { mutate: sendMessage, isPending } = useMutation({
-    mutationFn: (values: any) => {
-      return fetch('/api/messages/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(values)
-      }).then(res => res.json());
+    mutationFn: async (values: MessageFormValues) => {
+      const response = await apiRequest('POST', '/api/messages/send', values);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to send message');
+      }
+      return response.json();
     },
     onSuccess: () => {
       form.reset();
       queryClient.invalidateQueries({ queryKey: ['/api/messages', recipientId, requestId] });
+      toast({
+        title: "Message sent",
+        description: "Your message has been sent successfully."
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to send message",
+        description: error.message || "There was an error sending your message.",
+        variant: "destructive"
+      });
     }
   });
 
@@ -76,25 +123,37 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
           <DialogTitle>Messages</DialogTitle>
         </DialogHeader>
         <div className="flex flex-col space-y-4">
-          <ScrollArea className="h-[300px] pr-4">
-            <div className="flex flex-col space-y-2">
-              {messages.map((message: Message) => (
-                <div
-                  key={message.id}
-                  className={`rounded-lg p-3 ${
-                    message.senderId === currentUserId
-                      ? "bg-primary text-primary-foreground ml-auto"
-                      : "bg-muted"
-                  }`}
-                  style={{ maxWidth: "80%" }}
-                >
-                  <p className="text-sm">{message.content}</p>
-                  <span className="text-xs opacity-70">
-                    {format(new Date(message.createdAt), 'MMM d, h:mm a')}
-                  </span>
-                </div>
-              ))}
+          {!isConnected && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-md p-2">
+              <AlertCircle className="h-4 w-4" />
+              <span>Connecting to message service...</span>
             </div>
+          )}
+          <ScrollArea className="h-[300px] pr-4">
+            {messagesLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="flex flex-col space-y-2">
+                {messages.map((message: Message) => (
+                  <div
+                    key={message.id}
+                    className={`rounded-lg p-3 ${
+                      message.senderId === currentUserId
+                        ? "bg-primary text-primary-foreground ml-auto"
+                        : "bg-muted"
+                    }`}
+                    style={{ maxWidth: "80%" }}
+                  >
+                    <p className="text-sm">{message.content}</p>
+                    <span className="text-xs opacity-70">
+                      {format(new Date(message.createdAt), 'MMM d, h:mm a')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </ScrollArea>
           <Form {...form}>
             <form onSubmit={onSubmit} className="space-y-4">
@@ -112,8 +171,19 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isPending}>
-                Send Message
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isPending || !isConnected}
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Send Message"
+                )}
               </Button>
             </form>
           </Form>
