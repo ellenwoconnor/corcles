@@ -82,6 +82,10 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
 
   const { mutate: sendMessage, isPending } = useMutation({
     mutationFn: async (values: MessageFormValues) => {
+      if (!values.content.trim()) {
+        throw new Error("Message cannot be empty");
+      }
+
       const response = await apiRequest('POST', '/api/messages/send', values);
       if (!response.ok) {
         const error = await response.json();
@@ -98,6 +102,7 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
       });
     },
     onError: (error: Error) => {
+      console.error('Failed to send message:', error);
       toast({
         title: "Failed to send message",
         description: error.message || "There was an error sending your message.",
@@ -106,9 +111,10 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
     }
   });
 
-  const onSubmit = form.handleSubmit((values) => {
+  const onSubmit = (values: MessageFormValues) => {
+    console.log('Submitting message:', values);
     sendMessage(values);
-  });
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -147,7 +153,7 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
             )}
           </ScrollArea>
           <Form {...form}>
-            <form onSubmit={onSubmit} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="content"
@@ -165,7 +171,7 @@ export function MessageDialog({ recipientId, requestId, currentUserId }: Message
               <Button 
                 type="submit" 
                 className="w-full" 
-                disabled={isPending || !form.formState.isValid}
+                disabled={isPending}
               >
                 {isPending ? (
                   <>
