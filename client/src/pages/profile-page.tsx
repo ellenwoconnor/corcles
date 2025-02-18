@@ -167,13 +167,14 @@ export default function ProfilePage() {
           <TabsContent value="requests">
             <div className="grid gap-4">
               {pendingConfirmations.length > 0 && (
-                <Alert className="mb-4">
-                  <Clock className="h-4 w-4" />
-                  <AlertTitle>Action Needed</AlertTitle>
-                  <AlertDescription>
-                    You have {pendingConfirmations.length} pickup {pendingConfirmations.length === 1 ? 'window' : 'windows'} that need confirmation
-                  </AlertDescription>
-                </Alert>
+                <div className="mb-4 px-3 py-2 bg-primary/5 border border-primary/10 rounded-md">
+                  <div className="flex items-center gap-2 text-sm text-primary">
+                    <Clock className="h-3.5 w-3.5" />
+                    <span>
+                      {pendingConfirmations.length} pickup {pendingConfirmations.length === 1 ? 'time' : 'times'} to confirm
+                    </span>
+                  </div>
+                </div>
               )}
               {userRequests?.length === 0 ? (
                 <Card>
@@ -224,12 +225,12 @@ export default function ProfilePage() {
                     <CardContent>
                       <p className="text-muted-foreground mb-2">{request.message}</p>
                       {request.status === "awaiting_pickup_confirmation" && (
-                        <div className="mt-4">
-                          <Link href={`/item/${request.item.id}`}>
-                            <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium">
-                              <Clock className="mr-2 h-4 w-4" />
-                              Confirm Pickup Time
-                            </Button>
+                        <div className="mt-2">
+                          <Link href={`/item/${request.item.id}`} className="inline-block">
+                            <div className="text-sm text-primary hover:text-primary/90 flex items-center gap-1.5 font-medium">
+                              <Clock className="h-3.5 w-3.5" />
+                              Select pickup time
+                            </div>
                           </Link>
                         </div>
                       )}
