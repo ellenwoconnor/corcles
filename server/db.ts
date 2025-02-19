@@ -47,12 +47,6 @@ async function migrate() {
       status TEXT NOT NULL DEFAULT 'available',
       proposed_pickup_windows JSONB[]
     )`,
-    `CREATE TABLE IF NOT EXISTS favorites (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id),
-      item_id INTEGER NOT NULL REFERENCES items(id),
-      UNIQUE(user_id, item_id)
-    )`,
     `CREATE TABLE IF NOT EXISTS item_requests (
       id SERIAL PRIMARY KEY,
       item_id INTEGER NOT NULL,

@@ -21,12 +21,6 @@ export const users = pgTable("users", {
   community: text("community").notNull(),
 });
 
-export const favoriteTable = pgTable("favorites", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  itemId: integer("item_id").notNull(),
-});
-
 export const ITEM_STATUS = {
   AVAILABLE: 'available',
   PENDING_PICKUP: 'pending_pickup',
@@ -38,7 +32,8 @@ export const REQUEST_STATUS = {
   READY_FOR_DRAWING: 'ready_for_drawing',
   AWAITING_PICKUP_CONFIRMATION: 'awaiting_pickup_confirmation',
   ACCEPTED: 'accepted',
-  REJECTED: 'rejected'
+  BACKUP: 'backup',
+  CANCELED: 'canceled'
 } as const;
 
 export const items = pgTable("items", {
@@ -51,7 +46,6 @@ export const items = pgTable("items", {
   userId: integer("user_id").notNull(),
   community: text("community").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  favorites: integer("favorites").notNull().default(0),
   status: text("status").notNull().default(ITEM_STATUS.AVAILABLE),
   recipientId: integer("recipient_id"),
   pickupStart: timestamp("pickup_start"),
@@ -66,6 +60,7 @@ export const itemRequests = pgTable("item_requests", {
   status: text("status").notNull().default(REQUEST_STATUS.PENDING),
   message: text("message"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  cancellationInfo: jsonb("cancellation_info"), // Changed from cancellationInfo to cancellation_info
 });
 
 export const itemBids = pgTable("item_bids", {
@@ -133,7 +128,8 @@ export const insertItemSchema = createInsertSchema(items).omit({
 export const insertItemRequestSchema = createInsertSchema(itemRequests).omit({
   id: true,
   createdAt: true,
-  status: true
+  status: true,
+  cancellationInfo: true
 }).extend({
   message: z.string().optional()
 });
@@ -163,7 +159,9 @@ export type Item = typeof items.$inferSelect & {
   proposedPickupWindows?: PickupWindow[];
 };
 export type InsertItemRequest = z.infer<typeof insertItemRequestSchema>;
-export type ItemRequest = typeof itemRequests.$inferSelect;
+export type ItemRequest = typeof itemRequests.$inferSelect & {
+  cancellationInfo?: CancellationInfo;
+};
 export type InsertItemBid = z.infer<typeof insertItemBidSchema>;
 export type ItemBid = typeof itemBids.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
@@ -176,3 +174,12 @@ export const MOCK_COMMUNITIES = [
   "Wicker Park Chicago",
   "South End Boston"
 ];
+
+// Add cancellation info type
+export const cancellationInfoSchema = z.object({
+  canceledBy: z.number(),
+  canceledAt: z.string(),
+  reason: z.string().optional()
+});
+
+export type CancellationInfo = z.infer<typeof cancellationInfoSchema>;

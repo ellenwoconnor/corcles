@@ -5,16 +5,40 @@ import multer from "multer";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import * as schema from "@shared/schema";
+import { z } from "zod";
 import { insertItemSchema, insertItemRequestSchema, insertItemBidSchema, insertMessageSchema } from "@shared/schema";
 import { eq, and, not, or } from "drizzle-orm";
 import { db } from "./db";
 import logger from './logger';
 import { addHours, isAfter, isBefore, addDays } from "date-fns";
 import session from 'express-session';
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
-const upload = multer();
+const PostgresSessionStore = connectPg(session);
+
+// Create session middleware configuration
+const sessionMiddleware = session({
+  store: new PostgresSessionStore({ 
+    pool,
+    createTableIfMissing: true,
+    tableName: 'session'
+  }),
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Apply session middleware to Express app
+  app.use(sessionMiddleware);
+
   setupAuth(app);
 
   // Initialize WebSocket server and connected clients map
@@ -25,6 +49,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Log WebSocket server initialization
   logger.info('WebSocket server initialized on path: /ws');
 
+  // WebSocket connection handling with enhanced session parsing
+  wss.on('connection', async (ws, req) => {
+    try {
+      // Parse session using Promise wrapper
+      await new Promise<void>((resolve, reject) => {
+        sessionMiddleware(req as any, {} as any, (err: any) => {
+          if (err) {
+            logger.error('Session parsing error:', err);
+            reject(err);
+            return;
+          }
+          resolve();
+        });
+      });
+
+      // @ts-ignore - req.user is added by passport session
+      const userId = req.user?.id;
+
+      // Enhanced logging for connection attempt
+      logger.debug('WebSocket connection attempt:', { 
+        userId,
+        hasSession: !!req.user,
+        headers: req.headers['cookie'] ? 'Cookie present' : 'No cookie'
+      });
+
+      if (!userId) {
+        logger.warn('WebSocket connection rejected - no authenticated user');
+        ws.close(1008, 'Authentication required');
+        return;
+      }
+
+      // Store connection
+      connectedClients.set(userId, ws);
+
+      logger.info('WebSocket client connected:', { 
+        userId,
+        totalConnections: connectedClients.size
+      });
+
+      // Handle WebSocket events
+      ws.on('close', () => {
+        logger.info('WebSocket client disconnected:', { 
+          userId,
+          remainingConnections: connectedClients.size - 1
+        });
+        connectedClients.delete(userId);
+      });
+
+      ws.on('error', (error) => {
+        logger.error('WebSocket error:', { error, userId });
+        ws.close();
+        connectedClients.delete(userId);
+      });
+
+      // Send connection success message
+      ws.send(JSON.stringify({
+        type: 'connection_established',
+        data: { 
+          userId,
+          timestamp: new Date().toISOString()
+        }
+      }));
+
+    } catch (error) {
+      logger.error('Error during WebSocket connection setup:', error);
+      ws.close(1011, 'Internal server error');
+    }
+  });
+
   // Add messaging routes
   app.post("/api/messages/send", async (req, res) => {
     try {
@@ -32,8 +125,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { recipientId, content, requestId } = req.body;
       logger.info('Received message request:', { recipientId, requestId });
-
-      
 
       const parseResult = insertMessageSchema.safeParse({
         senderId: req.user.id,
@@ -134,73 +225,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Set up WebSocket connection handling with enhanced logging and session parsing
-  wss.on('connection', async (ws, req) => {
-    try {
-      // Parse the session from cookies
-      const cookieHeader = req.headers.cookie;
-      if (!cookieHeader) {
-        logger.warn('WebSocket connection attempt without cookies');
-        ws.close();
-        return;
-      }
-
-      // Create a Promise-based session parser
-      const getSession = () => new Promise((resolve, reject) => {
-        const sessionParser = session({
-          store: storage.sessionStore,
-          secret: process.env.SESSION_SECRET || 'your-secret-key',
-          resave: false,
-          saveUninitialized: false
-        });
-
-        sessionParser(req as any, {} as any, (err: any) => {
-          if (err) reject(err);
-          resolve(req);
-        });
-      });
-
-      await getSession();
-
-      // @ts-ignore - req.user is added by passport session
-      const userId = req.user?.id;
-      if (!userId) {
-        logger.warn('WebSocket connection attempt without authentication');
-        ws.close();
-        return;
-      }
-
-      logger.info('WebSocket client connected:', { 
-        userId,
-        totalConnections: connectedClients.size + 1
-      });
-      connectedClients.set(userId, ws);
-
-      ws.on('close', () => {
-        logger.info('WebSocket client disconnected:', { 
-          userId,
-          remainingConnections: connectedClients.size - 1
-        });
-        connectedClients.delete(userId);
-      });
-
-      ws.on('error', (error) => {
-        logger.error('WebSocket error:', { error, userId });
-        ws.close();
-      });
-
-      // Send initial connection success message
-      ws.send(JSON.stringify({
-        type: 'connection_established',
-        data: { userId }
-      }));
-
-    } catch (error) {
-      logger.error('Error during WebSocket connection setup:', error);
-      ws.close();
-    }
-  });
-
   app.get("/api/items/:id([0-9]+)", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -285,18 +309,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error('Error creating item:', error);
       res.status(500).json({ error: 'Failed to create item' });
-    }
-  });
-
-  app.post("/api/items/:id/favorite", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
-      await storage.favoriteItem(parseInt(req.params.id), req.user.id);
-      res.sendStatus(200);
-    } catch (error) {
-      logger.error('Error favoriting item:', error);
-      res.status(500).json({ error: 'Failed to favorite item' });
     }
   });
 
@@ -557,6 +569,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to schedule pickup for this item" });
       }
 
+      // Get all pending requests first
+      const requests = await storage.getItemRequests(itemId);
+      const pendingRequests = requests.filter(r => r.status === 'pending');
+
+      if (pendingRequests.length === 0) {
+        return res.status(400).json({ error: "No pending requests available for scheduling" });
+      }
+
+      // Randomly select one recipient from pending requests
+      const selectedRequest = pendingRequests[Math.floor(Math.random() * pendingRequests.length)];
+
       const { timeWindows } = req.body;
       if (!Array.isArray(timeWindows) || timeWindows.length === 0 || timeWindows.length > 10) {
         return res.status(400).json({ error: "Must provide between 1 and 10 time windows" });
@@ -583,28 +606,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         order: index
       }));
 
-      // Update item with pickup windows and status
+      // Update item with recipient and pickup windows
       await db
         .update(schema.items)
         .set({ 
           proposedPickupWindows: proposedWindows,
-          status: schema.ITEM_STATUS.PENDING_PICKUP 
+          status: schema.ITEM_STATUS.PENDING_PICKUP,
+          recipientId: selectedRequest.requesterId
         })
         .where(eq(schema.items.id, itemId));
 
-      // Update all pending requests to awaiting_pickup_confirmation
+      // Update the selected request to awaiting_pickup_confirmation
       await db
         .update(schema.itemRequests)
         .set({ status: schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
+        .where(eq(schema.itemRequests.id, selectedRequest.id));
+
+      // Update other requests to rejected
+      await db
+        .update(schema.itemRequests)
+        .set({ status: schema.REQUEST_STATUS.REJECTED })
         .where(
           and(
             eq(schema.itemRequests.itemId, itemId),
-            eq(schema.itemRequests.status, schema.REQUEST_STATUS.PENDING)
+            not(eq(schema.itemRequests.id, selectedRequest.id))
           )
         );
 
       logger.debug('Updated item and request statuses for pickup:', { 
         itemId,
+        selectedRequestId: selectedRequest.id,
         newStatus: schema.ITEM_STATUS.PENDING_PICKUP,
         requestStatus: schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION,
         proposedWindows
@@ -702,8 +733,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to edit this item" });
       }
 
-      // Fix: Create a partial schema from the base schema
-      const partialItemSchema = insertItemSchema.extend({}).partial();
+      // Make all fields optional for updates
+      const partialItemSchema = z.object({
+        title: z.string().optional(),
+        description: z.string().optional(),
+        price: z.number().optional(),
+        isGift: z.boolean().optional(),
+        imageUrl: z.string().optional(),
+        community: z.string().optional()
+      });
       const data = {
         ...req.body,
         price: req.body.price ? Number(req.body.price) : undefined,
@@ -732,32 +770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid item ID" });
       }
 
-      const { windowIndex, decline, note } = req.body;
-
-      // Handle decline case
-      if (decline === true) {
-        // Update request status to rejected with optional note
-        await db
-          .update(schema.itemRequests)
-          .set({ 
-            status: schema.REQUEST_STATUS.REJECTED,
-            note: note || null
-          })
-          .where(
-            and(
-              eq(schema.itemRequests.itemId, itemId),
-              eq(schema.itemRequests.requesterId, req.user.id)
-            )
-          );
-
-        logger.debug('Request declined pickup windows:', {
-          itemId,
-          requesterId: req.user.id,
-          note: note || 'No note provided'
-        });
-
-        return res.json({ success: true });
-      }
+      const { windowIndex } = req.body;
 
       // Handle acceptance case
       if (typeof windowIndex !== 'number') {
@@ -833,6 +846,130 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error('Error selecting pickup time:', error);
       res.status(500).json({ error: 'Failed to select pickup time' });
+    }
+  });
+
+  app.get("/api/user/requests", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const requests = await storage.getUserRequests(req.user.id);
+      logger.debug('Fetching user requests:', {
+        userId: req.user.id,
+        requestCount: requests?.length
+      });
+      res.json(requests);
+    } catch (error) {
+      logger.error('Error fetching user requests:', error);
+      res.status(500).json({ error: 'Failed to fetch user requests' });
+    }
+  });
+
+  app.get("/api/items/:id/bids", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      if (item.userId !== req.user.id) {
+        return res.sendStatus(403);
+      }
+
+      const bids = await storage.getItemBids(itemId);
+      logger.debug('Fetching item bids:', {
+        itemId,
+        bidCount: bids.length,
+        ownerId: item.userId
+      });
+      res.json(bids);
+    } catch (error) {
+      logger.error('Error fetching bids:', error);
+      res.status(500).json({ error: 'Failed to fetch bids' });
+    }
+  });
+
+  app.post("/api/items/:id/cancel-pickup", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const { reason } = req.body;
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      // Get the current request for this item
+      const [request] = await db
+        .select()
+        .from(schema.itemRequests)
+        .where(
+          and(
+            eq(schema.itemRequests.itemId, itemId),
+            or(
+              eq(schema.itemRequests.status, schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION),
+              eq(schema.itemRequests.status, schema.REQUEST_STATUS.ACCEPTED)
+            )
+          )
+        );
+
+      if (!request) {
+        return res.status(404).json({ error: "No active pickup request found" });
+      }
+
+      // Only allow cancellation by item owner or recipient
+      const canCancel = req.user.id === item.userId || req.user.id === request.requesterId;
+      if (!canCancel) {
+        return res.status(403).json({ error: "Not authorized to cancel this pickup" });
+      }
+
+      // Reset item status and clear pickup windows
+      await db
+        .update(schema.items)
+        .set({ 
+          status: schema.ITEM_STATUS.AVAILABLE,
+          proposedPickupWindows: null,
+          pickupStart: null,
+          pickupEnd: null,
+          recipientId: null
+        })
+        .where(eq(schema.items.id, itemId));
+
+      // Mark cancelled request as rejected
+      await db
+        .update(schema.itemRequests)
+        .set({ 
+          status: schema.REQUEST_STATUS.REJECTED,
+          cancellationInfo: reason ? { reason, canceledBy: req.user.id } : null
+        })
+        .where(eq(schema.itemRequests.id, request.id));
+
+      // Other requests remain in their current state
+
+      logger.debug('Pickup canceled:', { 
+        itemId,
+        requestId: request.id,
+        canceledBy: req.user.id,
+        reason: reason || 'No reason provided'
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error canceling pickup:', error);
+      res.status(500).json({ error: 'Failed to cancel pickup' });
     }
   });
 

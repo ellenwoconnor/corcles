@@ -39,17 +39,21 @@ export default function ListingPage() {
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
 
   // Item data query
-  const { data: item, isLoading, error } = useQuery<Item & { userHasFavorited?: boolean }>({
+  const {
+    data: item,
+    isLoading,
+    error,
+  } = useQuery<Item & { userHasFavorited?: boolean }>({
     queryKey: [`/api/items/${params?.id}`],
     enabled: !!params?.id,
     select: (data) => {
-      console.log('Raw item data:', data);
+      console.log("Raw item data:", data);
       return {
         ...data,
         createdAt: new Date(data.createdAt),
         pickupStart: data.pickupStart ? new Date(data.pickupStart) : null,
         pickupEnd: data.pickupEnd ? new Date(data.pickupEnd) : null,
-        proposedPickupWindows: data.proposedPickupWindows || []
+        proposedPickupWindows: data.proposedPickupWindows || [],
       };
     },
   });
@@ -58,7 +62,9 @@ export default function ListingPage() {
 
   // Requests and bids queries
   const { data: requests } = useQuery<ItemRequest[]>({
-    queryKey: [`/api/items/${params?.id}/${isOwner ? 'requests' : 'my-requests'}`],
+    queryKey: [
+      `/api/items/${params?.id}/${isOwner ? "requests" : "my-requests"}`,
+    ],
     enabled: !!params?.id && !!user,
   });
 
@@ -67,22 +73,23 @@ export default function ListingPage() {
     enabled: !!params?.id && !!user && !item?.isGift,
   });
 
-  const hasRequested = requests?.some((request) => request.status === "pending");
+  const hasRequested = requests?.length > 0;
   const hasBid = bids?.some((bid) => bid.status === "pending");
   const isRecipient = user?.id === item?.recipientId;
-  const hasPendingRequests = requests?.some(r => r.status === "pending");
+  const hasPendingRequests = requests?.some((r) => r.status === "pending");
 
   useEffect(() => {
     if (item && requests) {
-      console.log('Pickup scheduler conditions:', {
+      console.log("Pickup scheduler conditions:", {
         isOwner,
         isGift: item.isGift,
         hasRequests: !!requests,
-        pendingRequestsCount: requests.filter(r => r.status === "pending").length,
+        pendingRequestsCount: requests.filter((r) => r.status === "pending")
+          .length,
         hasProposedWindows: !!item.proposedPickupWindows?.length,
         userId: user?.id,
         itemUserId: item.userId,
-        isRecipient: user?.id === item.recipientId
+        isRecipient: user?.id === item.recipientId,
       });
     }
   }, [item, requests, isOwner, user]);
@@ -90,7 +97,10 @@ export default function ListingPage() {
   // Drawing mutation
   const drawingMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", `/api/items/${params?.id}/draw`);
+      const response = await apiRequest(
+        "POST",
+        `/api/items/${params?.id}/draw`,
+      );
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Failed to perform drawing");
@@ -165,7 +175,9 @@ export default function ListingPage() {
                     Free
                   </div>
                 ) : (
-                  <p className="text-2xl font-bold text-primary">${item.price}</p>
+                  <p className="text-2xl font-bold text-primary">
+                    ${item.price}
+                  </p>
                 )}
                 {isOwner && (
                   <EditListingDialog
@@ -183,7 +195,9 @@ export default function ListingPage() {
 
             {/* User Info */}
             <div>
-              <p className="font-medium">Listed by {item.userDisplayName || 'Anonymous'}</p>
+              <p className="font-medium">
+                Listed by {item.userDisplayName || "Anonymous"}
+              </p>
               <p className="text-sm text-muted-foreground">
                 {formatDistanceToNow(item.createdAt, {
                   addSuffix: true,
@@ -207,7 +221,8 @@ export default function ListingPage() {
                   </h3>
                   {item.isGift && requests && requests.length > 0 && (
                     <Badge variant="secondary">
-                      {requests.length} {requests.length === 1 ? 'request' : 'requests'}
+                      {requests.length}{" "}
+                      {requests.length === 1 ? "request" : "requests"}
                     </Badge>
                   )}
                 </div>
@@ -227,7 +242,9 @@ export default function ListingPage() {
                           requestId={requests[0].id}
                           requesterId={requests[0].userId}
                           onScheduled={() => {
-                            queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
+                            queryClient.invalidateQueries({
+                              queryKey: [`/api/items/${params?.id}`],
+                            });
                           }}
                         />
                       )}
@@ -241,13 +258,17 @@ export default function ListingPage() {
               /* Buyer View */
               <div className="flex gap-4">
                 {item.isGift ? (
-                  requests?.length > 0 ? (
+                  requests?.some(
+                    (r) => r.status == "awaiting_pickup_confirmation",
+                  ) ? (
                     <PickupSchedulingContainer
                       item={item}
                       requestId={requests[0].id}
                       requesterId={user?.id || 0}
                       onScheduled={() => {
-                        queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
+                        queryClient.invalidateQueries({
+                          queryKey: [`/api/items/${params?.id}`],
+                        });
                       }}
                     />
                   ) : (
