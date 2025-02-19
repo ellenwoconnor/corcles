@@ -86,9 +86,10 @@ export default function RecipientListingView({
           </div>
         )}
 
-        {/* Pickup Scheduling */}
-        {showPickupScheduler && (
-          <div className="border-t border-border pt-4">
+        {/* Interaction Section */}
+        <div className="border-t border-border pt-4 space-y-4">
+          {/* Pickup Scheduling */}
+          {showPickupScheduler && (
             <PickupSchedulingContainer
               item={item}
               requestId={request.id}
@@ -97,20 +98,20 @@ export default function RecipientListingView({
                 // Handle scheduling completion
               }}
             />
-          </div>
-        )}
+          )}
 
-        {/* Messaging */}
-        {showMessageDialog && (
-          <div className="border-t border-border pt-4">
-            <MessageDialog
-              requestId={request.id}
-              currentUserId={currentUserId}
-              otherPartyId={item.userId}
-              recipientId={currentUserId}
-            />
-          </div>
-        )}
+          {/* Messaging */}
+          {showMessageDialog && (
+            <div className="mt-4">
+              <MessageDialog
+                requestId={request.id}
+                currentUserId={currentUserId}
+                otherPartyId={item.userId}
+                recipientId={currentUserId}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -110,23 +110,29 @@ export default function OwnerListingView({
                   requests={requests}
                   currentUserId={currentUserId}
                 />
+                {/* Pickup Scheduling */}
                 {showPickupScheduler && requests[0] && (
-                  <PickupSchedulingContainer
-                    item={item}
-                    requestId={requests[0].id}
-                    requesterId={requests[0].userId ?? 0}
-                    onScheduled={() => {
-                      // Handle scheduling completion
-                    }}
-                  />
+                  <div className="border-t border-border pt-4">
+                    <PickupSchedulingContainer
+                      item={item}
+                      requestId={requests[0].id}
+                      requesterId={requests[0].userId ?? 0}
+                      onScheduled={() => {
+                        // Handle scheduling completion
+                      }}
+                    />
+                  </div>
                 )}
+                {/* Messaging */}
                 {showMessageDialog && requests[0] && (
-                  <MessageDialog
-                    requestId={requests[0].id}
-                    currentUserId={currentUserId}
-                    otherPartyId={requests[0].userId ?? 0}
-                    recipientId={requests[0].userId ?? 0}
-                  />
+                  <div className="border-t border-border pt-4">
+                    <MessageDialog
+                      requestId={requests[0].id}
+                      currentUserId={currentUserId}
+                      otherPartyId={requests[0].userId ?? 0}
+                      recipientId={requests[0].userId ?? 0}
+                    />
+                  </div>
                 )}
               </>
             ) : (
