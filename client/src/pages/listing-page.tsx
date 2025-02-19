@@ -221,6 +221,23 @@ export default function ListingPage() {
               </p>
             </div>
 
+            {/* Show confirmed pickup time for owner and recipient */}
+            {item.pickupStart && item.pickupEnd && (isOwner || isRecipient) && (
+              <div className="border-t border-border pt-4">
+                <h3 className="font-medium mb-2">Confirmed Pickup Time</h3>
+                <div className="p-3 bg-secondary rounded-lg border border-border">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span className="text-sm">
+                      {format(new Date(item.pickupStart), "EEE, MMM d")} at{" "}
+                      {format(new Date(item.pickupStart), "h:mm a")} -{" "}
+                      {format(new Date(item.pickupEnd), "h:mm a")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Owner View */}
             {isOwner ? (
               <div className="border-t border-border pt-3 space-y-4">
