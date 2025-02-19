@@ -1,7 +1,6 @@
 import {
   users,
   items,
-  favoriteTable,
   itemRequests,
   itemBids,
   messages,
@@ -158,11 +157,7 @@ export class DatabaseStorage implements IStorage {
           userDisplayName: sql<string>`(
             SELECT username FROM ${users} WHERE ${users.id} = ${items.userId}
           )`.as("userDisplayName"),
-          userHasFavorited: sql<boolean>`EXISTS (
-            SELECT 1 FROM ${favoriteTable}
-            WHERE ${favoriteTable.itemId} = ${items.id}
-            AND ${favoriteTable.userId} = ${userId ?? 0}
-          )::boolean`.as("userHasFavorited"),
+          userHasFavorited: sql<boolean>`false`.as("userHasFavorited"),
         })
         .from(items);
 
@@ -232,13 +227,7 @@ export class DatabaseStorage implements IStorage {
           userDisplayName: sql<string>`(
             SELECT username FROM ${users} WHERE ${users.id} = ${items.userId}
           )`.as("userDisplayName"),
-          userHasFavorited: sql<boolean>`
-            CASE WHEN EXISTS (
-              SELECT 1 FROM ${favoriteTable}
-              WHERE ${favoriteTable.itemId} = ${items.id}
-              AND ${favoriteTable.userId} = ${userId ?? 0}
-            ) THEN true ELSE false END
-          `.as("userHasFavorited"),
+          userHasFavorited: sql<boolean>`false`.as("userHasFavorited"),
         })
         .from(items)
         .where(eq(items.id, id));
