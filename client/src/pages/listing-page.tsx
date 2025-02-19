@@ -20,6 +20,7 @@ import PickupSchedulingContainer from "@/components/pickup-scheduling-container"
 import RequestForm from "@/components/request-form";
 import BidForm from "@/components/bid-form";
 import PickupTimeSelector from "@/components/pickup-time-selector";
+import { MessageDialog } from "@/components/message-dialog";
 
 // Form schemas
 const requestSchema = z.object({
@@ -30,6 +31,12 @@ const bidSchema = z.object({
   amount: z.number().min(1, "Bid amount must be greater than 0"),
   message: z.string().optional(),
 });
+
+interface PickupWindow {
+  id: number;
+  start: Date;
+  end: Date;
+}
 
 export default function ListingPage() {
   // Routing and auth
@@ -59,9 +66,11 @@ export default function ListingPage() {
   });
 
   const isOwner = item?.userId === user?.id;
+  const showMessageDialog = isOwner && ['scheduling', 'scheduled', 'completed'].includes(item?.status || '');
+  const showPickupScheduler = isOwner && ['requested', 'scheduling', 'scheduled'].includes(item?.status || '');
 
   // Requests and bids queries
-  const { data: requests } = useQuery<ItemRequest[]>({
+  const { data: requests = [] } = useQuery<ItemRequest[]>({
     queryKey: [
       `/api/items/${params?.id}/${isOwner ? "requests" : "my-requests"}`,
     ],
@@ -73,10 +82,10 @@ export default function ListingPage() {
     enabled: !!params?.id && !!user && !item?.isGift,
   });
 
-  const hasRequested = requests?.length > 0;
+  const hasRequested = requests.length > 0;
   const hasBid = bids?.some((bid) => bid.status === "pending");
   const isRecipient = user?.id === item?.recipientId;
-  const hasPendingRequests = requests?.some((r) => r.status === "pending");
+  const hasPendingRequests = requests.some((r) => r.status === "pending");
 
   useEffect(() => {
     if (item && requests) {
@@ -219,7 +228,7 @@ export default function ListingPage() {
                   <h3 className="text-base font-medium">
                     {item.isGift ? "Requests" : "Bids"}
                   </h3>
-                  {item.isGift && requests && requests.length > 0 && (
+                  {item.isGift && requests.length > 0 && (
                     <Badge variant="secondary">
                       {requests.length}{" "}
                       {requests.length === 1 ? "request" : "requests"}
@@ -232,20 +241,29 @@ export default function ListingPage() {
                   {item.isGift ? (
                     <>
                       <RequestsList
-                        requests={requests || []}
-                        currentUserId={user?.id}
+                        requests={requests}
+                        currentUserId={user?.id ?? 0}
                       />
-                      {/* Pickup Scheduling Container - Only show if there are requests */}
-                      {isOwner && item.isGift && requests?.length > 0 && (
+                      {/* Show Pickup Scheduler based on status */}
+                      {showPickupScheduler && requests[0] && (
                         <PickupSchedulingContainer
                           item={item}
                           requestId={requests[0].id}
-                          requesterId={requests[0].userId}
+                          requesterId={requests[0].userId ?? 0}
                           onScheduled={() => {
                             queryClient.invalidateQueries({
                               queryKey: [`/api/items/${params?.id}`],
                             });
                           }}
+                        />
+                      )}
+                      {/* Show Message Dialog based on status */}
+                      {showMessageDialog && requests[0] && (
+                        <MessageDialog
+                          requestId={requests[0].id}
+                          currentUserId={user?.id ?? 0}
+                          otherPartyId={requests[0].userId ?? 0}
+                          recipientId={item.recipientId ?? requests[0].userId ?? 0}
                         />
                       )}
                     </>
