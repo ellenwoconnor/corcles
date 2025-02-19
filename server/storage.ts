@@ -548,21 +548,17 @@ export class DatabaseStorage implements IStorage {
   async cancelPickupRequest(
     requestId: number,
     itemId: number,
-    canceledBy: number,
-    reason?: string
+    canceledBy: number
   ): Promise<ItemRequest> {
     try {
-      // Create cancellation info
       const cancellationInfo: CancellationInfo = {
         canceledBy,
-        canceledAt: new Date().toISOString(),
-        reason
+        canceledAt: new Date().toISOString()
       };
 
-      logger.debug('Attempting to cancel request with info:', { 
+      logger.debug('Attempting to cancel request:', { 
         requestId, 
-        itemId, 
-        cancellationInfo 
+        itemId 
       });
 
       // Update request status and add cancellation info

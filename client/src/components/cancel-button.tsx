@@ -12,16 +12,13 @@ interface CancelButtonProps {
 
 export function CancelButton({ itemId, onCanceled }: CancelButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [reason, setReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const handleCancel = async () => {
     setIsSubmitting(true);
     try {
-      const response = await apiRequest("POST", `/api/items/${itemId}/cancel-pickup`, {
-        reason: reason.trim() || undefined
-      });
+      const response = await apiRequest("POST", `/api/items/${itemId}/cancel-pickup`, {});
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -68,12 +65,6 @@ export function CancelButton({ itemId, onCanceled }: CancelButtonProps) {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <Textarea
-              placeholder="Optional: Provide a reason for cancellation"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="max-h-36"
-            />
           </div>
 
           <DialogFooter>
