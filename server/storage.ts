@@ -632,37 +632,48 @@ export class DatabaseStorage implements IStorage {
 
       // Update request status and add cancellation info
       const [updatedRequest] = await db
-        .update(schema.itemRequests)
+        .update(itemRequests)
         .set({ 
-          status: schema.REQUEST_STATUS.CANCELED,
+          status: REQUEST_STATUS.CANCELED,
           cancellationInfo 
         })
-        .where(eq(schema.itemRequests.id, requestId))
+        .where(eq(itemRequests.id, requestId))
         .returning();
 
+      if (!updatedRequest) {
+        throw new Error('Failed to update request');
+      }
+
       // Reset item status and clear pickup information
-      await db
-        .update(schema.items)
+      const [updatedItem] = await db
+        .update(items)
         .set({ 
-          status: schema.ITEM_STATUS.AVAILABLE,
+          status: ITEM_STATUS.AVAILABLE,
           recipientId: null,
           pickupStart: null,
           pickupEnd: null,
           proposedPickupWindows: null
         })
-        .where(eq(schema.items.id, itemId));
+        .where(eq(items.id, itemId))
+        .returning();
+
+      if (!updatedItem) {
+        throw new Error('Failed to update item');
+      }
 
       logger.debug('Canceled pickup request:', { 
         requestId,
         itemId,
         canceledBy,
-        reason
+        reason,
+        updatedRequestStatus: updatedRequest.status,
+        updatedItemStatus: updatedItem.status
       });
 
       return {
         ...updatedRequest,
-        cancellationInfo // Ensure the type is properly passed through
-      };
+        cancellationInfo
+      } as ItemRequest;
     } catch (error) {
       logger.error('Error canceling pickup request:', { error, requestId, itemId });
       throw error;
