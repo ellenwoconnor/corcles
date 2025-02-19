@@ -20,7 +20,6 @@ import PickupSchedulingContainer from "@/components/pickup-scheduling-container"
 import RequestForm from "@/components/request-form";
 import BidForm from "@/components/bid-form";
 import PickupTimeSelector from "@/components/pickup-time-selector";
-import { MessageDialog } from "@/components/message-dialog";
 
 // Form schemas
 const requestSchema = z.object({
@@ -228,16 +227,6 @@ export default function ListingPage() {
                   )}
                 </div>
 
-                {/* Show MessageDialog for specific statuses */}
-                {item.status && ['scheduling', 'scheduled', 'completed'].includes(item.status) && requests && requests.length > 0 && (
-                  <MessageDialog
-                    requestId={requests[0].id}
-                    currentUserId={user?.id ?? 0}
-                    otherPartyId={item.recipientId ?? 0}
-                    recipientId={item.recipientId ?? 0}
-                  />
-                )}
-
                 {/* Display Requests or Bids */}
                 <div className="space-y-4">
                   {item.isGift ? (
@@ -247,11 +236,11 @@ export default function ListingPage() {
                         currentUserId={user?.id}
                       />
                       {/* Pickup Scheduling Container - Only show if there are requests */}
-                      {isOwner && item.isGift && requests && requests.length > 0 && (
+                      {isOwner && item.isGift && requests?.length > 0 && (
                         <PickupSchedulingContainer
                           item={item}
                           requestId={requests[0].id}
-                          requesterId={item.recipientId ?? 0}
+                          requesterId={requests[0].userId}
                           onScheduled={() => {
                             queryClient.invalidateQueries({
                               queryKey: [`/api/items/${params?.id}`],
