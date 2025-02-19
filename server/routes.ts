@@ -977,25 +977,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.items.id, itemId));
 
-      // Reset cancelled request to pending
+      // Mark cancelled request as rejected
       await db
         .update(schema.itemRequests)
         .set({ 
-          status: schema.REQUEST_STATUS.PENDING,
+          status: schema.REQUEST_STATUS.REJECTED,
           cancellationInfo: reason ? { reason, canceledBy: req.user.id } : null
         })
         .where(eq(schema.itemRequests.id, request.id));
 
-      // Reset all other requests back to pending as well
-      await db
-        .update(schema.itemRequests)
-        .set({ status: schema.REQUEST_STATUS.PENDING })
-        .where(
-          and(
-            eq(schema.itemRequests.itemId, itemId),
-            eq(schema.itemRequests.status, schema.REQUEST_STATUS.REJECTED)
-          )
-        );
+      // Other requests remain in their current state
 
       logger.debug('Pickup canceled:', { 
         itemId,
