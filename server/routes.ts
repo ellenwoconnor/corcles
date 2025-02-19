@@ -17,7 +17,7 @@ import { pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
 
-// Create session middleware configuration with proper cookie settings
+// Create session middleware configuration
 const sessionMiddleware = session({
   store: new PostgresSessionStore({ 
     pool,
@@ -25,10 +25,10 @@ const sessionMiddleware = session({
     tableName: 'session'
   }),
   secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: true, // Changed to true to ensure session is saved
-  saveUninitialized: true, // Changed to true to create session for all requests
+  resave: false,
+  saveUninitialized: false,
   cookie: {
-    secure: false, // Set to false for development
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
@@ -39,36 +39,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Apply session middleware to Express app
   app.use(sessionMiddleware);
 
-  // Setup auth before creating WebSocket server
   setupAuth(app);
 
-  // Initialize WebSocket server
+  // Initialize WebSocket server and connected clients map
   const httpServer = createServer(app);
-  const wss = new WebSocketServer({ 
-    server: httpServer,
-    path: '/ws',
-    verifyClient: (info, done) => {
-      // Parse session from WebSocket upgrade request
-      sessionMiddleware(info.req as any, {} as any, () => {
-        const user = (info.req as any).user;
-        if (!user) {
-          done(false, 401, 'Unauthorized');
-          return;
-        }
-        done(true);
-      });
-    }
-  });
-
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   const connectedClients = new Map<number, WebSocket>();
 
   // Log WebSocket server initialization
   logger.info('WebSocket server initialized on path: /ws');
 
-  // WebSocket connection handling
-  wss.on('connection', async (ws, req: any) => {
+  // WebSocket connection handling with enhanced session parsing
+  wss.on('connection', async (ws, req) => {
     try {
-      const userId = req.user.id;
+      // Parse session using Promise wrapper
+      await new Promise<void>((resolve, reject) => {
+        sessionMiddleware(req as any, {} as any, (err: any) => {
+          if (err) {
+            logger.error('Session parsing error:', err);
+            reject(err);
+            return;
+          }
+          resolve();
+        });
+      });
+
+      // @ts-ignore - req.user is added by passport session
+      const userId = req.user?.id;
+
+      // Enhanced logging for connection attempt
+      logger.debug('WebSocket connection attempt:', { 
+        userId,
+        hasSession: !!req.user,
+        headers: req.headers['cookie'] ? 'Cookie present' : 'No cookie'
+      });
+
+      if (!userId) {
+        logger.warn('WebSocket connection rejected - no authenticated user');
+        ws.close(1008, 'Authentication required');
+        return;
+      }
 
       // Store connection
       connectedClients.set(userId, ws);
@@ -575,7 +585,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Must provide between 1 and 10 time windows" });
       }
 
-      // Validate each time window
       for (const window of timeWindows) {
         const startDate = new Date(window.pickupStart);
         const endDate = new Date(window.pickupEnd);
@@ -607,13 +616,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.items.id, itemId));
 
-      // Update only the selected request to awaiting_pickup_confirmation
+      // Update the selected request to awaiting_pickup_confirmation
       await db
         .update(schema.itemRequests)
         .set({ status: schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
         .where(eq(schema.itemRequests.id, selectedRequest.id));
 
-      // Other requests stay in pending state
+      // Update other requests to rejected
+      await db
+        .update(schema.itemRequests)
+        .set({ status: schema.REQUEST_STATUS.REJECTED })
+        .where(
+          and(
+            eq(schema.itemRequests.itemId, itemId),
+            not(eq(schema.itemRequests.id, selectedRequest.id))
+          )
+        );
 
       logger.debug('Updated item and request statuses for pickup:', { 
         itemId,
@@ -847,6 +865,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/items/:id/bids", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      if (item.userId !== req.user.id) {
+        return res.sendStatus(403);
+      }
+
+      const bids = await storage.getItemBids(itemId);
+      logger.debug('Fetching item bids:', {
+        itemId,
+        bidCount: bids.length,
+        ownerId: item.userId
+      });
+      res.json(bids);
+    } catch (error) {
+      logger.error('Error fetching bids:', error);
+      res.status(500).json({ error: 'Failed to fetch bids' });
+    }
+  });
 
   app.post("/api/items/:id/cancel-pickup", async (req, res) => {
     try {
@@ -885,7 +933,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Only allow cancellation by item owner or recipient
       const canCancel = req.user.id === item.userId || req.user.id === request.requesterId;
       if (!canCancel) {
-        return res.status(403).json({ error: "Not authorized to cancel this pickup"});
+        return res.status(403).json({ error: "Not authorized to cancel this pickup" });
       }
 
       // Reset item status and clear pickup windows
@@ -900,14 +948,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.items.id, itemId));
 
-      // Only mark the cancelled request as canceled, leave others in their current state
+      // Mark cancelled request as rejected
       await db
         .update(schema.itemRequests)
         .set({ 
-          status: 'canceled',
+          status: schema.REQUEST_STATUS.REJECTED,
           cancellationInfo: reason ? { reason, canceledBy: req.user.id } : null
         })
         .where(eq(schema.itemRequests.id, request.id));
+
+      // Other requests remain in their current state
 
       logger.debug('Pickup canceled:', { 
         itemId,
@@ -920,6 +970,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error('Error canceling pickup:', error);
       res.status(500).json({ error: 'Failed to cancel pickup' });
+    }
+  });
+
+  app.get("/api/user/requests", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const requests = await storage.getUserRequests(req.user.id);
+      logger.debug('Fetching user requests:', {
+        userId: req.user.id,
+        requestCount: requests?.length
+      });
+      res.json(requests);
+    } catch (error) {
+      logger.error('Error fetching user requests:', error);
+      res.status(500).json({ error: 'Failed to fetch user requests' });
+    }
+  });
+
+  app.get("/api/items/:id/bids", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      if (item.userId !== req.user.id) {
+        return res.sendStatus(403);
+      }
+
+      const bids = await storage.getItemBids(itemId);
+      logger.debug('Fetching item bids:', {
+        itemId,
+        bidCount: bids.length,
+        ownerId: item.userId
+      });
+      res.json(bids);
+    } catch (error) {
+      logger.error('Error fetching bids:', error);
+      res.status(500).json({ error: 'Failed to fetch bids' });
     }
   });
 

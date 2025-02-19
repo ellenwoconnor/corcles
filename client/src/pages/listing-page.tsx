@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Item, ItemRequest, ItemBid } from "@shared/schema";
+import { Item, ItemRequest, ItemBid, PickupWindow } from "@shared/schema";
 import { useRoute } from "wouter";
 import { formatDistanceToNow, format } from "date-fns";
-import { Loader2, Pencil } from "lucide-react";
+import { Loader2, Pencil, Clock } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
 
 import Navbar from "@/components/navbar";
 import EditListingDialog from "@/components/edit-listing-dialog";
@@ -18,12 +19,20 @@ import BidsList from "@/components/bids-list";
 import PickupSchedulingContainer from "@/components/pickup-scheduling-container";
 import RequestForm from "@/components/request-form";
 import BidForm from "@/components/bid-form";
-import PickupScheduler from "@/components/pickup-scheduler";
-import { MessageDialog } from "@/components/message-dialog";
+import PickupTimeSelector from "@/components/pickup-time-selector";
 
-type ItemStatus = "available" | "requested" | "scheduling" | "scheduled";
+// Form schemas
+const requestSchema = z.object({
+  message: z.string().optional(),
+});
+
+const bidSchema = z.object({
+  amount: z.number().min(1, "Bid amount must be greater than 0"),
+  message: z.string().optional(),
+});
 
 export default function ListingPage() {
+  // Routing and auth
   const [, params] = useRoute("/item/:id");
   const { user } = useAuth();
   const { toast } = useToast();
@@ -34,22 +43,25 @@ export default function ListingPage() {
     data: item,
     isLoading,
     error,
-  } = useQuery<Item>({
+  } = useQuery<Item & { userHasFavorited?: boolean }>({
     queryKey: [`/api/items/${params?.id}`],
     enabled: !!params?.id,
-    select: (data) => ({
-      ...data,
-      createdAt: new Date(data.createdAt),
-      pickupStart: data.pickupStart ? new Date(data.pickupStart) : null,
-      pickupEnd: data.pickupEnd ? new Date(data.pickupEnd) : null,
-      proposedPickupWindows: data.proposedPickupWindows || [],
-    }),
+    select: (data) => {
+      console.log("Raw item data:", data);
+      return {
+        ...data,
+        createdAt: new Date(data.createdAt),
+        pickupStart: data.pickupStart ? new Date(data.pickupStart) : null,
+        pickupEnd: data.pickupEnd ? new Date(data.pickupEnd) : null,
+        proposedPickupWindows: data.proposedPickupWindows || [],
+      };
+    },
   });
 
   const isOwner = item?.userId === user?.id;
 
   // Requests and bids queries
-  const { data: requests = [] } = useQuery<ItemRequest[]>({
+  const { data: requests } = useQuery<ItemRequest[]>({
     queryKey: [
       `/api/items/${params?.id}/${isOwner ? "requests" : "my-requests"}`,
     ],
@@ -61,34 +73,55 @@ export default function ListingPage() {
     enabled: !!params?.id && !!user && !item?.isGift,
   });
 
-  // Determine item status based on requests
-  const getItemStatus = (): ItemStatus => {
-    if (!requests || requests.length === 0) return "available";
+  const hasRequested = requests?.length > 0;
+  const hasBid = bids?.some((bid) => bid.status === "pending");
+  const isRecipient = user?.id === item?.recipientId;
+  const hasPendingRequests = requests?.some((r) => r.status === "pending");
 
-    // Find special status requests
-    const acceptedRequest = requests.find(r => r.status === "accepted");
-    const awaitingConfirmationRequest = requests.find(r => r.status === "awaiting_pickup_confirmation");
-    const pendingRequests = requests.filter(r => r.status === "pending");
-
-    // Return status based on request states
-    if (acceptedRequest) return "scheduled";
-    if (awaitingConfirmationRequest) return "scheduling";
-    if (pendingRequests.length > 0) return "requested";
-    return "available";
-  };
-
-  const itemStatus = getItemStatus();
-
-  // Get relevant request based on status
-  const activeRequest = (() => {
-    if (itemStatus === "scheduled") {
-      return requests.find(r => r.status === "accepted");
+  useEffect(() => {
+    if (item && requests) {
+      console.log("Pickup scheduler conditions:", {
+        isOwner,
+        isGift: item.isGift,
+        hasRequests: !!requests,
+        pendingRequestsCount: requests.filter((r) => r.status === "pending")
+          .length,
+        hasProposedWindows: !!item.proposedPickupWindows?.length,
+        userId: user?.id,
+        itemUserId: item.userId,
+        isRecipient: user?.id === item.recipientId,
+      });
     }
-    if (itemStatus === "scheduling") {
-      return requests.find(r => r.status === "awaiting_pickup_confirmation");
-    }
-    return null;
-  })();
+  }, [item, requests, isOwner, user]);
+
+  // Drawing mutation
+  const drawingMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest(
+        "POST",
+        `/api/items/${params?.id}/draw`,
+      );
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to perform drawing");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Drawing complete!",
+        description: "A recipient has been randomly selected.",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${params?.id}`] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to perform drawing",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   // Loading and error states
   if (isLoading) {
@@ -166,7 +199,9 @@ export default function ListingPage() {
                 Listed by {item.userDisplayName || "Anonymous"}
               </p>
               <p className="text-sm text-muted-foreground">
-                {formatDistanceToNow(item.createdAt, { addSuffix: true })}
+                {formatDistanceToNow(item.createdAt, {
+                  addSuffix: true,
+                })}
               </p>
             </div>
 
@@ -177,16 +212,6 @@ export default function ListingPage() {
               </p>
             </div>
 
-            {/* Status Badge */}
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary">
-                {itemStatus === "available" && "Available"}
-                {itemStatus === "requested" && "Requests Pending"}
-                {itemStatus === "scheduling" && "Scheduling Pickup"}
-                {itemStatus === "scheduled" && "Pickup Scheduled"}
-              </Badge>
-            </div>
-
             {/* Owner View */}
             {isOwner ? (
               <div className="border-t border-border pt-3 space-y-4">
@@ -194,9 +219,10 @@ export default function ListingPage() {
                   <h3 className="text-base font-medium">
                     {item.isGift ? "Requests" : "Bids"}
                   </h3>
-                  {item.isGift && requests.length > 0 && (
+                  {item.isGift && requests && requests.length > 0 && (
                     <Badge variant="secondary">
-                      {requests.length} {requests.length === 1 ? "request" : "requests"}
+                      {requests.length}{" "}
+                      {requests.length === 1 ? "request" : "requests"}
                     </Badge>
                   )}
                 </div>
@@ -205,43 +231,22 @@ export default function ListingPage() {
                 <div className="space-y-4">
                   {item.isGift ? (
                     <>
-                      {/* Show requests list */}
                       <RequestsList
-                        requests={requests}
+                        requests={requests || []}
                         currentUserId={user?.id}
                       />
-
-                      {/* Status-specific components */}
-                      {itemStatus === "requested" && (
-                        <PickupScheduler
-                          itemId={item.id}
+                      {/* Pickup Scheduling Container - Only show if there are requests */}
+                      {isOwner && item.isGift && requests?.length > 0 && (
+                        <PickupSchedulingContainer
+                          item={item}
+                          requestId={requests[0].id}
+                          requesterId={requests[0].userId}
                           onScheduled={() => {
                             queryClient.invalidateQueries({
                               queryKey: [`/api/items/${params?.id}`],
                             });
                           }}
                         />
-                      )}
-
-                      {(itemStatus === "scheduling" || itemStatus === "scheduled") && activeRequest && (
-                        <>
-                          <PickupSchedulingContainer
-                            item={item}
-                            requestId={activeRequest.id}
-                            requesterId={activeRequest.requesterId}
-                            onScheduled={() => {
-                              queryClient.invalidateQueries({
-                                queryKey: [`/api/items/${params?.id}`],
-                              });
-                            }}
-                          />
-                          <MessageDialog
-                            requestId={activeRequest.id}
-                            currentUserId={user.id}
-                            otherPartyId={activeRequest.requesterId}
-                            recipientId={activeRequest.requesterId}
-                          />
-                        </>
                       )}
                     </>
                   ) : (
@@ -253,32 +258,24 @@ export default function ListingPage() {
               /* Buyer View */
               <div className="flex gap-4">
                 {item.isGift ? (
-                  itemStatus === "scheduling" || itemStatus === "scheduled" ? (
-                    activeRequest && (
-                      <>
-                        <PickupSchedulingContainer
-                          item={item}
-                          requestId={activeRequest.id}
-                          requesterId={user?.id || 0}
-                          onScheduled={() => {
-                            queryClient.invalidateQueries({
-                              queryKey: [`/api/items/${params?.id}`],
-                            });
-                          }}
-                        />
-                        <MessageDialog
-                          requestId={activeRequest.id}
-                          currentUserId={user?.id || 0}
-                          otherPartyId={item.userId}
-                          recipientId={activeRequest.requesterId}
-                        />
-                      </>
-                    )
+                  requests?.some(
+                    (r) => r.status == "awaiting_pickup_confirmation",
+                  ) ? (
+                    <PickupSchedulingContainer
+                      item={item}
+                      requestId={requests[0].id}
+                      requesterId={user?.id || 0}
+                      onScheduled={() => {
+                        queryClient.invalidateQueries({
+                          queryKey: [`/api/items/${params?.id}`],
+                        });
+                      }}
+                    />
                   ) : (
                     <RequestForm
                       itemId={item.id}
                       itemOwnerId={item.userId}
-                      hasRequested={requests.length > 0}
+                      hasRequested={!!hasRequested}
                       isOpen={requestDialogOpen}
                       onOpenChange={setRequestDialogOpen}
                     />
@@ -286,7 +283,7 @@ export default function ListingPage() {
                 ) : (
                   <BidForm
                     itemId={item.id}
-                    hasBid={bids?.some((bid) => bid.status === "pending")}
+                    hasBid={!!hasBid}
                     isOpen={requestDialogOpen}
                     onOpenChange={setRequestDialogOpen}
                   />
