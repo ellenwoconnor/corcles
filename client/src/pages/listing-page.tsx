@@ -66,7 +66,8 @@ export default function ListingPage() {
   });
 
   const isOwner = item?.userId === user?.id;
-  const showMessageDialog = isOwner && ['scheduling', 'scheduled', 'completed'].includes(item?.status || '');
+  const isRecipient = user?.id === item?.recipientId;
+  const showMessageDialog = (isOwner || isRecipient) && ['scheduling', 'scheduled', 'completed'].includes(item?.status || '');
   const showPickupScheduler = isOwner && ['requested', 'scheduling', 'scheduled'].includes(item?.status || '');
 
   // Requests and bids queries
