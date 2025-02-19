@@ -45,6 +45,9 @@ export default function PickupSchedulingContainer({
   // Show cancel button only if there's a selected time and user is owner or recipient
   const showCancelButton = showSelectedTime && (isOwner || isRecipient);
 
+  // Show scheduler for owner based on item status
+  const showScheduler = isOwner && ['requested', 'scheduling', 'scheduled'].includes(item.status);
+
   if (!user) return null;
 
   return (
@@ -72,13 +75,13 @@ export default function PickupSchedulingContainer({
       )}
 
       {isOwner ? (
-        // Owner view - show scheduler to propose times if no windows are proposed yet
-        !showSelectedTime && !item.proposedPickupWindows?.length ? (
+        // Owner view - show scheduler based on item status
+        showScheduler && (
           <PickupScheduler
             itemId={item.id}
             onScheduled={handleSchedulingComplete}
           />
-        ) : null
+        )
       ) : (
         // Requester view - show time selector to pick from proposed times if no time is selected yet
         !showSelectedTime && 
@@ -95,7 +98,7 @@ export default function PickupSchedulingContainer({
         )
       )}
 
-      {/* Show message dialog only once and only after time is selected */}
+      {/* Show message dialog only after time is selected */}
       {showMessageDialog && (
         <MessageDialog
           requestId={requestId}
