@@ -1,7 +1,6 @@
 import {
   users,
   items,
-  favoriteTable,
   itemRequests,
   itemBids,
   messages,
@@ -16,8 +15,9 @@ import {
   type Message,
   type InsertMessage,
   type PickupWindow,
+  type CancellationInfo,
   ITEM_STATUS,
-  REQUEST_STATUS
+  REQUEST_STATUS,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, ilike, or, notInArray } from "drizzle-orm";
@@ -63,6 +63,13 @@ export interface IStorage {
   getConversation(userId1: number, userId2: number, requestId: number): Promise<Message[]>;
   markMessagesAsRead(recipientId: number, senderId: number, requestId: number): Promise<void>;
   getUnreadMessageCount(userId: number): Promise<number>;
+  // Add new method for canceling requests
+  cancelPickupRequest(
+    requestId: number,
+    itemId: number,
+    canceledBy: number,
+    reason?: string
+  ): Promise<ItemRequest>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -150,11 +157,7 @@ export class DatabaseStorage implements IStorage {
           userDisplayName: sql<string>`(
             SELECT username FROM ${users} WHERE ${users.id} = ${items.userId}
           )`.as("userDisplayName"),
-          userHasFavorited: sql<boolean>`EXISTS (
-            SELECT 1 FROM ${favoriteTable}
-            WHERE ${favoriteTable.itemId} = ${items.id}
-            AND ${favoriteTable.userId} = ${userId ?? 0}
-          )::boolean`.as("userHasFavorited"),
+          userHasFavorited: sql<boolean>`false`.as("userHasFavorited"),
         })
         .from(items);
 
@@ -224,13 +227,7 @@ export class DatabaseStorage implements IStorage {
           userDisplayName: sql<string>`(
             SELECT username FROM ${users} WHERE ${users.id} = ${items.userId}
           )`.as("userDisplayName"),
-          userHasFavorited: sql<boolean>`
-            CASE WHEN EXISTS (
-              SELECT 1 FROM ${favoriteTable}
-              WHERE ${favoriteTable.itemId} = ${items.id}
-              AND ${favoriteTable.userId} = ${userId ?? 0}
-            ) THEN true ELSE false END
-          `.as("userHasFavorited"),
+          userHasFavorited: sql<boolean>`false`.as("userHasFavorited"),
         })
         .from(items)
         .where(eq(items.id, id));
@@ -279,67 +276,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async favoriteItem(id: number, userId: number): Promise<void> {
-    try {
-      const item = await this.getItem(id, userId);
-      if (!item) {
-        logger.warn('Attempted to favorite non-existent item:', { id, userId });
-        return;
-      }
-
-      const [favorite] = await db
-        .select()
-        .from(favoriteTable)
-        .where(
-          and(eq(favoriteTable.itemId, id), eq(favoriteTable.userId, userId)),
-        );
-
-      if (!favorite) {
-        await db.insert(favoriteTable).values({ itemId: id, userId });
-        await db
-          .update(items)
-          .set({ favorites: item.favorites + 1 })
-          .where(eq(items.id, id));
-        logger.debug('Item favorited:', { id, userId });
-      }
-    } catch (error) {
-      logger.error('Error favoriting item:', { error, id, userId });
-      throw error;
-    }
-  }
-
-  async unfavoriteItem(id: number, userId: number): Promise<void> {
-    try {
-      const item = await this.getItem(id, userId);
-      if (!item) {
-        logger.warn('Attempted to unfavorite non-existent item:', { id, userId });
-        return;
-      }
-
-      const [favorite] = await db
-        .select()
-        .from(favoriteTable)
-        .where(
-          and(eq(favoriteTable.itemId, id), eq(favoriteTable.userId, userId)),
-        );
-
-      if (favorite) {
-        await db
-          .delete(favoriteTable)
-          .where(
-            and(eq(favoriteTable.itemId, id), eq(favoriteTable.userId, userId)),
-          );
-        await db
-          .update(items)
-          .set({ favorites: Math.max(0, item.favorites - 1) })
-          .where(eq(items.id, id));
-        logger.debug('Item unfavorited:', { id, userId });
-      }
-    } catch (error) {
-      logger.error('Error unfavoriting item:', { error, id, userId });
-      throw error;
-    }
-  }
+  
 
   async createItemRequest(request: InsertItemRequest): Promise<ItemRequest> {
     try {
@@ -516,8 +453,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  
-
   async sendMessage(message: InsertMessage): Promise<Message> {
     try {
       const [newMessage] = await db.insert(messages).values(message).returning();
@@ -606,6 +541,112 @@ export class DatabaseStorage implements IStorage {
       return Number(result.count) || 0;
     } catch (error) {
       logger.error('Error getting unread message count:', { error, userId });
+      throw error;
+    }
+  }
+
+  async cancelPickupRequest(
+    requestId: number,
+    itemId: number,
+    canceledBy: number
+  ): Promise<ItemRequest> {
+    try {
+      const cancellationInfo: CancellationInfo = {
+        canceledBy,
+        canceledAt: new Date().toISOString()
+      };
+
+      logger.debug('Attempting to cancel request:', { 
+        requestId, 
+        itemId 
+      });
+
+      // Update request status and add cancellation info
+      const [updatedRequest] = await db
+        .update(itemRequests)
+        .set({ 
+          status: REQUEST_STATUS.CANCELED,
+          cancellationInfo 
+        })
+        .where(eq(itemRequests.id, requestId))
+        .returning();
+
+      if (!updatedRequest) {
+        logger.error('Failed to update request:', { requestId });
+        throw new Error('Failed to update request');
+      }
+
+      logger.debug('Updated request with cancellation:', { 
+        requestId,
+        status: updatedRequest.status,
+        cancellationInfo: updatedRequest.cancellationInfo
+      });
+
+      // Reset item status and clear pickup information
+      const [updatedItem] = await db
+        .update(items)
+        .set({ 
+          status: ITEM_STATUS.AVAILABLE,
+          recipientId: null,
+          pickupStart: null,
+          pickupEnd: null,
+          proposedPickupWindows: null
+        })
+        .where(eq(items.id, itemId))
+        .returning();
+
+      if (!updatedItem) {
+        logger.error('Failed to update item:', { itemId });
+        throw new Error('Failed to update item');
+      }
+
+      logger.debug('Successfully canceled pickup request:', { 
+        requestId,
+        itemId,
+        canceledBy,
+        reason,
+        updatedRequestStatus: updatedRequest.status,
+        updatedItemStatus: updatedItem.status,
+        cancellationInfo: updatedRequest.cancellationInfo
+      });
+
+      return {
+        ...updatedRequest,
+        cancellationInfo
+      } as ItemRequest;
+    } catch (error) {
+      logger.error('Error canceling pickup request:', { 
+        error, 
+        requestId, 
+        itemId,
+        canceledBy,
+        reason 
+      });
+      throw error;
+    }
+  }
+  async canUsersMessage(senderId: number, recipientId: number): Promise<boolean> {
+    try {
+      // Check if the users have any shared item requests
+      const requests = await db
+        .select()
+        .from(itemRequests)
+        .where(
+          or(
+            and(
+              eq(itemRequests.requesterId, senderId),
+              eq(itemRequests.userId, recipientId)
+            ),
+            and(
+              eq(itemRequests.requesterId, recipientId),
+              eq(itemRequests.userId, senderId)
+            )
+          )
+        );
+
+      return requests.length > 0;
+    } catch (error) {
+      logger.error('Error checking if users can message:', { error, senderId, recipientId });
       throw error;
     }
   }

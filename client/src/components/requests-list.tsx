@@ -15,6 +15,8 @@ export function getRequestStatusVariant(status: string) {
       return "default";
     case "completed":
       return "outline";
+    case "backup":
+      return "secondary";
     default:
       return "destructive";
   }
