@@ -12,7 +12,7 @@ import { Pencil } from "lucide-react";
 
 interface OwnerListingViewProps {
   item: Item & { userHasFavorited?: boolean };
-  requests: ItemRequest[];
+  requests: (ItemRequest & { userId?: number })[];
   bids?: any[];
   currentUserId: number;
 }

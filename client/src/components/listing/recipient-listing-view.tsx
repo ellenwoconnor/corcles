@@ -7,7 +7,7 @@ import { MessageDialog } from "@/components/message-dialog";
 
 interface RecipientListingViewProps {
   item: Item & { userHasFavorited?: boolean };
-  request: ItemRequest;
+  request: ItemRequest & { userId?: number };
   currentUserId: number;
 }
 

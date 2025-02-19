@@ -77,6 +77,11 @@ export default function ListingPage() {
     );
   }
 
+  // Find the relevant request for the recipient
+  const activeRequest = requests.find(r => 
+    ["pending", "accepted", "awaiting_pickup_confirmation", "scheduled"].includes(r.status)
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -88,10 +93,10 @@ export default function ListingPage() {
             bids={bids}
             currentUserId={user?.id ?? 0}
           />
-        ) : isRecipient ? (
+        ) : isRecipient && activeRequest ? (
           <RecipientListingView
             item={item}
-            request={requests[0]}
+            request={activeRequest}
             currentUserId={user?.id ?? 0}
           />
         ) : (
