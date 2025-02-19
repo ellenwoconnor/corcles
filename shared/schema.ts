@@ -23,7 +23,9 @@ export const users = pgTable("users", {
 
 export const ITEM_STATUS = {
   AVAILABLE: 'available',
-  PENDING_PICKUP: 'pending_pickup',
+  REQUESTED: 'requested',
+  SCHEDULING: 'scheduling',
+  SCHEDULED: 'scheduled',
   COMPLETED: 'completed'
 } as const;
 

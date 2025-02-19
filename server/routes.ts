@@ -341,6 +341,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const request = await storage.createItemRequest(parseResult.data);
+      
+      // Check if this is the first request and update item status
+      const requests = await storage.getItemRequests(itemId);
+      if (requests.length === 1) {
+        await db
+          .update(schema.items)
+          .set({ status: schema.ITEM_STATUS.REQUESTED })
+          .where(eq(schema.items.id, itemId));
+      }
+      
       res.status(201).json(request);
     } catch (error) {
       logger.error('Error creating request:', error);
@@ -611,7 +621,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .update(schema.items)
         .set({ 
           proposedPickupWindows: proposedWindows,
-          status: schema.ITEM_STATUS.PENDING_PICKUP,
+          status: schema.ITEM_STATUS.SCHEDULING,
           recipientId: selectedRequest.requesterId
         })
         .where(eq(schema.items.id, itemId));
@@ -697,7 +707,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (confirmed) {
         await db
           .update(schema.items)
-          .set({ status: schema.ITEM_STATUS.COMPLETED })
+          .set({ status: schema.ITEM_STATUS.SCHEDULED })
           .where(eq(schema.items.id, itemId));
       }
 

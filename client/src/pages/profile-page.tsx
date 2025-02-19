@@ -146,9 +146,10 @@ export default function ProfilePage() {
                             className={item.status === "pending_pickup" ? "bg-background text-foreground border" : ""}
                           >
                             {item.status === "completed" ? "Pickup Complete" :
-                             (item.status === "pending_pickup" && item.pickupStart) ? "Pickup Scheduled" :
-                             item.status === "pending_pickup" ? "Arranging Pickup" :
-                             "Pending"}
+                             item.status === "scheduled" ? "Pickup Scheduled" :
+                             item.status === "scheduling" ? "Setting Pickup Time" :
+                             item.status === "requested" ? "Requests Received" :
+                             "Available"}
                           </Badge>
                         </div>
                       </CardHeader>
