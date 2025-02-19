@@ -73,9 +73,7 @@ export default function ListingPage() {
     enabled: !!params?.id && !!user && !item?.isGift,
   });
 
-  const hasRequested = requests?.some(
-    (request) => request.status === "pending",
-  );
+  const hasRequested = requests?.length > 0;
   const hasBid = bids?.some((bid) => bid.status === "pending");
   const isRecipient = user?.id === item?.recipientId;
   const hasPendingRequests = requests?.some((r) => r.status === "pending");
