@@ -76,7 +76,7 @@ export default function ListingPage() {
   const hasRequested = requests?.length > 0;
   const hasBid = bids?.some((bid) => bid.status === "pending");
   const isRecipient = user?.id === item?.recipientId;
-  const hasPendingRequests = requests?.some((r) => r.status === "pending");
+  const hasPendingRequests = requests?.some((r) => r.status === "pending" || r.status === "ready_for_drawing");
 
   useEffect(() => {
     if (item && requests) {
@@ -84,8 +84,7 @@ export default function ListingPage() {
         isOwner,
         isGift: item.isGift,
         hasRequests: !!requests,
-        pendingRequestsCount: requests.filter((r) => r.status === "pending")
-          .length,
+        pendingRequestsCount: requests.filter((r) => r.status === "pending" || r.status === "ready_for_drawing").length,
         hasProposedWindows: !!item.proposedPickupWindows?.length,
         userId: user?.id,
         itemUserId: item.userId,
