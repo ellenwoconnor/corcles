@@ -244,6 +244,26 @@ export default function ListingPage() {
                         requests={requests}
                         currentUserId={user?.id ?? 0}
                       />
+                      {/* Show selected time windows if they exist */}
+                      {item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && (
+                        <div className="border-t border-border pt-4 mt-4">
+                          <h3 className="font-medium mb-2">Proposed Pickup Windows</h3>
+                          <div className="space-y-2">
+                            {item.proposedPickupWindows.map((window, index) => (
+                              <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
+                                <div className="flex items-center gap-2">
+                                  <Clock className="w-3.5 h-3.5" />
+                                  <span className="text-sm">
+                                    {format(new Date(window.pickupStart), "EEE, MMM d")} at{" "}
+                                    {format(new Date(window.pickupStart), "h:mm a")} -{" "}
+                                    {format(new Date(window.pickupEnd), "h:mm a")}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {/* Show Pickup Scheduler based on status */}
                       {showPickupScheduler && requests[0] && (
                         <PickupSchedulingContainer
