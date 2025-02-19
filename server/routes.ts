@@ -732,8 +732,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to edit this item" });
       }
 
-      // Fix: Create a partial schema from the base schema
-      const partialItemSchema = insertItemSchema.extend({}).partial();
+      // Make all fields optional for updates
+      const partialItemSchema = z.object({
+        title: z.string().optional(),
+        description: z.string().optional(),
+        price: z.number().optional(),
+        isGift: z.boolean().optional(),
+        imageUrl: z.string().optional(),
+        community: z.string().optional()
+      });
       const data = {
         ...req.body,
         price: req.body.price ? Number(req.body.price) : undefined,
