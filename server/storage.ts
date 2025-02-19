@@ -630,6 +630,12 @@ export class DatabaseStorage implements IStorage {
         reason
       };
 
+      logger.debug('Attempting to cancel request with info:', { 
+        requestId, 
+        itemId, 
+        cancellationInfo 
+      });
+
       // Update request status and add cancellation info
       const [updatedRequest] = await db
         .update(itemRequests)
@@ -641,8 +647,15 @@ export class DatabaseStorage implements IStorage {
         .returning();
 
       if (!updatedRequest) {
+        logger.error('Failed to update request:', { requestId });
         throw new Error('Failed to update request');
       }
+
+      logger.debug('Updated request with cancellation:', { 
+        requestId,
+        status: updatedRequest.status,
+        cancellationInfo: updatedRequest.cancellationInfo
+      });
 
       // Reset item status and clear pickup information
       const [updatedItem] = await db
@@ -658,16 +671,18 @@ export class DatabaseStorage implements IStorage {
         .returning();
 
       if (!updatedItem) {
+        logger.error('Failed to update item:', { itemId });
         throw new Error('Failed to update item');
       }
 
-      logger.debug('Canceled pickup request:', { 
+      logger.debug('Successfully canceled pickup request:', { 
         requestId,
         itemId,
         canceledBy,
         reason,
         updatedRequestStatus: updatedRequest.status,
-        updatedItemStatus: updatedItem.status
+        updatedItemStatus: updatedItem.status,
+        cancellationInfo: updatedRequest.cancellationInfo
       });
 
       return {
@@ -675,7 +690,13 @@ export class DatabaseStorage implements IStorage {
         cancellationInfo
       } as ItemRequest;
     } catch (error) {
-      logger.error('Error canceling pickup request:', { error, requestId, itemId });
+      logger.error('Error canceling pickup request:', { 
+        error, 
+        requestId, 
+        itemId,
+        canceledBy,
+        reason 
+      });
       throw error;
     }
   }
