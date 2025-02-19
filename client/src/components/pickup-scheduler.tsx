@@ -131,7 +131,7 @@ export default function PickupScheduler({
   return (
     <Drawer open={isOpen} onOpenChange={setIsOpen}>
       <DrawerTrigger asChild>
-        <Button>Schedule Pickup</Button>
+        <Button>Set Pickup Times</Button>
       </DrawerTrigger>
       <DrawerContent>
         <DrawerHeader>
