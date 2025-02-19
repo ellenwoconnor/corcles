@@ -4,13 +4,21 @@ import { formatDistanceToNow } from "date-fns";
 import RequestForm from "@/components/request-form";
 import BidForm from "@/components/bid-form";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 interface PublicListingViewProps {
   item: Item & { userHasFavorited?: boolean };
   currentUserId: number;
+  hasRequested?: boolean;
+  hasBid?: boolean;
 }
 
-export default function PublicListingView({ item, currentUserId }: PublicListingViewProps) {
+export default function PublicListingView({ 
+  item, 
+  currentUserId,
+  hasRequested = false,
+  hasBid = false 
+}: PublicListingViewProps) {
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
 
   return (
@@ -66,17 +74,23 @@ export default function PublicListingView({ item, currentUserId }: PublicListing
         {/* Action Button */}
         <div className="flex gap-4">
           {item.isGift ? (
-            <RequestForm
-              itemId={item.id}
-              itemOwnerId={item.userId}
-              hasRequested={false}
-              isOpen={requestDialogOpen}
-              onOpenChange={setRequestDialogOpen}
-            />
+            hasRequested ? (
+              <Button variant="secondary" disabled>
+                Requested
+              </Button>
+            ) : (
+              <RequestForm
+                itemId={item.id}
+                itemOwnerId={item.userId}
+                hasRequested={hasRequested}
+                isOpen={requestDialogOpen}
+                onOpenChange={setRequestDialogOpen}
+              />
+            )
           ) : (
             <BidForm
               itemId={item.id}
-              hasBid={false}
+              hasBid={hasBid}
               isOpen={requestDialogOpen}
               onOpenChange={setRequestDialogOpen}
             />

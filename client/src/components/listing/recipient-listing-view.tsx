@@ -17,7 +17,7 @@ export default function RecipientListingView({
   currentUserId 
 }: RecipientListingViewProps) {
   const showPickupScheduler = request?.status === "awaiting_pickup_confirmation";
-  const showMessageDialog = ['scheduling', 'scheduled', 'completed'].includes(item?.status || '');
+  const showMessageDialog = ['scheduling', 'scheduled', 'completed'].includes(item?.status || '') && !showPickupScheduler;
 
   return (
     <div className="grid md:grid-cols-2 gap-8">

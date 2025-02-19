@@ -48,6 +48,10 @@ export default function ListingPage() {
     enabled: !!params?.id && !!user && !item?.isGift,
   });
 
+  // Add these near the top where other state is managed
+  const hasRequested = requests?.some(r => r.status === "pending");
+  const hasBid = bids?.some(bid => bid.status === "pending");
+
   // Loading and error states
   if (isLoading) {
     return (
@@ -94,6 +98,8 @@ export default function ListingPage() {
           <PublicListingView
             item={item}
             currentUserId={user?.id ?? 0}
+            hasRequested={hasRequested}
+            hasBid={hasBid}
           />
         )}
       </main>
