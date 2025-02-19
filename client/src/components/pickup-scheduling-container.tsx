@@ -6,7 +6,6 @@ import PickupScheduler from "./pickup-scheduler";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
-import { MessageDialog } from "./message-dialog";
 import { CancelButton } from "./cancel-button";
 
 interface PickupSchedulingContainerProps {
@@ -29,9 +28,6 @@ export default function PickupSchedulingContainer({
   const isOwner = user?.id === item.userId;
   const isRecipient = user?.id === requesterId;
 
-  // Determine the other party's ID (owner if viewer is requester, requester if viewer is owner)
-  const otherPartyId = isOwner ? requesterId : item.userId;
-
   // Handler for when scheduling is completed by either party
   const handleSchedulingComplete = () => {
     setSchedulingComplete(true);
@@ -40,7 +36,6 @@ export default function PickupSchedulingContainer({
 
   // Display selected pickup window if one exists
   const showSelectedTime = item.pickupStart && item.pickupEnd;
-  const showMessageDialog = user && showSelectedTime;
 
   // Show cancel button only if there's a selected time and user is owner or recipient
   const showCancelButton = showSelectedTime && (isOwner || isRecipient);
@@ -96,16 +91,6 @@ export default function PickupSchedulingContainer({
             onSelected={handleSchedulingComplete}
           />
         )
-      )}
-
-      {/* Show message dialog only after time is selected */}
-      {showMessageDialog && (
-        <MessageDialog
-          requestId={requestId}
-          currentUserId={user.id}
-          otherPartyId={otherPartyId}
-          recipientId={otherPartyId}
-        />
       )}
     </div>
   );

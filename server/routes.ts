@@ -88,6 +88,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalConnections: connectedClients.size
       });
 
+      // Send connection success message
+      ws.send(JSON.stringify({
+        type: 'connection_established',
+        data: { 
+          userId,
+          timestamp: new Date().toISOString()
+        }
+      }));
+
       // Handle WebSocket events
       ws.on('close', () => {
         logger.info('WebSocket client disconnected:', { 
@@ -102,15 +111,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ws.close();
         connectedClients.delete(userId);
       });
-
-      // Send connection success message
-      ws.send(JSON.stringify({
-        type: 'connection_established',
-        data: { 
-          userId,
-          timestamp: new Date().toISOString()
-        }
-      }));
 
     } catch (error) {
       logger.error('Error during WebSocket connection setup:', error);
