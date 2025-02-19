@@ -44,6 +44,7 @@ export default function PickupSchedulingContainer({
 
   // Show cancel button only if there's a selected time and user is owner or recipient
   const showCancelButton = showSelectedTime && (isOwner || isRecipient);
+  const hasPendingRequests = item.status === "pending_pickup" || item.status === "ready_for_drawing";
 
   if (!user) return null;
 
@@ -73,7 +74,7 @@ export default function PickupSchedulingContainer({
 
       {isOwner ? (
         // Owner view - show scheduler to propose times if no windows are proposed yet
-        !showSelectedTime && !item.proposedPickupWindows?.length ? (
+        !showSelectedTime && !item.proposedPickupWindows?.length && hasPendingRequests ? (
           <PickupScheduler
             itemId={item.id}
             onScheduled={handleSchedulingComplete}
