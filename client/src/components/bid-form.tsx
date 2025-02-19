@@ -34,12 +34,12 @@ export default function BidForm({ itemId, hasBid, isOpen, onOpenChange }: BidFor
 
   const bidMutation = useMutation({
     mutationFn: async (data: z.infer<typeof bidSchema>) => {
-      const response = await apiRequest("POST", `/api/items/${itemId}/bid`, data);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to place bid");
-      }
-      return response.json();
+      toast({
+        title: "Feature in development",
+        description: "Bidding on items is currently under development. Please check back later.",
+        variant: "warning"
+      });
+      throw new Error("Bidding feature under development");
     },
     onSuccess: () => {
       toast({
