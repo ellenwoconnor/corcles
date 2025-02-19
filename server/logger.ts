@@ -75,22 +75,22 @@ const logger = winston.createLogger({
   ]
 });
 
-// Create request logger middleware
+// Create request logger middleware 
 export const requestLogger = (req: any, res: any, next: any) => {
-  const start = Date.now();
+  // Only log API requests
+  if (req.url.startsWith('/api/')) {
+    const start = Date.now();
 
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    logger.info('Request processed', {
-      method: req.method,
-      url: req.url,
-      status: res.statusCode,
-      duration: `${duration}ms`,
-      userAgent: req.get('user-agent'),
-      ip: req.ip
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      logger.info('API Request', {
+        method: req.method,
+        url: req.url,
+        status: res.statusCode,
+        duration: `${duration}ms`
+      });
     });
-  });
-
+  }
   next();
 };
 
