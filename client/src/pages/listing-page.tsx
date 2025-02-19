@@ -241,7 +241,7 @@ export default function ListingPage() {
               /* Buyer View */
               <div className="flex gap-4">
                 {item.isGift ? (
-                  requests?.length > 0 ? (
+                  requests?.some(r => r.status !== 'rejected') ? (
                     <PickupSchedulingContainer
                       item={item}
                       requestId={requests[0].id}
