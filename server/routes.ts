@@ -821,7 +821,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .set({ 
           pickupStart: pickupStart,
           pickupEnd: pickupEnd,
-          status: 'pending_pickup',
+          status: schema.ITEM_STATUS.SCHEDULED,
           recipientId: req.user.id 
         })
         .where(eq(schema.items.id, itemId));
