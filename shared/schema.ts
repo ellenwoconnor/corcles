@@ -21,12 +21,6 @@ export const users = pgTable("users", {
   community: text("community").notNull(),
 });
 
-export const favoriteTable = pgTable("favorites", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  itemId: integer("item_id").notNull(),
-});
-
 export const ITEM_STATUS = {
   AVAILABLE: 'available',
   PENDING_PICKUP: 'pending_pickup',
@@ -52,7 +46,6 @@ export const items = pgTable("items", {
   userId: integer("user_id").notNull(),
   community: text("community").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  favorites: integer("favorites").notNull().default(0),
   status: text("status").notNull().default(ITEM_STATUS.AVAILABLE),
   recipientId: integer("recipient_id"),
   pickupStart: timestamp("pickup_start"),

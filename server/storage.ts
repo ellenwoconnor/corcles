@@ -287,67 +287,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async favoriteItem(id: number, userId: number): Promise<void> {
-    try {
-      const item = await this.getItem(id, userId);
-      if (!item) {
-        logger.warn('Attempted to favorite non-existent item:', { id, userId });
-        return;
-      }
-
-      const [favorite] = await db
-        .select()
-        .from(favoriteTable)
-        .where(
-          and(eq(favoriteTable.itemId, id), eq(favoriteTable.userId, userId)),
-        );
-
-      if (!favorite) {
-        await db.insert(favoriteTable).values({ itemId: id, userId });
-        await db
-          .update(items)
-          .set({ favorites: item.favorites + 1 })
-          .where(eq(items.id, id));
-        logger.debug('Item favorited:', { id, userId });
-      }
-    } catch (error) {
-      logger.error('Error favoriting item:', { error, id, userId });
-      throw error;
-    }
-  }
-
-  async unfavoriteItem(id: number, userId: number): Promise<void> {
-    try {
-      const item = await this.getItem(id, userId);
-      if (!item) {
-        logger.warn('Attempted to unfavorite non-existent item:', { id, userId });
-        return;
-      }
-
-      const [favorite] = await db
-        .select()
-        .from(favoriteTable)
-        .where(
-          and(eq(favoriteTable.itemId, id), eq(favoriteTable.userId, userId)),
-        );
-
-      if (favorite) {
-        await db
-          .delete(favoriteTable)
-          .where(
-            and(eq(favoriteTable.itemId, id), eq(favoriteTable.userId, userId)),
-          );
-        await db
-          .update(items)
-          .set({ favorites: Math.max(0, item.favorites - 1) })
-          .where(eq(items.id, id));
-        logger.debug('Item unfavorited:', { id, userId });
-      }
-    } catch (error) {
-      logger.error('Error unfavoriting item:', { error, id, userId });
-      throw error;
-    }
-  }
+  
 
   async createItemRequest(request: InsertItemRequest): Promise<ItemRequest> {
     try {
