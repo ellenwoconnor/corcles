@@ -262,8 +262,8 @@ export default function ListingPage() {
                         <MessageDialog
                           requestId={requests[0].id}
                           currentUserId={user?.id ?? 0}
-                          otherPartyId={requests[0].userId ?? 0}
-                          recipientId={item.recipientId ?? requests[0].userId ?? 0}
+                          otherPartyId={requests[0].requesterId ?? 0}
+                          recipientId={requests[0].requesterId ?? 0}
                         />
                       )}
                     </>
