@@ -107,7 +107,6 @@ export const insertItemSchema = createInsertSchema(items).omit({
   id: true,
   userId: true,
   createdAt: true,
-  favorites: true,
   status: true,
   recipientId: true,
   pickupStart: true,

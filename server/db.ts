@@ -40,7 +40,6 @@ async function migrate() {
       user_id INTEGER NOT NULL,
       community TEXT NOT NULL,
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      favorites INTEGER NOT NULL DEFAULT 0,
       recipient_id INTEGER REFERENCES users(id),
       pickup_start TIMESTAMP,
       pickup_end TIMESTAMP,
