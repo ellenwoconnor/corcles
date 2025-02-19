@@ -85,7 +85,6 @@ export default function ListingPage() {
 
   const hasRequested = requests.length > 0;
   const hasBid = bids?.some((bid) => bid.status === "pending");
-  const isRecipient = user?.id === item?.recipientId;
   const hasPendingRequests = requests.some((r) => r.status === "pending");
 
   useEffect(() => {
