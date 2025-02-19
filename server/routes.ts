@@ -5,6 +5,7 @@ import multer from "multer";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import * as schema from "@shared/schema";
+import { z } from "zod";
 import { insertItemSchema, insertItemRequestSchema, insertItemBidSchema, insertMessageSchema } from "@shared/schema";
 import { eq, and, not, or } from "drizzle-orm";
 import { db } from "./db";
