@@ -946,18 +946,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to cancel this pickup" });
       }
 
-      // Reset item status and clear pickup windows
-      await db
-        .update(schema.items)
-        .set({ 
-          status: schema.ITEM_STATUS.AVAILABLE,
-          proposedPickupWindows: null,
-          pickupStart: null,
-          pickupEnd: null,
-          recipientId: null
-        })
-        .where(eq(schema.items.id, itemId));
-
       // Mark cancelled request as rejected
       await db
         .update(schema.itemRequests)
@@ -967,7 +955,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.itemRequests.id, request.id));
 
-      // Other requests remain in their current state
+      // Check for remaining non-cancelled requests
+      const remainingRequests = await db
+        .select()
+        .from(schema.itemRequests)
+        .where(
+          and(
+            eq(schema.itemRequests.itemId, itemId),
+            not(eq(schema.itemRequests.status, schema.REQUEST_STATUS.REJECTED)),
+            not(eq(schema.itemRequests.status, schema.REQUEST_STATUS.CANCELED))
+          )
+        );
+
+      // Set status based on remaining requests
+      const newStatus = remainingRequests.length > 0 
+        ? schema.ITEM_STATUS.REQUESTED 
+        : schema.ITEM_STATUS.AVAILABLE;
+
+      // Update item status and clear pickup info
+      await db
+        .update(schema.items)
+        .set({ 
+          status: newStatus,
+          proposedPickupWindows: null,
+          pickupStart: null,
+          pickupEnd: null,
+          recipientId: null
+        })
+        .where(eq(schema.items.id, itemId));
 
       logger.debug('Pickup canceled:', { 
         itemId,
