@@ -32,8 +32,8 @@ export const REQUEST_STATUS = {
   READY_FOR_DRAWING: 'ready_for_drawing',
   AWAITING_PICKUP_CONFIRMATION: 'awaiting_pickup_confirmation',
   ACCEPTED: 'accepted',
-  REJECTED: 'rejected',
-  CANCELED: 'canceled' // New status
+  BACKUP: 'backup',
+  CANCELED: 'canceled'
 } as const;
 
 export const items = pgTable("items", {
