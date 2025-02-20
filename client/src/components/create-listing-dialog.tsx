@@ -78,7 +78,7 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
       price: undefined,
       isGift: true,
       imageUrl: MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)],
-      communityId: undefined,
+      communityId: communities.find(c => !c.is_custom)?.id,
     },
     mode: "onChange"
   });
