@@ -265,24 +265,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { search } = req.query;
       const searchTerm = typeof search === 'string' ? search : undefined;
+      const communityId = parseInt(req.params.community);
 
       // Log the request parameters for debugging
       logger.debug('Fetching items:', {
-        community: req.params.community,
+        communityId,
         userId: req.user?.id,
         searchTerm,
         authenticated: req.isAuthenticated()
       });
 
+      if (isNaN(communityId)) {
+        return res.status(400).json({ error: "Invalid community ID" });
+      }
+
       const items = await storage.getItems(
-        req.params.community, 
+        [communityId], // Pass as array of numbers
         req.user?.id,
         searchTerm
       );
 
       // Log the number of items returned
       logger.debug('Items fetched:', {
-        community: req.params.community,
+        communityId,
         itemCount: items.length
       });
 
@@ -926,7 +931,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
-        return res.status(400).json({ error: "Invalid item ID" });
+        returnres.status(400).json({ error: "Invalid item ID" });
       }
 
       const { reason } = req.body;

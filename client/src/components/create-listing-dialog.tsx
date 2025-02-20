@@ -52,7 +52,12 @@ interface CreateListingDialogProps {
   communities: (Community & { role: string; memberCount: number })[];
 }
 
-const formSchema = insertItemSchema.extend({
+// Get the underlying schema from the ZodEffects wrapper
+const baseSchema = insertItemSchema instanceof z.ZodEffects 
+  ? insertItemSchema._def.schema 
+  : insertItemSchema;
+
+const formSchema = baseSchema.extend({
   communityId: z.number({
     required_error: "Please select a community",
   }),

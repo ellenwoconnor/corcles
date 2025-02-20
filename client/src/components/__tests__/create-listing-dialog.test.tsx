@@ -29,8 +29,26 @@ vi.mock('@/lib/queryClient', () => ({
 }));
 
 const mockCommunities = [
-  { id: 1, name: 'Test Community 1', role: 'member', memberCount: 5 },
-  { id: 2, name: 'Test Community 2', role: 'member', memberCount: 3 },
+  { 
+    id: 1, 
+    name: 'Test Community 1', 
+    role: 'member', 
+    memberCount: 5,
+    createdAt: new Date(),
+    description: 'Test description 1',
+    createdBy: 1,
+    isCustom: true
+  },
+  { 
+    id: 2, 
+    name: 'Test Community 2', 
+    role: 'member', 
+    memberCount: 3,
+    createdAt: new Date(),
+    description: 'Test description 2',
+    createdBy: 1,
+    isCustom: true
+  },
 ];
 
 const renderWithQuery = () => {
