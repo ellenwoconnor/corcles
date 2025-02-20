@@ -10,8 +10,8 @@ import OwnerListingView from "@/components/listing/owner-listing-view";
 import RecipientListingView from "@/components/listing/recipient-listing-view";
 
 interface PickupWindow {
-  start: string;
-  end: string;
+  pickupStart: string;
+  pickupEnd: string;
 }
 
 export type ExtendedItem = Item & {
@@ -47,8 +47,8 @@ export default function ListingPage() {
           pickupEnd: transformDate(data.pickupEnd),
           proposedPickupWindows: Array.isArray(data.proposedPickupWindows)
             ? data.proposedPickupWindows.map((window: any) => ({
-                start: transformDate(window.start) || new Date().toISOString(),
-                end: transformDate(window.end) || new Date().toISOString(),
+                pickupStart: transformDate(window.pickupStart) || new Date().toISOString(),
+                pickupEnd: transformDate(window.pickupEnd) || new Date().toISOString(),
               }))
             : [],
         };

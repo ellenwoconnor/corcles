@@ -1,4 +1,3 @@
-
 import { Item, ItemRequest } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow, format } from "date-fns";
@@ -12,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { CancelButton } from "@/components/cancel-button";
 import { ExtendedItem } from "@/pages/listing-page";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface OwnerListingViewProps {
   item: ExtendedItem;
@@ -30,6 +30,7 @@ export default function OwnerListingView({
   currentUserId 
 }: OwnerListingViewProps) {
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const activeRequest = requests.find(r => 
     ["pending", "accepted", "awaiting_pickup_confirmation", "scheduled"].includes(r.status)
