@@ -64,10 +64,13 @@ export function useWebSocket() {
                 queryKey: ['/api/messages', message.data.requestId]
               });
 
-              toast({
-                title: "New Message",
-                description: "You have received a new message",
-              });
+              // Only show toast if the connection is established
+              if (isConnected) {
+                toast({
+                  title: "New Message",
+                  description: "You have received a new message",
+                });
+              }
               break;
             case 'connection_established':
               console.log('WebSocket connection confirmed:', message.data);
@@ -88,19 +91,20 @@ export function useWebSocket() {
       ws.onclose = () => {
         console.log('WebSocket connection closed');
         setIsConnected(false);
+        wsRef.current = null;
 
-        // Increment reconnection attempt counter
-        reconnectAttemptRef.current += 1;
-
+        // Only attempt reconnection if we're still mounted
         if (reconnectAttemptRef.current < maxReconnectAttempts) {
-          if (!reconnectTimeoutRef.current) {
-            const delay = Math.min(1000 * Math.pow(2, reconnectAttemptRef.current), 10000);
-            console.log(`Scheduling reconnection attempt ${reconnectAttemptRef.current + 1} in ${delay}ms`);
-            reconnectTimeoutRef.current = setTimeout(() => {
-              connect();
-              reconnectTimeoutRef.current = undefined;
-            }, delay);
+          reconnectAttemptRef.current += 1;
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptRef.current), 10000);
+
+          // Clear any existing timeout
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
           }
+
+          console.log(`Scheduling reconnection attempt ${reconnectAttemptRef.current} in ${delay}ms`);
+          reconnectTimeoutRef.current = setTimeout(connect, delay);
         } else {
           console.log('Max reconnection attempts reached');
           toast({
@@ -114,7 +118,7 @@ export function useWebSocket() {
       console.error('Error setting up WebSocket:', error);
       setIsConnected(false);
     }
-  }, [toast]);
+  }, [toast, isConnected]);
 
   useEffect(() => {
     connect();
@@ -128,6 +132,7 @@ export function useWebSocket() {
         wsRef.current = null;
       }
       setIsConnected(false);
+      reconnectAttemptRef.current = maxReconnectAttempts; // Prevent reconnection attempts during cleanup
     };
   }, [connect]);
 

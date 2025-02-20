@@ -43,37 +43,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Initialize WebSocket server and connected clients map
   const httpServer = createServer(app);
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/ws',
+    verifyClient: (info, cb) => {
+      logger.debug('WebSocket connection attempt:', {
+        headers: info.req.headers,
+        url: info.req.url
+      });
+
+      // Parse session before WebSocket upgrade
+      sessionMiddleware(info.req as any, {} as any, (err: any) => {
+        if (err) {
+          logger.error('WebSocket session parsing error:', err);
+          cb(false, 401, 'Unauthorized');
+          return;
+        }
+
+        // @ts-ignore - req.user is added by passport
+        const userId = info.req.user?.id;
+        if (!userId) {
+          logger.warn('WebSocket unauthorized - no user found in session');
+          cb(false, 401, 'Unauthorized');
+          return;
+        }
+
+        logger.debug('WebSocket session parsed successfully:', {
+          userId,
+          sessionID: (info.req as any).sessionID
+        });
+
+        cb(true);
+      });
+    }
+  });
+
   const connectedClients = new Map<number, WebSocket>();
 
   // Log WebSocket server initialization
   logger.info('WebSocket server initialized on path: /ws');
 
-  // WebSocket connection handling with enhanced session parsing
+  // WebSocket connection handling
   wss.on('connection', async (ws, req) => {
     try {
-      // Parse session using Promise wrapper
-      await new Promise<void>((resolve, reject) => {
-        sessionMiddleware(req as any, {} as any, (err: any) => {
-          if (err) {
-            logger.error('Session parsing error:', err);
-            reject(err);
-            return;
-          }
-          resolve();
-        });
-      });
-
       // @ts-ignore - req.user is added by passport session
       const userId = req.user?.id;
-
-      // Enhanced logging for connection attempt
-      logger.debug('WebSocket connection attempt:', { 
-        userId,
-        hasSession: !!req.user,
-        headers: req.headers['cookie'] ? 'Cookie present' : 'No cookie'
-      });
-
       if (!userId) {
         logger.warn('WebSocket connection rejected - no authenticated user');
         ws.close(1008, 'Authentication required');
