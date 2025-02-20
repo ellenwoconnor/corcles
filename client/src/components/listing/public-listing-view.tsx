@@ -21,6 +21,9 @@ export default function PublicListingView({
 }: PublicListingViewProps) {
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
 
+  // Don't show request/bid buttons if the user is the owner
+  const isOwner = currentUserId === item.userId;
+
   return (
     <div className="grid md:grid-cols-2 gap-8">
       {/* Item Image */}
@@ -72,30 +75,32 @@ export default function PublicListingView({
         </div>
 
         {/* Action Button */}
-        <div className="flex gap-4">
-          {item.isGift ? (
-            hasRequested ? (
-              <Button variant="secondary" disabled>
-                Requested
-              </Button>
+        {!isOwner && (
+          <div className="flex gap-4">
+            {item.isGift ? (
+              hasRequested ? (
+                <Button variant="secondary" disabled>
+                  Requested
+                </Button>
+              ) : (
+                <RequestForm
+                  itemId={item.id}
+                  itemOwnerId={item.userId}
+                  hasRequested={hasRequested}
+                  isOpen={requestDialogOpen}
+                  onOpenChange={setRequestDialogOpen}
+                />
+              )
             ) : (
-              <RequestForm
+              <BidForm
                 itemId={item.id}
-                itemOwnerId={item.userId}
-                hasRequested={hasRequested}
+                hasBid={hasBid}
                 isOpen={requestDialogOpen}
                 onOpenChange={setRequestDialogOpen}
               />
-            )
-          ) : (
-            <BidForm
-              itemId={item.id}
-              hasBid={hasBid}
-              isOpen={requestDialogOpen}
-              onOpenChange={setRequestDialogOpen}
-            />
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

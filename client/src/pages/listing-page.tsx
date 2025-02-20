@@ -63,7 +63,7 @@ export default function ListingPage() {
     },
   });
 
-  const isOwner = user?.id === item?.userId;
+  const isOwner = Boolean(user?.id === item?.userId);
   const hasAcceptedRequest = Boolean(
     user?.id === item?.recipientId && 
     item?.status && 
