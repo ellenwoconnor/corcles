@@ -4,9 +4,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage,FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Plus } from "lucide-react";
 import { insertCommunitySchema } from "@shared/schema";
 import type { InsertCommunity } from "@shared/schema";
@@ -15,11 +16,16 @@ import { apiRequest } from "@/lib/queryClient";
 
 export default function CreateCommunityDialog() {
   const [open, setOpen] = useState(false);
+  const [isHomeType, setIsHomeType] = useState(true);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const form = useForm<InsertCommunity>({
-    resolver: zodResolver(insertCommunitySchema),
+    resolver: zodResolver(
+      isHomeType 
+        ? insertCommunitySchema 
+        : insertCommunitySchema.omit({ zipCode: true })
+    ),
     defaultValues: {
       name: "",
       description: "",
@@ -29,9 +35,13 @@ export default function CreateCommunityDialog() {
 
   async function onSubmit(data: InsertCommunity) {
     try {
+      const submitData = isHomeType ? data : { ...data, zipCode: null };
       await apiRequest("/api/communities", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...submitData,
+          isHomeType
+        }),
       });
 
       toast({
@@ -101,19 +111,36 @@ export default function CreateCommunityDialog() {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="zipCode"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>ZIP Code</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter ZIP code" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+              <div className="space-y-0.5">
+                <FormLabel>Home Community</FormLabel>
+                <FormDescription>
+                  Switch between home (ZIP code-based) and custom (invite-only) community
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={isHomeType}
+                  onCheckedChange={setIsHomeType}
+                />
+              </FormControl>
+            </FormItem>
+
+            {isHomeType && (
+              <FormField
+                control={form.control}
+                name="zipCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>ZIP Code</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter ZIP code" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div className="flex justify-end gap-2">
               <Button
