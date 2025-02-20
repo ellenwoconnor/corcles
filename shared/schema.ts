@@ -15,7 +15,7 @@ export type PickupWindow = z.infer<typeof pickupWindowSchema>;
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull(),
+  username: text("username").notNull().unique(),
   password: text("password").notNull(),
   displayName: text("display_name").notNull(),
   avatarUrl: text("avatar_url"),
@@ -112,7 +112,7 @@ export const insertUserSchema = createInsertSchema(users).extend({
     .min(5, "Zip code must be 5 digits")
     .max(5, "Zip code must be 5 digits")
     .refine((val) => /^\d{5}$/.test(val), "Zip code must be exactly 5 digits"),
-  email: z.string().email("Invalid email format")
+  email: z.string().email("Invalid email format"),
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
