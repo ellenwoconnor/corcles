@@ -154,11 +154,81 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getCommunityByZipCode(zipCode: string): Promise<Community | undefined> {
+    try {
+      const [community] = await db
+        .select()
+        .from(communities)
+        .where(eq(communities.name, `Community ${zipCode}`))
+        .limit(1);
+
+      logger.debug('Retrieved community by zip code:', { 
+        zipCode,
+        found: !!community,
+        communityId: community?.id
+      });
+
+      return community;
+    } catch (error) {
+      logger.error('Error retrieving community by zip code:', { error, zipCode });
+      throw error;
+    }
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     try {
-      const [user] = await db.insert(users).values(insertUser).returning();
-      logger.debug('Created new user:', { userId: user.id, username: user.username });
-      return user;
+      // Start a transaction
+      return await db.transaction(async (tx) => {
+        // Create the user
+        const [user] = await tx
+          .insert(users)
+          .values(insertUser)
+          .returning();
+
+        logger.debug('Created new user:', { userId: user.id, username: user.username });
+
+        // Get or create their home community
+        const communityName = `Community ${insertUser.zipCode}`;
+        let [community] = await tx
+          .select()
+          .from(communities)
+          .where(eq(communities.name, communityName));
+
+        if (!community) {
+          // Create new community if it doesn't exist
+          [community] = await tx
+            .insert(communities)
+            .values({
+              name: communityName,
+              description: `Local community for ${insertUser.zipCode}`,
+              createdBy: user.id,
+              isCustom: false,
+            })
+            .returning();
+
+          logger.debug('Created new community for zip code:', {
+            zipCode: insertUser.zipCode,
+            communityId: community.id
+          });
+        }
+
+        // Add user to their home community
+        await tx
+          .insert(userCommunities)
+          .values({
+            userId: user.id,
+            communityId: community.id,
+            role: community.createdBy === user.id ? 'admin' : 'member'
+          });
+
+        logger.debug('Added user to home community:', {
+          userId: user.id,
+          communityId: community.id,
+          role: community.createdBy === user.id ? 'admin' : 'member'
+        });
+
+        return user;
+      });
     } catch (error) {
       logger.error('Error creating user:', { error, username: insertUser.username });
       throw error;
