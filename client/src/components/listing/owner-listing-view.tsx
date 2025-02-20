@@ -121,9 +121,14 @@ export default function OwnerListingView({
           <div className="space-y-4">
             {item.isGift ? (
               <>
+                <RequestsList
+                  requests={requests}
+                  currentUserId={currentUserId}
+                />
+
                 {/* Show pickup scheduling if needed */}
                 {showPickupScheduler && activeRequest && (
-                  <div className="border-b border-border pb-4 mb-4">
+                  <div className="border-t border-border pt-4">
                     {/* Show proposed pickup windows if they exist */}
                     {item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && (
                       <div className="mb-4">
@@ -151,11 +156,6 @@ export default function OwnerListingView({
                     />
                   </div>
                 )}
-
-                <RequestsList
-                  requests={requests}
-                  currentUserId={currentUserId}
-                />
 
                 {/* Show message and cancel buttons */}
                 {showMessageAndCancel && (
