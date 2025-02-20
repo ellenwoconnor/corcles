@@ -18,7 +18,6 @@ export const db = drizzle({ client: pool, schema });
 // Run initial migration
 async function migrate() {
   const migrations = [
-    // Create tables if they don't exist with current schema
     `CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
       username TEXT NOT NULL UNIQUE,
@@ -79,7 +78,6 @@ async function migrate() {
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       cancellation_info JSONB
     )`,
-    // Migration to ensure users have email addresses and create default communities
     `DO $$ 
     DECLARE
       v_zip_code TEXT;
@@ -89,7 +87,7 @@ async function migrate() {
       -- First, ensure all users have email addresses
       UPDATE users SET email = username || '@example.com' WHERE email IS NULL;
 
-      -- Create default communities for each zip code
+      -- Create default communities for each zip code if they don't exist
       FOR v_zip_code, v_first_user_id IN 
         SELECT DISTINCT zip_code, MIN(id) as first_user_id
         FROM users
@@ -118,8 +116,7 @@ async function migrate() {
           SELECT id, v_community_id, 
             CASE WHEN id = v_first_user_id THEN 'admin' ELSE 'member' END
           FROM users
-          WHERE zip_code = v_zip_code
-          ON CONFLICT (user_id, community_id) DO NOTHING;
+          WHERE zip_code = v_zip_code;
 
           -- Update items to belong to this community if they don't have one
           UPDATE items i
@@ -130,9 +127,6 @@ async function migrate() {
           AND i.community_id IS NULL;
         END IF;
       END LOOP;
-    EXCEPTION 
-      WHEN OTHERS THEN
-        RAISE NOTICE 'Error in migration: %', SQLERRM;
     END $$;`
   ];
 
