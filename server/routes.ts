@@ -308,7 +308,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const data = {
         ...req.body,
         price: Number(req.body.price),
-        isGift: !!req.body.isGift
+        isGift: !!req.body.isGift,
+        communityId: parseInt(req.body.communityId)
       };
 
       const parseResult = insertItemSchema.safeParse(data);
@@ -922,6 +923,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error('Error fetching bids:', error);
       res.status(500).json({ error: 'Failed to fetch bids' });
+    }
+  });
+
+  app.get("/api/user/communities", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const communities = await storage.getUserCommunities(req.user.id);
+      logger.debug('Retrieved user communities:', { 
+        userId: req.user.id,
+        communities: communities.map(c => ({
+          id: c.id,
+          name: c.name,
+          role: c.role,
+          memberCount: c.memberCount
+        }))
+      });
+      res.json(communities);
+    } catch (error) {
+      logger.error('Error fetching user communities:', error);
+      res.status(500).json({ error: 'Failed to fetch user communities' });
+    }
+  });
+
+  app.post("/api/communities", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const { name, description } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ error: "Community name is required" });
+      }
+
+      const community = await storage.createCommunity({
+        name,
+        description,
+        createdBy: req.user.id,
+        isCustom: true
+      });
+
+      logger.debug('Created new community:', {
+        communityId: community.id,
+        name: community.name,
+        createdBy: req.user.id
+      });
+
+      res.status(201).json(community);
+    } catch (error) {
+      logger.error('Error creating community:', error);
+      res.status(500).json({ error: 'Failed to create community' });
     }
   });
 

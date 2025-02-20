@@ -53,8 +53,8 @@ interface CreateListingDialogProps {
 }
 
 // Get the underlying schema from the ZodEffects wrapper
-const baseSchema = insertItemSchema instanceof z.ZodEffects 
-  ? insertItemSchema._def.schema 
+const baseSchema = insertItemSchema instanceof z.ZodEffects
+  ? insertItemSchema._def.schema
   : insertItemSchema;
 
 const formSchema = baseSchema.extend({
@@ -88,6 +88,7 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
       const response = await apiRequest("POST", "/api/items", {
         ...data,
         price: data.isGift ? null : data.price,
+        communityId: data.communityId // Ensure communityId is included
       });
       if (!response.ok) {
         const error = await response.json();
@@ -115,8 +116,8 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
   });
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onOpenChange={(newOpen) => {
         if (!newOpen) {
           form.reset();
@@ -158,8 +159,8 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
                     </FormControl>
                     <SelectContent>
                       {communities.map((community) => (
-                        <SelectItem 
-                          key={community.id} 
+                        <SelectItem
+                          key={community.id}
                           value={community.id.toString()}
                         >
                           {community.name}
@@ -196,8 +197,8 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
                 <FormItem>
                   <FormLabel>Description (optional)</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      {...field} 
+                    <Textarea
+                      {...field}
                       placeholder="Describe the item's brand, dimensions, condition, or other relevant information."
                     />
                   </FormControl>
