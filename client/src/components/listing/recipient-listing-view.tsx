@@ -111,7 +111,7 @@ export default function RecipientListingView({
               <PickupTimeSelector
                 itemId={item.id}
                 itemOwnerId={item.userId}
-                currentUserId={user.id}
+                currentUserId={currentUserId}
                 requestId={request.id}
                 windows={item.proposedPickupWindows}
                 onSelected={handleSchedulingComplete}
