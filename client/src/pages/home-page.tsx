@@ -26,9 +26,7 @@ export default function HomePage() {
 
   const communityIds = userCommunities.map((c) => c.id);
 
-  const { data: items, isLoading } = useQuery<
-    (Item & { userHasFavorited: boolean })[]
-  >({
+  const { data: items, isLoading } = useQuery<Item[]>({
     queryKey: [
       "/api/items",
       {
