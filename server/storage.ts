@@ -645,7 +645,12 @@ export class DatabaseStorage implements IStorage {
     try {
       const [newCommunity] = await db.insert(communities).values(community).returning();
 
-      await this.addUserToCommunity(community.createdBy, newCommunity.id, 'admin');
+      // Add the creator as an admin member
+      await db.insert(userCommunities).values({
+        userId: community.createdBy,
+        communityId: newCommunity.id,
+        role: 'admin'
+      });
 
       logger.debug('Created new community:', { communityId: newCommunity.id, community: newCommunity });
       return newCommunity;
@@ -670,15 +675,15 @@ export class DatabaseStorage implements IStorage {
     try {
       const userComms = await db
         .select({
-          community: communities,
+          ...communities,
           role: userCommunities.role,
-          memberCount: sql<number>`COUNT(DISTINCT uc2.user_id)`.as('memberCount')
+          memberCount: sql<number>`COUNT(DISTINCT ${userCommunities.userId})`.as('memberCount')
         })
         .from(userCommunities)
         .innerJoin(communities, eq(userCommunities.communityId, communities.id))
         .leftJoin(
-          userCommunities.as('uc2'),
-          eq(userCommunities.communityId, sql`uc2.community_id`)
+          userCommunities,
+          eq(userCommunities.communityId, communities.id)
         )
         .where(eq(userCommunities.userId, userId))
         .groupBy(communities.id, userCommunities.role);
@@ -687,16 +692,15 @@ export class DatabaseStorage implements IStorage {
         userId, 
         count: userComms.length,
         communities: userComms.map(uc => ({
-          id: uc.community.id,
-          name: uc.community.name,
+          id: uc.id,
+          name: uc.name,
           role: uc.role,
           memberCount: Number(uc.memberCount)
         }))
       });
 
       return userComms.map(uc => ({ 
-        ...uc.community, 
-        role: uc.role,
+        ...uc,
         memberCount: Number(uc.memberCount)
       }));
     } catch (error) {
