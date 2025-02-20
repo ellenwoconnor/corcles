@@ -29,17 +29,10 @@ export default function ProfilePage() {
     enabled: !!user,
   });
 
-  const { data: communityData, isLoading: communityLoading } = useQuery({
-    queryKey: ["/api/community", user?.community],
-    queryFn: async () => {
-      const response = await fetch(`/api/community/${user?.community}/count`);
-      if (!response.ok) throw new Error('Failed to fetch community count');
-      return response.json();
-    },
-    enabled: !!user?.community,
+  const { data: userCommunities, isLoading: communityLoading } = useQuery({
+    queryKey: ["/api/user/communities"],
+    enabled: !!user,
   });
-
-  const communityCount = communityData?.count || 0;
 
   const pendingConfirmations = userRequests?.filter(
     r => r.status === "awaiting_pickup_confirmation"
@@ -69,6 +62,9 @@ export default function ProfilePage() {
     );
   }
 
+  const userCommunitiesList = userCommunities?.map(c => c.name).join(", ") || "No communities joined";
+  const memberCount = userCommunities?.reduce((total, c) => total + c.memberCount, 0) || 0;
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -83,11 +79,13 @@ export default function ProfilePage() {
                   <span className="text-muted-foreground">{user.address}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">Home Community: </span>
-                  <span className="text-muted-foreground">{user.community}</span>
-                  <Badge variant="secondary" className="ml-1">
-                    {communityCount} {communityCount === 1 ? 'member' : 'members'}
-                  </Badge>
+                  <span className="font-medium">Communities: </span>
+                  <span className="text-muted-foreground">{userCommunitiesList}</span>
+                  {memberCount > 0 && (
+                    <Badge variant="secondary" className="ml-1">
+                      {memberCount} total {memberCount === 1 ? 'member' : 'members'}
+                    </Badge>
+                  )}
                 </div>
               </div>
             </div>
