@@ -85,7 +85,7 @@ export interface IStorage {
   // Community methods
   createCommunity(community: InsertCommunity & { createdBy: number }): Promise<Community>;
   getCommunity(id: number): Promise<Community | undefined>;
-  getUserCommunities(userId: number): Promise<(Community & { role: string })[]>;
+  getUserCommunities(userId: number): Promise<(Community & { role: string; memberCount: number })[]>;
   addUserToCommunity(userId: number, communityId: number, role?: string): Promise<UserCommunity>;
   createCommunityInvite(invite: InsertCommunityInvite): Promise<CommunityInvite>;
   getCommunityInvites(communityId: number): Promise<CommunityInvite[]>;
@@ -163,15 +163,15 @@ export class DatabaseStorage implements IStorage {
         .select({
           ...items,
           userDisplayName: sql<string>`(
-            SELECT username FROM ${users} WHERE ${users.id} = ${items.userId}
+            SELECT display_name FROM ${users} WHERE ${users.id} = ${items.userId}
           )`.as("userDisplayName"),
           userHasFavorited: sql<boolean>`false`.as("userHasFavorited"),
         })
         .from(items);
 
-      if (userItemsOnly) {
-        query.where(eq(items.userId, userId!));
-      } else {
+      if (userItemsOnly && userId) {
+        query.where(eq(items.userId, userId));
+      } else if (communities.length > 0) {
         query.where(
           and(
             inArray(items.communityId, communities),
@@ -657,16 +657,22 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getUserCommunities(userId: number): Promise<(Community & { role: string })[]> {
+  async getUserCommunities(userId: number): Promise<(Community & { role: string; memberCount: number })[]> {
     try {
       const userComms = await db
         .select({
           community: communities,
           role: userCommunities.role,
+          memberCount: sql<number>`COUNT(DISTINCT uc2.user_id)`.as('memberCount')
         })
         .from(userCommunities)
         .innerJoin(communities, eq(userCommunities.communityId, communities.id))
-        .where(eq(userCommunities.userId, userId));
+        .leftJoin(
+          userCommunities.as('uc2'),
+          eq(userCommunities.communityId, sql`uc2.community_id`)
+        )
+        .where(eq(userCommunities.userId, userId))
+        .groupBy(communities.id, userCommunities.role);
 
       logger.debug('Retrieved user communities:', { 
         userId, 
@@ -674,11 +680,16 @@ export class DatabaseStorage implements IStorage {
         communities: userComms.map(uc => ({
           id: uc.community.id,
           name: uc.community.name,
-          role: uc.role
+          role: uc.role,
+          memberCount: Number(uc.memberCount)
         }))
       });
 
-      return userComms.map(uc => ({ ...uc.community, role: uc.role }));
+      return userComms.map(uc => ({ 
+        ...uc.community, 
+        role: uc.role,
+        memberCount: Number(uc.memberCount)
+      }));
     } catch (error) {
       logger.error('Error getting user communities:', { error, userId });
       throw error;

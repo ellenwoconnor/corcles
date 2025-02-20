@@ -26,7 +26,33 @@ async function migrate() {
       display_name TEXT NOT NULL,
       avatar_url TEXT,
       address TEXT NOT NULL,
-      zip_code TEXT NOT NULL
+      zip_code TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE
+    )`,
+    `CREATE TABLE IF NOT EXISTS communities (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      created_by INTEGER NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      is_custom BOOLEAN NOT NULL DEFAULT FALSE
+    )`,
+    `CREATE TABLE IF NOT EXISTS user_communities (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      community_id INTEGER NOT NULL REFERENCES communities(id),
+      joined_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      role TEXT NOT NULL DEFAULT 'member',
+      UNIQUE(user_id, community_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS community_invites (
+      id SERIAL PRIMARY KEY,
+      community_id INTEGER NOT NULL REFERENCES communities(id),
+      invited_by INTEGER NOT NULL REFERENCES users(id),
+      invited_email TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      accepted_at TIMESTAMP
     )`,
     `CREATE TABLE IF NOT EXISTS items (
       id SERIAL PRIMARY KEY,
@@ -41,7 +67,8 @@ async function migrate() {
       pickup_start TIMESTAMP,
       pickup_end TIMESTAMP,
       status TEXT NOT NULL DEFAULT 'available',
-      proposed_pickup_windows JSONB[]
+      proposed_pickup_windows JSONB[],
+      community_id INTEGER NOT NULL REFERENCES communities(id)
     )`,
     `CREATE TABLE IF NOT EXISTS item_requests (
       id SERIAL PRIMARY KEY,
@@ -49,92 +76,53 @@ async function migrate() {
       requester_id INTEGER NOT NULL,
       status TEXT NOT NULL DEFAULT 'pending',
       message TEXT,
-      created_at TIMESTAMP NOT NULL DEFAULT NOW()
-    )`,
-    `CREATE TABLE IF NOT EXISTS item_bids (
-      id SERIAL PRIMARY KEY,
-      item_id INTEGER NOT NULL,
-      bidder_id INTEGER NOT NULL,
-      amount INTEGER NOT NULL,
-      status TEXT NOT NULL DEFAULT 'pending',
-      message TEXT,
-      created_at TIMESTAMP NOT NULL DEFAULT NOW()
-    )`,
-    `CREATE TABLE IF NOT EXISTS messages (
-      id SERIAL PRIMARY KEY,
-      content TEXT NOT NULL,
-      sender_id INTEGER NOT NULL REFERENCES users(id),
-      recipient_id INTEGER NOT NULL REFERENCES users(id),
-      request_id INTEGER NOT NULL REFERENCES item_requests(id),
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      read_at TIMESTAMP
+      cancellation_info JSONB
     )`,
-    // Add missing columns to existing tables
+    // Update existing users to have email if missing
     `DO $$ 
     BEGIN 
-      BEGIN
-        ALTER TABLE users ADD COLUMN address TEXT NOT NULL DEFAULT '';
-      EXCEPTION
-        WHEN duplicate_column THEN NULL;
-      END;
-      
-      BEGIN
-        ALTER TABLE users ADD COLUMN zip_code TEXT NOT NULL DEFAULT '';
-      EXCEPTION
-        WHEN duplicate_column THEN NULL;
-      END;
-      
-      BEGIN
-        ALTER TABLE items ADD COLUMN proposed_pickup_windows JSONB[];
-      EXCEPTION
-        WHEN duplicate_column THEN NULL;
-      END;
-      
-      BEGIN
-        ALTER TABLE messages ADD COLUMN read_at TIMESTAMP;
-      EXCEPTION
-        WHEN duplicate_column THEN NULL;
-      END;
+      UPDATE users SET email = username || '@example.com' 
+      WHERE email IS NULL;
+    EXCEPTION WHEN OTHERS THEN NULL;
     END $$;`,
-    // Add new tables
-    `CREATE TABLE IF NOT EXISTS communities (
-      id SERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      description TEXT,
-      created_by INTEGER NOT NULL,
-      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      is_custom BOOLEAN NOT NULL DEFAULT TRUE
-    )`,
+    // Create default communities for existing zip codes if none exist
+    `DO $$ 
+    BEGIN 
+      INSERT INTO communities (name, description, created_by, is_custom)
+      SELECT DISTINCT 
+        'Community ' || zip_code,
+        'Default community for ' || zip_code,
+        MIN(id),
+        FALSE
+      FROM users u
+      WHERE NOT EXISTS (
+        SELECT 1 FROM communities c 
+        WHERE c.name = 'Community ' || u.zip_code
+      )
+      GROUP BY zip_code;
 
-    `CREATE TABLE IF NOT EXISTS user_communities (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER NOT NULL REFERENCES users(id),
-      community_id INTEGER NOT NULL REFERENCES communities(id),
-      joined_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      role TEXT NOT NULL DEFAULT 'member'
-    )`,
+      -- Add users to their zip code communities
+      INSERT INTO user_communities (user_id, community_id, role)
+      SELECT u.id, c.id, 'member'
+      FROM users u
+      JOIN communities c ON c.name = 'Community ' || u.zip_code
+      WHERE NOT EXISTS (
+        SELECT 1 FROM user_communities uc 
+        WHERE uc.user_id = u.id AND uc.community_id = c.id
+      );
 
-    `CREATE TABLE IF NOT EXISTS community_invites (
-      id SERIAL PRIMARY KEY,
-      community_id INTEGER NOT NULL REFERENCES communities(id),
-      invited_by INTEGER NOT NULL REFERENCES users(id),
-      invited_email TEXT NOT NULL,
-      status TEXT NOT NULL DEFAULT 'pending',
-      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      accepted_at TIMESTAMP
-    )`,
-
-    // Update existing tables
-    `ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT`,
-    `ALTER TABLE users DROP COLUMN IF EXISTS community`,
-    `ALTER TABLE items DROP COLUMN IF EXISTS community`,
-    `ALTER TABLE items ADD COLUMN IF NOT EXISTS community_id INTEGER REFERENCES communities(id)`,
-
-    // Add indexes for better query performance
-    `CREATE INDEX IF NOT EXISTS idx_user_communities_user_id ON user_communities(user_id)`,
-    `CREATE INDEX IF NOT EXISTS idx_user_communities_community_id ON user_communities(community_id)`,
-    `CREATE INDEX IF NOT EXISTS idx_items_community_id ON items(community_id)`,
-    `CREATE INDEX IF NOT EXISTS idx_community_invites_email ON community_invites(invited_email)`,
+      -- Update existing items to link to zip code communities
+      UPDATE items i
+      SET community_id = (
+        SELECT c.id 
+        FROM communities c 
+        JOIN users u ON u.id = i.user_id 
+        WHERE c.name = 'Community ' || u.zip_code
+      )
+      WHERE community_id IS NULL;
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END $$;`,
   ];
 
   for (const migration of migrations) {
