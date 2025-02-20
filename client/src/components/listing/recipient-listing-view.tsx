@@ -114,7 +114,10 @@ export default function RecipientListingView({
                 currentUserId={currentUserId}
                 requestId={request.id}
                 windows={item.proposedPickupWindows}
-                onSelected={() => useState(true))}
+                onSelected={() => {
+                  setSchedulingComplete(true);
+                  onScheduled?.();
+                }}
               />
             </div>
           )}
