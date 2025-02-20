@@ -167,17 +167,13 @@ export class DatabaseStorage implements IStorage {
           )`.as("userDisplayName"),
           userHasFavorited: sql<boolean>`false`.as("userHasFavorited"),
         })
-        .from(items);
+        .from(items)
+        .where(notInArray(items.status, ['completed']));
 
       if (userItemsOnly && userId) {
         query.where(eq(items.userId, userId));
       } else if (communities.length > 0) {
-        query.where(
-          and(
-            inArray(items.communityId, communities),
-            notInArray(items.status, ['completed'])
-          )
-        );
+        query.where(inArray(items.communityId, communities));
       }
 
       if (search) {
@@ -192,14 +188,27 @@ export class DatabaseStorage implements IStorage {
 
       const results = await query.orderBy(desc(items.createdAt));
 
+      logger.debug('Retrieved items:', { 
+        communities,
+        userId,
+        userItemsOnly,
+        count: results.length,
+        items: results.map(item => ({
+          id: item.id,
+          title: item.title,
+          communityId: item.communityId
+        }))
+      });
+
       return results.map(item => ({
         ...item,
         proposedPickupWindows: item.proposedPickupWindows 
           ? (item.proposedPickupWindows as unknown as PickupWindow[])
           : undefined,
         pickupStart: item.pickupStart ? new Date(item.pickupStart).toISOString() : null,
-        pickupEnd: item.pickupEnd ? new Date(item.pickupEnd).toISOString() : null
-      })) as (Item & { userHasFavorited: boolean })[];
+        pickupEnd: item.pickupEnd ? new Date(item.pickupEnd).toISOString() : null,
+        createdAt: new Date(item.createdAt).toISOString()
+      }));
     } catch (error) {
       logger.error('Error retrieving items:', { error, communities, search });
       throw error;
