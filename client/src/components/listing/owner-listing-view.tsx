@@ -9,6 +9,8 @@ import PickupSchedulingContainer from "@/components/pickup-scheduling-container"
 import { MessageDialog } from "@/components/message-dialog";
 import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
+import { useState } from "react";
+import { CancelButton } from "@/components/cancel-button";
 
 interface OwnerListingViewProps {
   item: Item & { userHasFavorited?: boolean };
@@ -23,8 +25,13 @@ export default function OwnerListingView({
   bids, 
   currentUserId 
 }: OwnerListingViewProps) {
-  const showMessageDialog = ['scheduling', 'scheduled', 'completed'].includes(item?.status || '');
-  const showPickupScheduler = ['requested', 'scheduling', 'scheduled'].includes(item?.status || '');
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+  const activeRequest = requests.find(r => 
+    ["pending", "accepted", "awaiting_pickup_confirmation", "scheduled"].includes(r.status)
+  );
+
+  const showPickupScheduler = ['requested', 'scheduling'].includes(item.status || '');
+  const showMessageAndCancel = ['scheduling', 'scheduled'].includes(item.status || '') && activeRequest;
 
   return (
     <div className="grid md:grid-cols-2 gap-8">
@@ -110,28 +117,41 @@ export default function OwnerListingView({
                   requests={requests}
                   currentUserId={currentUserId}
                 />
-                {/* Pickup Scheduling */}
-                {showPickupScheduler && requests[0] && (
+
+                {/* Show pickup scheduling if needed */}
+                {showPickupScheduler && activeRequest && (
                   <div className="border-t border-border pt-4">
                     <PickupSchedulingContainer
                       item={item}
-                      requestId={requests[0].id}
-                      requesterId={requests[0].userId ?? 0}
-                      onScheduled={() => {
-                        // Handle scheduling completion
-                      }}
+                      requestId={activeRequest.id}
+                      requesterId={activeRequest.userId ?? 0}
                     />
                   </div>
                 )}
-                {/* Messaging */}
-                {showMessageDialog && requests[0] && (
+
+                {/* Show message and cancel buttons */}
+                {showMessageAndCancel && (
                   <div className="border-t border-border pt-4">
-                    <MessageDialog
-                      requestId={requests[0].id}
-                      currentUserId={currentUserId}
-                      otherPartyId={requests[0].userId ?? 0}
-                      recipientId={requests[0].userId ?? 0}
-                    />
+                    <div className="flex items-center gap-4">
+                      <CancelButton 
+                        itemId={item.id}
+                        requestId={activeRequest.id}
+                        variant="outline"
+                      />
+                      <MessageDialog
+                        requestId={activeRequest.id}
+                        currentUserId={currentUserId}
+                        otherPartyId={activeRequest.userId ?? 0}
+                        recipientId={activeRequest.userId ?? 0}
+                        isOpen={messageDialogOpen}
+                        onOpenChange={setMessageDialogOpen}
+                        trigger={
+                          <Button variant="outline">
+                            Message
+                          </Button>
+                        }
+                      />
+                    </div>
                   </div>
                 )}
               </>
