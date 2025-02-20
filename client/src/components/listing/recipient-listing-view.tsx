@@ -1,8 +1,9 @@
+
 import { Item, ItemRequest } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow, format } from "date-fns";
 import { Clock } from "lucide-react";
-import PickupTimeSelector from "@/components/pickup-scheduling-container";
+import PickupTimeSelector from "@/components/pickup-time-selector";
 import { MessageDialog } from "@/components/message-dialog";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
@@ -13,30 +14,38 @@ interface RecipientListingViewProps {
   item: Item & { userHasFavorited?: boolean };
   request?: ItemRequest & { userId?: number };
   currentUserId: number;
+  onScheduled?: () => void;
 }
 
 export default function RecipientListingView({
   item,
   request,
   currentUserId,
+  onScheduled,
 }: RecipientListingViewProps) {
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+  const [schedulingComplete, setSchedulingComplete] = useState(false);
+
   // Only show pickup scheduler if we have a valid request in the right status
   const showPickupScheduler =
     request?.status === "awaiting_pickup_confirmation";
   const showCancelAndMessage =
     request && ["scheduling", "scheduled"].includes(item?.status || "");
-  const [messageDialogOpen, setMessageDialogOpen] = useState(false);
 
-  if (!request) {
+  if (!request || !item) {
     return (
       <div className="text-center py-8">
-        <h2 className="text-xl font-semibold mb-2">Error Loading Request</h2>
+        <h2 className="text-xl font-semibold mb-2">Error Loading Details</h2>
         <p className="text-muted-foreground">
-          Unable to load request details. Please try again later.
+          Unable to load item details. Please try again later.
         </p>
       </div>
     );
   }
+
+  // Ensure we have valid IDs for messaging
+  const itemOwnerId = item.userId || 0;
+  const recipientId = request.requesterId || currentUserId;
 
   return (
     <div className="grid md:grid-cols-2 gap-8">
@@ -133,8 +142,8 @@ export default function RecipientListingView({
               <MessageDialog
                 requestId={request.id}
                 currentUserId={currentUserId}
-                otherPartyId={item.userId}
-                recipientId={currentUserId}
+                otherPartyId={itemOwnerId}
+                recipientId={recipientId}
                 isOpen={messageDialogOpen}
                 onOpenChange={setMessageDialogOpen}
                 trigger={<Button variant="outline">Message</Button>}

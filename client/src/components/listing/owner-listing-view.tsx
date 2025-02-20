@@ -1,3 +1,4 @@
+
 import { Item, ItemRequest } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow, format } from "date-fns";
@@ -5,7 +6,7 @@ import { Clock, Pencil } from "lucide-react";
 import EditListingDialog from "@/components/edit-listing-dialog";
 import RequestsList from "@/components/requests-list";
 import BidsList from "@/components/bids-list";
-import PickupSchedulingContainer from "@/components/pickup-scheduling-container";
+import PickupScheduler from "@/components/pickup-scheduler";
 import { MessageDialog } from "@/components/message-dialog";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -140,9 +141,9 @@ export default function OwnerListingView({
                       <div className="flex items-center gap-2">
                         <Clock className="w-3.5 h-3.5" />
                         <span className="text-sm">
-                          {format(new Date(window.start), "EEE, MMM d")} at{" "}
-                          {format(new Date(window.start), "h:mm a")} -{" "}
-                          {format(new Date(window.end), "h:mm a")}
+                          {format(new Date(window.pickupStart), "EEE, MMM d")} at{" "}
+                          {format(new Date(window.pickupStart), "h:mm a")} -{" "}
+                          {format(new Date(window.pickupEnd), "h:mm a")}
                         </span>
                       </div>
                     </div>
@@ -151,10 +152,13 @@ export default function OwnerListingView({
               </div>
             )}
 
-            <PickupSchedulingContainer
-              item={item}
-              requestId={activeRequest.id}
-              requesterId={activeRequest.userId ?? 0}
+            <PickupScheduler
+              itemId={item.id}
+              itemStatus={item.status || ''}
+              onScheduled={() => {
+                queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}`] });
+                queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}/requests`] });
+              }}
             />
           </div>
         )}
