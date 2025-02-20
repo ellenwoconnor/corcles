@@ -79,52 +79,54 @@ async function migrate() {
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       cancellation_info JSONB
     )`,
-    // Create default communities for existing zip codes if none exist
+    // Migration to ensure users have email addresses and create default communities
     `DO $$ 
     DECLARE
-      v_user RECORD;
+      v_zip_code TEXT;
+      v_first_user_id INTEGER;
       v_community_id INTEGER;
     BEGIN
-      -- First, handle any users without email
+      -- First, ensure all users have email addresses
       UPDATE users SET email = username || '@example.com' WHERE email IS NULL;
 
-      -- Create communities for each unique zip code
-      FOR v_user IN (
+      -- Create default communities for each zip code
+      FOR v_zip_code, v_first_user_id IN 
         SELECT DISTINCT zip_code, MIN(id) as first_user_id
         FROM users
         GROUP BY zip_code
-      ) LOOP
+      LOOP
         -- Check if community already exists for this zip code
         IF NOT EXISTS (
           SELECT 1 FROM communities 
-          WHERE name = 'Community ' || v_user.zip_code
+          WHERE name = 'Community ' || v_zip_code
         ) THEN
           -- Create the community
           INSERT INTO communities (
             name, 
             description, 
-            created_by, 
+            created_by,
             is_custom
           ) VALUES (
-            'Community ' || v_user.zip_code,
-            'Default community for ' || v_user.zip_code,
-            v_user.first_user_id,
+            'Community ' || v_zip_code,
+            'Default community for ' || v_zip_code,
+            v_first_user_id,
             FALSE
           ) RETURNING id INTO v_community_id;
 
           -- Add all users from this zip code to the community
           INSERT INTO user_communities (user_id, community_id, role)
-          SELECT id, v_community_id, 'member'
+          SELECT id, v_community_id, 
+            CASE WHEN id = v_first_user_id THEN 'admin' ELSE 'member' END
           FROM users
-          WHERE zip_code = v_user.zip_code
+          WHERE zip_code = v_zip_code
           ON CONFLICT (user_id, community_id) DO NOTHING;
 
-          -- Update any items from users in this zip code to belong to this community
+          -- Update items to belong to this community if they don't have one
           UPDATE items i
           SET community_id = v_community_id
           FROM users u
           WHERE i.user_id = u.id
-          AND u.zip_code = v_user.zip_code
+          AND u.zip_code = v_zip_code
           AND i.community_id IS NULL;
         END IF;
       END LOOP;
