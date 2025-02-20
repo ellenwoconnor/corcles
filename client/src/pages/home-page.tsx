@@ -39,7 +39,7 @@ export default function HomePage() {
   });
 
   console.log("items", items);
-
+  console.log("comms", userCommunities);
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
