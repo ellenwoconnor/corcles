@@ -27,7 +27,7 @@ export default function HomePage() {
   const { data: items, isLoading } = useQuery<
     (Item & { userHasFavorited: boolean })[]
   >({
-    queryKey: ["/api/items", communityIds, debouncedSearch, showFreeOnly],
+    queryKey: ["/api/items", { search: debouncedSearch, communities: communityIds, freeOnly: showFreeOnly }],
     enabled: communityIds.length > 0,
   });
 
