@@ -2,7 +2,25 @@ import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Define status constants first
+export const pickupWindowSchema = z.object({
+  pickupStart: z.string(),
+  pickupEnd: z.string(),
+  order: z.number().optional()
+});
+
+export type PickupWindow = z.infer<typeof pickupWindowSchema>;
+
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  displayName: text("display_name").notNull(),
+  avatarUrl: text("avatar_url"),
+  address: text("address").notNull(),
+  zipCode: text("zip_code").notNull(),
+  community: text("community").notNull(),
+});
+
 export const ITEM_STATUS = {
   AVAILABLE: 'available',
   REQUESTED: 'requested',
@@ -19,54 +37,6 @@ export const REQUEST_STATUS = {
   BACKUP: 'backup',
   CANCELED: 'canceled'
 } as const;
-
-// Schema definitions
-export const pickupWindowSchema = z.object({
-  pickupStart: z.string(),
-  pickupEnd: z.string(),
-  order: z.number().optional()
-});
-
-export type PickupWindow = z.infer<typeof pickupWindowSchema>;
-
-// Community-related tables
-export const communities = pgTable("communities", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
-  createdBy: integer("created_by").notNull(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  zipCode: text("zip_code").notNull(),
-});
-
-export const communityMembers = pgTable("community_members", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
-  communityId: integer("community_id").notNull(),
-  joinedAt: timestamp("joined_at").notNull().defaultNow(),
-  role: text("role").notNull().default('member'), // 'admin' or 'member'
-});
-
-export const communityInvitations = pgTable("community_invitations", {
-  id: serial("id").primaryKey(),
-  communityId: integer("community_id").notNull(),
-  invitedBy: integer("invited_by").notNull(),
-  invitedEmail: text("invited_email").notNull(),
-  status: text("status").notNull().default('pending'), // 'pending', 'accepted', 'declined'
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  acceptedAt: timestamp("accepted_at"),
-});
-
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  displayName: text("display_name").notNull(),
-  avatarUrl: text("avatar_url"),
-  address: text("address").notNull(),
-  zipCode: text("zip_code").notNull(),
-  community: text("community").notNull(), // Keep for backward compatibility
-});
 
 export const items = pgTable("items", {
   id: serial("id").primaryKey(),
@@ -92,7 +62,7 @@ export const itemRequests = pgTable("item_requests", {
   status: text("status").notNull().default(REQUEST_STATUS.PENDING),
   message: text("message"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  cancellationInfo: jsonb("cancellation_info"),
+  cancellationInfo: jsonb("cancellation_info"), // Changed from cancellationInfo to cancellation_info
 });
 
 export const itemBids = pgTable("item_bids", {
@@ -107,15 +77,14 @@ export const itemBids = pgTable("item_bids", {
 
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
-  senderId: integer("sender_id").notNull(),
-  recipientId: integer("recipient_id").notNull(),
+  senderId: integer("sender_id").notNull().references(() => users.id),
+  recipientId: integer("recipient_id").notNull().references(() => users.id),
   content: text("content").notNull(),
-  requestId: integer("request_id").notNull(),
+  requestId: integer("request_id").notNull().references(() => itemRequests.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   readAt: timestamp("read_at"),
 });
 
-// Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users).extend({
   password: z.string().min(6, "Password must be at least 6 characters"),
   displayName: z.string().min(2, "Display name must be at least 2 characters"),
@@ -141,8 +110,7 @@ export const insertItemSchema = createInsertSchema(items).omit({
   status: true,
   recipientId: true,
   pickupStart: true,
-  pickupEnd: true,
-  proposedPickupWindows: true
+  pickupEnd: true
 }).extend({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
@@ -184,34 +152,6 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
   content: z.string().min(1, "Message cannot be empty").max(1000, "Message is too long"),
 });
 
-// Community schemas
-export const insertCommunitySchema = createInsertSchema(communities).extend({
-  name: z.string().min(3, "Community name must be at least 3 characters"),
-  description: z.string().optional(),
-  zipCode: z.string()
-    .min(5, "Zip code must be 5 digits")
-    .max(5, "Zip code must be 5 digits")
-    .refine((val) => /^\d{5}$/.test(val), "Zip code must be exactly 5 digits"),
-}).omit({
-  id: true,
-  createdAt: true
-});
-
-export const insertCommunityInvitationSchema = createInsertSchema(communityInvitations).extend({
-  invitedEmail: z.string().email("Invalid email address"),
-}).omit({
-  id: true,
-  createdAt: true,
-  acceptedAt: true,
-  status: true
-});
-
-// Export types
-export type InsertCommunity = z.infer<typeof insertCommunitySchema>;
-export type Community = typeof communities.$inferSelect;
-export type CommunityMember = typeof communityMembers.$inferSelect;
-export type CommunityInvitation = typeof communityInvitations.$inferSelect;
-
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertItem = z.infer<typeof insertItemSchema>;
@@ -236,6 +176,7 @@ export const MOCK_COMMUNITIES = [
   "South End Boston"
 ];
 
+// Add cancellation info type
 export const cancellationInfoSchema = z.object({
   canceledBy: z.number(),
   canceledAt: z.string(),
