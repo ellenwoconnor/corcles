@@ -677,16 +677,18 @@ export class DatabaseStorage implements IStorage {
         .select({
           ...communities,
           role: userCommunities.role,
-          memberCount: sql<number>`COUNT(DISTINCT ${userCommunities.userId})`.as('memberCount')
+          memberCount: sql<number>`(
+            SELECT COUNT(DISTINCT uc2.user_id) 
+            FROM user_communities uc2 
+            WHERE uc2.community_id = ${communities.id}
+          )`.as('memberCount')
         })
         .from(userCommunities)
-        .innerJoin(communities, eq(userCommunities.communityId, communities.id))
-        .leftJoin(
-          userCommunities,
+        .innerJoin(
+          communities,
           eq(userCommunities.communityId, communities.id)
         )
-        .where(eq(userCommunities.userId, userId))
-        .groupBy(communities.id, userCommunities.role);
+        .where(eq(userCommunities.userId, userId));
 
       logger.debug('Retrieved user communities:', { 
         userId, 
