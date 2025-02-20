@@ -34,8 +34,7 @@ export default function HomePage() {
         communities: communityIds,
         freeOnly: showFreeOnly,
       },
-    ],
-    enabled: communityIds.length > 0,
+    ]
   });
 
   console.log("items", items);
