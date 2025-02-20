@@ -17,19 +17,30 @@ export default function HomePage() {
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
 
-  const { data: userCommunities = [] } = useQuery<(Community & { role: string; memberCount: number })[]>({
+  const { data: userCommunities = [] } = useQuery<
+    (Community & { role: string; memberCount: number })[]
+  >({
     queryKey: ["/api/user/communities"],
     enabled: !!user,
   });
 
-  const communityIds = userCommunities.map(c => c.id);
+  const communityIds = userCommunities.map((c) => c.id);
 
   const { data: items, isLoading } = useQuery<
     (Item & { userHasFavorited: boolean })[]
   >({
-    queryKey: ["/api/items", { search: debouncedSearch, communities: communityIds, freeOnly: showFreeOnly }],
+    queryKey: [
+      "/api/items",
+      {
+        search: debouncedSearch,
+        communities: communityIds,
+        freeOnly: showFreeOnly,
+      },
+    ],
     enabled: communityIds.length > 0,
   });
+
+  console.log("items", items);
 
   return (
     <div className="min-h-screen bg-background">
