@@ -163,7 +163,7 @@ export class DatabaseStorage implements IStorage {
         communities,
         userId,
         search,
-        userItemsOnly
+        userItemsOnly,
       });
 
       const query = db
@@ -174,19 +174,28 @@ export class DatabaseStorage implements IStorage {
           )`.as("userDisplayName"),
           userHasFavorited: sql<boolean>`false`.as("userHasFavorited"),
         })
-        .from(items)
-        .where(notInArray(items.status, ['completed']));
+        .from(items);
 
       // Build query conditions
+      const conditions = [];
+
+      // Don't show completed items
+      conditions.push(notInArray(items.status, ['completed']));
+
+      // Filter by user's items if requested
       if (userItemsOnly && userId) {
-        query.where(eq(items.userId, userId));
-      } else if (communities && communities.length > 0) {
-        query.where(inArray(items.communityId, communities));
+        conditions.push(eq(items.userId, userId));
+      } 
+      // Filter by communities
+      else if (communities && communities.length > 0) {
+        logger.debug('Filtering by communities:', { communities });
+        conditions.push(inArray(items.communityId, communities));
       }
 
+      // Add search condition if provided
       if (search) {
         const searchTerm = `%${search}%`;
-        query.where(
+        conditions.push(
           or(
             ilike(items.title, searchTerm),
             ilike(items.description || '', searchTerm)
@@ -194,7 +203,9 @@ export class DatabaseStorage implements IStorage {
         );
       }
 
-      const results = await query.orderBy(desc(items.createdAt));
+      // Apply all conditions
+      const finalQuery = query.where(and(...conditions));
+      const results = await finalQuery.orderBy(desc(items.createdAt));
 
       logger.debug('Raw items query results:', {
         count: results.length,
