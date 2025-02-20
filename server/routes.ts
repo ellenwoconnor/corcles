@@ -1089,6 +1089,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add auto-enrollment check in the registration handler
+  app.post("/api/register", async (req, res, next) => {
+    try {
+      const parseResult = insertUserSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        logger.warn('Registration validation failed:', {
+          errors: parseResult.error.errors,
+          body: req.body
+        });
+        return res.status(400).json(parseResult.error);
+      }
+
+      const existingUser = await storage.getUserByUsername(parseResult.data.username);
+      if (existingUser) {
+        logger.warn('Registration attempt with existing username:', {
+          username: parseResult.data.username,
+          ip: req.ip
+        });
+        return res.status(400).json({ error: "Username already exists" });
+      }
+
+      const existingEmail = await storage.getUserByEmail(parseResult.data.email);
+      if (existingEmail) {
+        logger.warn('Registration attempt with existing email:', {
+          email: parseResult.data.email,
+          ip: req.ip
+        });
+        return res.status(400).json({ error: "Email already exists" });
+      }
+
+      // Start a transaction to ensure both user creation and community enrollment succeed
+      const result = await db.transaction(async (tx) => {
+        // Create the user
+        const hashedPassword = await hashPassword(parseResult.data.password);
+        const [user] = await tx
+          .insert(schema.users)
+          .values({
+            ...parseResult.data,
+            password: hashedPassword,
+          })
+          .returning();
+
+        // Check for pending invitations
+        const pendingInvites = await tx
+          .select()
+          .from(schema.communityInvites)
+          .where(
+            and(
+              eq(schema.communityInvites.invitedEmail, parseResult.data.email),
+              eq(schema.communityInvites.status, 'pending')
+            )
+          );
+
+        // Auto-enroll user in communities they were invited to
+        for (const invite of pendingInvites) {
+          await tx
+            .insert(schema.userCommunities)
+            .values({
+              userId: user.id,
+              communityId: invite.communityId,
+              role: 'member'
+            })
+            .onConflictDoNothing();
+
+          // Update invitation status
+          await tx
+            .update(schema.communityInvites)
+            .set({ 
+              status: 'accepted',
+              acceptedAt: new Date()
+            })
+            .where(eq(schema.communityInvites.id, invite.id));
+
+          logger.info('Auto-enrolled user in community:', {
+            userId: user.id,
+            communityId: invite.communityId,
+            inviteId: invite.id
+          });
+        }
+
+        return { user, enrolledCount: pendingInvites.length };
+      });
+
+      const { user, enrolledCount } = result;
+
+      logger.info('User registered successfully:', {
+        userId: user.id,
+        username: user.username,
+        autoEnrolledCommunities: enrolledCount
+      });
+
+      req.login(user, (err) => {
+        if (err) {
+          logger.error('Error during login after registration:', {
+            error: err,
+            userId: user.id
+          });
+          return next(err);
+        }
+        res.status(201).json(user);
+      });
+    } catch (error) {
+      logger.error('Error during user registration:', {
+        error,
+        username: req.body.username
+      });
+      next(error);
+    }
+  });
+
   app.post("/api/items/:id/cancel-pickup", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -1187,8 +1297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const requests = await storage.getUserRequests(req.user.id);
       logger.debug('Fetching user requests:', {
-        userId: req.user.id,
-        requestCount: requests?.length
+        userId: req.user.id,        requestCount: requests?.length
       });
       res.json(requests);
     } catch (error) {
@@ -1343,104 +1452,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error('Error creating community invitation:', error);
       res.status(500).json({ error: 'Failed to create invitation' });
-    }
-  });
-
-  // Add auto-enrollment check in the registration handler
-  app.post("/api/register", async (req, res, next) => {
-    try {
-      const parseResult = insertUserSchema.safeParse(req.body);
-      if (!parseResult.success) {
-        logger.warn('Registration validation failed:', {
-          errors: parseResult.error.errors,
-          body: req.body
-        });
-        return res.status(400).json(parseResult.error);
-      }
-
-      const existingUser = await storage.getUserByUsername(parseResult.data.username);
-      if (existingUser) {
-        logger.warn('Registration attempt with existing username:', {
-          username: parseResult.data.username,
-          ip: req.ip
-        });
-        return res.status(400).json({ error: "Username already exists" });
-      }
-
-      const existingEmail = await storage.getUserByEmail(parseResult.data.email);
-      if (existingEmail) {
-        logger.warn('Registration attempt with existing email:', {
-          email: parseResult.data.email,
-          ip: req.ip
-        });
-        return res.status(400).json({ error: "Email already exists" });
-      }
-
-      const hashedPassword = await hashPassword(parseResult.data.password);
-      const user = await storage.createUser({
-        ...parseResult.data,
-        password: hashedPassword,
-      });
-
-      // Check for pending invitations
-      const pendingInvites = await db
-        .select()
-        .from(communityInvites)
-        .where(
-          and(
-            eq(communityInvites.invitedEmail, parseResult.data.email),
-            eq(communityInvites.status, 'pending')
-          )
-        );
-
-      // Auto-enroll user in communities they were invited to
-      for (const invite of pendingInvites) {
-        await db
-          .insert(userCommunities)
-          .values({
-            userId: user.id,
-            communityId: invite.communityId,
-            role: 'member'
-          });
-
-        // Update invitation status
-        await db
-          .update(communityInvites)
-          .set({ 
-            status: 'accepted',
-            acceptedAt: new Date()
-          })
-          .where(eq(communityInvites.id, invite.id));
-
-        logger.info('Auto-enrolled user in community:', {
-          userId: user.id,
-          communityId: invite.communityId,
-          inviteId: invite.id
-        });
-      }
-
-      logger.info('User registered successfully:', {
-        userId: user.id,
-        username: user.username,
-        autoEnrolledCommunities: pendingInvites.length
-      });
-
-      req.login(user, (err) => {
-        if (err) {
-          logger.error('Error during login after registration:', {
-            error: err,
-            userId: user.id
-          });
-          return next(err);
-        }
-        res.status(201).json(user);
-      });
-    } catch (error) {
-      logger.error('Error during user registration:', {
-        error,
-        username: req.body.username
-      });
-      next(error);
     }
   });
 
