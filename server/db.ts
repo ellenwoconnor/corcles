@@ -13,7 +13,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+export const db = drizzle(pool, { schema });
 
 // Run initial migration
 async function migrate() {
@@ -34,7 +34,7 @@ async function migrate() {
       description TEXT,
       created_by INTEGER NOT NULL,
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      is_custom BOOLEAN NOT NULL DEFAULT FALSE
+      is_custom BOOLEAN NOT NULL DEFAULT false
     )`,
     `CREATE TABLE IF NOT EXISTS user_communities (
       id SERIAL PRIMARY KEY,
@@ -79,54 +79,40 @@ async function migrate() {
       cancellation_info JSONB
     )`,
     `DO $$ 
-    DECLARE
-      v_zip_code TEXT;
-      v_first_user_id INTEGER;
-      v_community_id INTEGER;
     BEGIN
-      -- First, ensure all users have email addresses
-      UPDATE users SET email = username || '@example.com' WHERE email IS NULL;
-
-      -- Create default communities for each zip code if they don't exist
-      FOR v_zip_code, v_first_user_id IN 
-        SELECT DISTINCT zip_code, MIN(id) as first_user_id
-        FROM users
+      -- Create home communities for each zip code if they don't exist
+      INSERT INTO communities (name, description, created_by, is_custom)
+      SELECT DISTINCT 
+        'Community ' || u.zip_code,
+        'Local community for ' || u.zip_code,
+        u.id,
+        false
+      FROM users u
+      WHERE NOT EXISTS (
+        SELECT 1 FROM communities c 
+        WHERE c.name = 'Community ' || u.zip_code
+      )
+      AND u.id IN (
+        SELECT MIN(id) 
+        FROM users 
         GROUP BY zip_code
-      LOOP
-        -- Check if community already exists for this zip code
-        IF NOT EXISTS (
-          SELECT 1 FROM communities 
-          WHERE name = 'Community ' || v_zip_code
-        ) THEN
-          -- Create the community
-          INSERT INTO communities (
-            name, 
-            description, 
-            created_by,
-            is_custom
-          ) VALUES (
-            'Community ' || v_zip_code,
-            'Default community for ' || v_zip_code,
-            v_first_user_id,
-            FALSE
-          ) RETURNING id INTO v_community_id;
+      );
 
-          -- Add all users from this zip code to the community
-          INSERT INTO user_communities (user_id, community_id, role)
-          SELECT id, v_community_id, 
-            CASE WHEN id = v_first_user_id THEN 'admin' ELSE 'member' END
-          FROM users
-          WHERE zip_code = v_zip_code;
-
-          -- Update items to belong to this community if they don't have one
-          UPDATE items i
-          SET community_id = v_community_id
-          FROM users u
-          WHERE i.user_id = u.id
-          AND u.zip_code = v_zip_code
-          AND i.community_id IS NULL;
-        END IF;
-      END LOOP;
+      -- Add users to their home communities if they're not already members
+      INSERT INTO user_communities (user_id, community_id, role)
+      SELECT 
+        u.id,
+        c.id,
+        CASE 
+          WHEN u.id = c.created_by THEN 'admin'
+          ELSE 'member'
+        END
+      FROM users u
+      JOIN communities c ON c.name = 'Community ' || u.zip_code
+      WHERE NOT EXISTS (
+        SELECT 1 FROM user_communities uc
+        WHERE uc.user_id = u.id AND uc.community_id = c.id
+      );
     END $$;`
   ];
 

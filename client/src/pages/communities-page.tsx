@@ -25,7 +25,7 @@ export default function CommunitiesPage() {
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
 
-  const { data: communities, isLoading } = useQuery<(Community & { role: string })[]>({
+  const { data: communities, isLoading } = useQuery<(Community & { role: string; memberCount: number })[]>({
     queryKey: ["/api/user/communities"],
     enabled: !!user,
   });
