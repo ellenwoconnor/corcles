@@ -20,7 +20,7 @@ interface OwnerListingViewProps {
 }
 
 const SECTION_CLASS = "border-t border-border pt-4 space-y-4";
-const TIME_DISPLAY_CLASS = "p-3 bg-secondary rounded-lg border border-border";
+const TIME_DISPLAY_CLASS = "p-4 bg-primary/5 rounded-lg border border-primary/10";
 
 export default function OwnerListingView({ 
   item, 
@@ -109,58 +109,53 @@ export default function OwnerListingView({
           </div>
         </div>
 
-        {/* Show confirmed pickup time if it exists */}
-        {item.pickupStart && item.pickupEnd && (
-          <div className={SECTION_CLASS}>
-            <h3 className="font-medium mb-2">Confirmed Pickup Time</h3>
-            <div className={TIME_DISPLAY_CLASS}>
-              <div className="flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5" />
-                <span className="text-sm">
-                  {format(new Date(item.pickupStart), "EEE, MMM d")} at{" "}
-                  {format(new Date(item.pickupStart), "h:mm a")} -{" "}
-                  {format(new Date(item.pickupEnd), "h:mm a")}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Pickup Scheduling Section */}
         {showPickupScheduler && activeRequest && (
           <div className={SECTION_CLASS}>
-            <h3 className="text-base font-medium">Pickup Scheduling</h3>
+            <h3 className="text-base font-medium mb-4">Pickup Scheduling</h3>
 
+            {/* Show confirmed pickup time if it exists */}
+            {item.pickupStart && item.pickupEnd && (
+              <div className={TIME_DISPLAY_CLASS}>
+                <h3 className="font-medium mb-2">Confirmed Pickup Time</h3>
+                <p className="text-sm text-muted-foreground">
+                  {format(new Date(item.pickupStart), "EEEE, MMMM d")} at{" "}
+                  {format(new Date(item.pickupStart), "h:mm a")} -{" "}
+                  {format(new Date(item.pickupEnd), "h:mm a")}
+                </p>
+              </div>
+            )}
+
+            {/* Show proposed pickup windows if they exist */}
             {item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && (
-              <div className="mb-4">
+              <div className="mt-4">
                 <h4 className="text-sm font-medium mb-2">Proposed Pickup Times</h4>
                 <div className="space-y-2">
                   {item.proposedPickupWindows.map((window, index) => (
                     <div key={index} className={TIME_DISPLAY_CLASS}>
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span className="text-sm">
-                          {format(new Date(window.start), "EEE, MMM d")} at{" "}
-                          {format(new Date(window.start), "h:mm a")} -{" "}
-                          {format(new Date(window.end), "h:mm a")}
-                        </span>
-                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {format(new Date(window.start), "EEEE, MMMM d")} at{" "}
+                        {format(new Date(window.start), "h:mm a")} -{" "}
+                        {format(new Date(window.end), "h:mm a")}
+                      </p>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            <PickupSchedulingContainer
-              item={item}
-              requestId={activeRequest.id}
-              requesterId={activeRequest.userId ?? 0}
-            />
+            <div className="mt-4">
+              <PickupSchedulingContainer
+                item={item}
+                requestId={activeRequest.id}
+                requesterId={activeRequest.userId ?? 0}
+              />
+            </div>
           </div>
         )}
 
         {/* Message and Cancel Section */}
-        {item.isGift && showMessageAndCancel && (
+        {showMessageAndCancel && (
           <div className={SECTION_CLASS}>
             <div className="flex items-center gap-4">
               <CancelButton 
