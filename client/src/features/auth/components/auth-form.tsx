@@ -41,12 +41,14 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
         password: z.string().min(6, "Password must be at least 6 characters"),
         address: z.string().min(1, "Address is required"),
         zipCode: z.string().regex(/^\d{5}$/, "ZIP code must be 5 digits"),
+        email: z.string().email("Please enter a valid email address"),
       })
     ),
     defaultValues: {
       username: "",
       password: "",
       displayName: "",
+      email: "",
       address: "",
       zipCode: "",
     },
@@ -136,6 +138,19 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                   <FormLabel>Username</FormLabel>
                   <FormControl>
                     <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={registerForm.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" {...field} placeholder="your@email.com" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
