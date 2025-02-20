@@ -81,17 +81,19 @@ export default function CommunitiesPage() {
 
   const inviteMutation = useMutation({
     mutationFn: async ({ email, communityId }: { email: string; communityId: number }) => {
-      const response = await apiRequest("POST", `/api/communities/${communityId}/invite`, { invitedEmail: email });
+      const response = await apiRequest("POST", `/api/communities/${communityId}/invite`, { email });
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to send invitation');
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
-        title: "Invitation sent",
-        description: "The user has been invited to join the community.",
+        title: data.autoEnrolled ? "User enrolled" : "Invitation sent",
+        description: data.autoEnrolled 
+          ? "The user has been automatically enrolled in the community."
+          : "The invitation has been sent successfully.",
       });
       setInviteDialogOpen(false);
       inviteForm.reset();
@@ -239,7 +241,10 @@ export default function CommunitiesPage() {
                 <CardContent>
                   <div className="flex items-center text-sm text-muted-foreground">
                     <Users className="h-4 w-4 mr-1" />
-                    <span>Created {format(new Date(community.createdAt), 'PP')}</span>
+                    <span>{community.memberCount} members</span>
+                  </div>
+                  <div className="text-sm text-muted-foreground mt-1">
+                    Created {format(new Date(community.createdAt), 'PP')}
                   </div>
                 </CardContent>
                 {community.role === 'admin' && (
@@ -261,7 +266,7 @@ export default function CommunitiesPage() {
                             <DialogHeader>
                               <DialogTitle>Invite to {community.name}</DialogTitle>
                               <DialogDescription>
-                                Send an invitation to join this community.
+                                Send an invitation to join this community. If the user already exists, they will be automatically enrolled.
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
