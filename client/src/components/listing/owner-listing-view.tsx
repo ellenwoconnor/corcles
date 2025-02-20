@@ -1,31 +1,26 @@
 import { Item, ItemRequest } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow, format } from "date-fns";
-import { Clock } from "lucide-react";
+import { Clock, Pencil } from "lucide-react";
 import EditListingDialog from "@/components/edit-listing-dialog";
 import RequestsList from "@/components/requests-list";
 import BidsList from "@/components/bids-list";
 import PickupSchedulingContainer from "@/components/pickup-scheduling-container";
 import { MessageDialog } from "@/components/message-dialog";
 import { Button } from "@/components/ui/button";
-import { Pencil } from "lucide-react";
 import { useState } from "react";
 import { CancelButton } from "@/components/cancel-button";
-
-interface PickupWindow {
-  start: string;
-  end: string;
-}
+import { ExtendedItem } from "@/pages/listing-page";
 
 interface OwnerListingViewProps {
-  item: Item & { 
-    userHasFavorited?: boolean;
-    proposedPickupWindows?: PickupWindow[];
-  };
+  item: ExtendedItem;
   requests: (ItemRequest & { userId?: number })[];
   bids?: any[];
   currentUserId: number;
 }
+
+const SECTION_CLASS = "border-t border-border pt-4 space-y-4";
+const TIME_DISPLAY_CLASS = "p-3 bg-secondary rounded-lg border border-border";
 
 export default function OwnerListingView({ 
   item, 
@@ -34,6 +29,7 @@ export default function OwnerListingView({
   currentUserId 
 }: OwnerListingViewProps) {
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+
   const activeRequest = requests.find(r => 
     ["pending", "accepted", "awaiting_pickup_confirmation", "scheduled"].includes(r.status)
   );
@@ -82,14 +78,14 @@ export default function OwnerListingView({
         </div>
 
         {/* Description */}
-        <div className="border-t border-border pt-4">
+        <div className={SECTION_CLASS}>
           <p className="text-muted-foreground whitespace-pre-wrap">
             {item.description}
           </p>
         </div>
 
-        {/* Requests/Bids Section - Moved above pickup time */}
-        <div className="border-t border-border pt-3 space-y-4">
+        {/* Requests/Bids Section */}
+        <div className={SECTION_CLASS}>
           <div className="flex items-center justify-between">
             <h3 className="text-base font-medium">
               {item.isGift ? "Requests" : "Bids"}
@@ -115,9 +111,9 @@ export default function OwnerListingView({
 
         {/* Show confirmed pickup time if it exists */}
         {item.pickupStart && item.pickupEnd && (
-          <div className="border-t border-border pt-4">
+          <div className={SECTION_CLASS}>
             <h3 className="font-medium mb-2">Confirmed Pickup Time</h3>
-            <div className="p-3 bg-secondary rounded-lg border border-border">
+            <div className={TIME_DISPLAY_CLASS}>
               <div className="flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5" />
                 <span className="text-sm">
@@ -132,19 +128,18 @@ export default function OwnerListingView({
 
         {/* Pickup Scheduling Section */}
         {item.isGift && showPickupScheduler && activeRequest && (
-          <div className="border-t border-border pt-4 space-y-4">
+          <div className={SECTION_CLASS}>
             <h3 className="text-base font-medium">Pickup Scheduling</h3>
 
-            {/* Show proposed pickup windows if they exist */}
             {item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && (
               <div className="mb-4">
                 <h4 className="text-sm font-medium mb-2">Proposed Pickup Times</h4>
                 <div className="space-y-2">
-                  {item.proposedPickupWindows.map((window: PickupWindow, index: number) => (
-                    <div key={index} className="p-2 bg-secondary/50 rounded-md border border-border text-sm">
+                  {item.proposedPickupWindows.map((window, index) => (
+                    <div key={index} className={TIME_DISPLAY_CLASS}>
                       <div className="flex items-center gap-2">
                         <Clock className="w-3.5 h-3.5" />
-                        <span>
+                        <span className="text-sm">
                           {format(new Date(window.start), "EEE, MMM d")} at{" "}
                           {format(new Date(window.start), "h:mm a")} -{" "}
                           {format(new Date(window.end), "h:mm a")}
@@ -166,7 +161,7 @@ export default function OwnerListingView({
 
         {/* Message and Cancel Section */}
         {item.isGift && showMessageAndCancel && (
-          <div className="border-t border-border pt-4">
+          <div className={SECTION_CLASS}>
             <div className="flex items-center gap-4">
               <CancelButton 
                 itemId={item.id}

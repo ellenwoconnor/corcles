@@ -14,7 +14,7 @@ interface PickupWindow {
   end: string;
 }
 
-type ExtendedItem = Item & { 
+export type ExtendedItem = Item & {
   userHasFavorited?: boolean;
   proposedPickupWindows?: PickupWindow[];
 };
@@ -31,26 +31,15 @@ export default function ListingPage() {
     queryKey: [`/api/items/${params?.id}`],
     enabled: !!params?.id,
     select: (data: any) => {
+      if (!data) return null;
+
+      const transformDate = (dateStr: string | null | undefined) => {
+        if (!dateStr) return null;
+        const date = new Date(dateStr);
+        return isNaN(date.getTime()) ? null : date.toISOString();
+      };
+
       try {
-        console.log('Raw item data:', data);
-        if (!data) return null;
-
-        // Safely transform dates
-        const transformDate = (dateStr: string | null | undefined) => {
-          if (!dateStr) return null;
-          try {
-            const date = new Date(dateStr);
-            if (isNaN(date.getTime())) {
-              console.error('Invalid date:', dateStr);
-              return null;
-            }
-            return date.toISOString();
-          } catch (e) {
-            console.error('Error transforming date:', dateStr, e);
-            return null;
-          }
-        };
-
         return {
           ...data,
           createdAt: transformDate(data.createdAt) || new Date().toISOString(),
@@ -64,8 +53,12 @@ export default function ListingPage() {
             : []
         };
       } catch (err) {
-        console.error('Error transforming item data:', err, data);
-        return data;
+        console.error('Data transformation error:', {
+          error: err,
+          data,
+          itemId: params?.id
+        });
+        return null;
       }
     },
   });
@@ -97,7 +90,6 @@ export default function ListingPage() {
   }
 
   if (error || !item) {
-    console.error('Item loading error:', error);
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
