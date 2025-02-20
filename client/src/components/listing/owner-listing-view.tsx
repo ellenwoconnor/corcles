@@ -88,24 +88,7 @@ export default function OwnerListingView({
           </p>
         </div>
 
-        {/* Show confirmed pickup time if it exists */}
-        {item.pickupStart && item.pickupEnd && (
-          <div className="border-t border-border pt-4">
-            <h3 className="font-medium mb-2">Confirmed Pickup Time</h3>
-            <div className="p-3 bg-secondary rounded-lg border border-border">
-              <div className="flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5" />
-                <span className="text-sm">
-                  {format(new Date(item.pickupStart), "EEE, MMM d")} at{" "}
-                  {format(new Date(item.pickupStart), "h:mm a")} -{" "}
-                  {format(new Date(item.pickupEnd), "h:mm a")}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Requests/Bids Section */}
+        {/* Requests/Bids Section - Moved above pickup time */}
         <div className="border-t border-border pt-3 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-medium">
@@ -130,11 +113,28 @@ export default function OwnerListingView({
           </div>
         </div>
 
+        {/* Show confirmed pickup time if it exists */}
+        {item.pickupStart && item.pickupEnd && (
+          <div className="border-t border-border pt-4">
+            <h3 className="font-medium mb-2">Confirmed Pickup Time</h3>
+            <div className="p-3 bg-secondary rounded-lg border border-border">
+              <div className="flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5" />
+                <span className="text-sm">
+                  {format(new Date(item.pickupStart), "EEE, MMM d")} at{" "}
+                  {format(new Date(item.pickupStart), "h:mm a")} -{" "}
+                  {format(new Date(item.pickupEnd), "h:mm a")}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Pickup Scheduling Section */}
         {item.isGift && showPickupScheduler && activeRequest && (
           <div className="border-t border-border pt-4 space-y-4">
             <h3 className="text-base font-medium">Pickup Scheduling</h3>
-            
+
             {/* Show proposed pickup windows if they exist */}
             {item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && (
               <div className="mb-4">
@@ -155,7 +155,7 @@ export default function OwnerListingView({
                 </div>
               </div>
             )}
-            
+
             <PickupSchedulingContainer
               item={item}
               requestId={activeRequest.id}
