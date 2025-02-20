@@ -28,8 +28,11 @@ export default function HomePage() {
 
   const { data: items, isLoading } = useQuery<Item[]>({
     queryKey: ["/api/items", debouncedSearch, communityIds, showFreeOnly],
-    queryFn: () => 
-      fetch(`/api/items/${communityIds[0]}?search=${encodeURIComponent(debouncedSearch || '')}`).then(r => r.json())
+    queryFn: () => {
+      if (!communityIds.length) return [];
+      return fetch(`/api/items/${communityIds[0]}?search=${encodeURIComponent(debouncedSearch || '')}`).then(r => r.json());
+    },
+    enabled: communityIds.length > 0
   });
 
   console.log("items", items);
