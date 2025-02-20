@@ -19,7 +19,7 @@ const PostgresSessionStore = connectPg(session);
 
 // Create session middleware configuration
 const sessionMiddleware = session({
-  store: new PostgresSessionStore({ 
+ store: new PostgresSessionStore({ 
     pool,
     createTableIfMissing: true,
     tableName: 'session'
@@ -266,15 +266,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { search, communities: communityParam, freeOnly } = req.query;
       const searchTerm = typeof search === 'string' ? search : undefined;
 
-      // Parse communities from query parameter
+      // Parse communities from comma-separated string
       let communities: number[] = [];
-      if (Array.isArray(communityParam)) {
-        communities = communityParam.map(c => parseInt(c)).filter(c => !isNaN(c));
-      } else if (typeof communityParam === 'string') {
-        const communityId = parseInt(communityParam);
-        if (!isNaN(communityId)) {
-          communities = [communityId];
-        }
+      if (typeof communityParam === 'string') {
+        communities = communityParam.split(',').map(c => parseInt(c)).filter(c => !isNaN(c));
       }
 
       // Log the request parameters for debugging
@@ -929,14 +924,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (item.userId !== req.user.id) {
-        returnres.sendStatus(403);
+        return res.sendStatus(403);
       }
 
       const bids = await storage.getItemBids(itemId);
       logger.debug('Fetching item bids:', {
         itemId,
-        bidCount: bids.length,
-        ownerId: item.userId
+        bidCount: bids.length,        ownerId: item.userId
       });
       res.json(bids);
     } catch (error) {
@@ -1002,7 +996,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
-        returnres.status(400).json({ error: "Invalid item ID" });
+        return res.status(400).json({ error: "Invalid item ID" });
       }
 
       const { reason } = req.body;

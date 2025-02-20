@@ -26,15 +26,8 @@ export default function HomePage() {
 
   const communityIds = userCommunities.map((c) => c.id);
 
-  console.log("Current user communities:", userCommunities);
-  console.log("Community IDs for query:", communityIds);
-
   const { data: items = [], isLoading } = useQuery<Item[]>({
-    queryKey: ["/api/items", { 
-      communities: communityIds,
-      ...(debouncedSearch ? { search: debouncedSearch } : {}),
-      ...(showFreeOnly ? { freeOnly: true } : {})
-    }],
+    queryKey: ["/api/items", { communities: communityIds.join(','), ...(debouncedSearch ? { search: debouncedSearch } : {}), ...(showFreeOnly ? { freeOnly: true } : {}) }],
     enabled: communityIds.length > 0,
   });
 
