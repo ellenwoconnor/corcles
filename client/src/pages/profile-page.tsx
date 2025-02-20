@@ -2,7 +2,6 @@ import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Item, ItemRequest, ItemBid } from "@shared/schema";
 import Navbar from "@/components/navbar";
-import ItemGrid from "@/components/item-grid";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +45,23 @@ export default function ProfilePage() {
     r => r.status === "awaiting_pickup_confirmation"
   ) || [];
 
-  if (!user || itemsLoading || requestsLoading || bidsLoading || communityLoading) {
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container py-12">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold mb-2">Please Sign In</h2>
+            <p className="text-muted-foreground">
+              You need to be signed in to view your profile.
+            </p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (itemsLoading || requestsLoading || bidsLoading || communityLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-border" />
@@ -110,7 +125,7 @@ export default function ProfilePage() {
                   </AlertDescription>
                 </Alert>
               )}
-              {userItems?.length === 0 ? (
+              {!userItems || userItems.length === 0 ? (
                 <Card>
                   <CardHeader>
                     <CardTitle>No Listings</CardTitle>
@@ -121,7 +136,7 @@ export default function ProfilePage() {
                 </Card>
               ) : (
                 <div className="grid gap-4">
-                  {userItems?.map((item) => (
+                  {userItems.map((item) => (
                     <Card key={item.id}>
                       <CardHeader>
                         <div className="flex items-start justify-between">
@@ -184,7 +199,7 @@ export default function ProfilePage() {
                   </div>
                 </div>
               )}
-              {userRequests?.length === 0 ? (
+              {!userRequests || userRequests.length === 0 ? (
                 <Card>
                   <CardHeader>
                     <CardTitle>No Requests</CardTitle>
@@ -194,7 +209,7 @@ export default function ProfilePage() {
                   </CardHeader>
                 </Card>
               ) : (
-                userRequests?.map((request) => (
+                userRequests.map((request) => (
                   <Card key={request.id}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
@@ -261,7 +276,7 @@ export default function ProfilePage() {
 
           <TabsContent value="bids">
             <div className="grid gap-4">
-              {userBids?.length === 0 ? (
+              {!userBids || userBids.length === 0 ? (
                 <Card>
                   <CardHeader>
                     <CardTitle>No Bids</CardTitle>
@@ -271,7 +286,7 @@ export default function ProfilePage() {
                   </CardHeader>
                 </Card>
               ) : (
-                userBids?.map((bid) => (
+                userBids.map((bid) => (
                   <Card key={bid.id}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
