@@ -12,8 +12,16 @@ import { Pencil } from "lucide-react";
 import { useState } from "react";
 import { CancelButton } from "@/components/cancel-button";
 
+interface PickupWindow {
+  start: string;
+  end: string;
+}
+
 interface OwnerListingViewProps {
-  item: Item & { userHasFavorited?: boolean };
+  item: Item & { 
+    userHasFavorited?: boolean;
+    proposedPickupWindows?: PickupWindow[];
+  };
   requests: (ItemRequest & { userId?: number })[];
   bids?: any[];
   currentUserId: number;
@@ -126,7 +134,7 @@ export default function OwnerListingView({
                       <div className="mb-4">
                         <h4 className="text-sm font-medium mb-2">Proposed Pickup Times</h4>
                         <div className="space-y-2">
-                          {item.proposedPickupWindows.map((window, index) => (
+                          {item.proposedPickupWindows.map((window: PickupWindow, index: number) => (
                             <div key={index} className="p-2 bg-secondary/50 rounded-md border border-border text-sm">
                               <div className="flex items-center gap-2">
                                 <Clock className="w-3.5 h-3.5" />

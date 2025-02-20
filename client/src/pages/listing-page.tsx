@@ -9,6 +9,16 @@ import PublicListingView from "@/components/listing/public-listing-view";
 import OwnerListingView from "@/components/listing/owner-listing-view";
 import RecipientListingView from "@/components/listing/recipient-listing-view";
 
+interface PickupWindow {
+  start: string;
+  end: string;
+}
+
+interface ExtendedItem extends Item {
+  userHasFavorited?: boolean;
+  proposedPickupWindows?: PickupWindow[];
+}
+
 export default function ListingPage() {
   // Routing and auth
   const [, params] = useRoute("/item/:id");
@@ -19,15 +29,18 @@ export default function ListingPage() {
     data: item,
     isLoading,
     error,
-  } = useQuery<Item & { userHasFavorited?: boolean }>({
+  } = useQuery<ExtendedItem>({
     queryKey: [`/api/items/${params?.id}`],
     enabled: !!params?.id,
     select: (data) => ({
       ...data,
-      createdAt: new Date(data.createdAt),
-      pickupStart: data.pickupStart ? new Date(data.pickupStart) : null,
-      pickupEnd: data.pickupEnd ? new Date(data.pickupEnd) : null,
-      proposedPickupWindows: data.proposedPickupWindows || [],
+      createdAt: new Date(data.createdAt).toISOString(),
+      pickupStart: data.pickupStart ? new Date(data.pickupStart).toISOString() : null,
+      pickupEnd: data.pickupEnd ? new Date(data.pickupEnd).toISOString() : null,
+      proposedPickupWindows: data.proposedPickupWindows?.map(window => ({
+        start: new Date(window.start).toISOString(),
+        end: new Date(window.end).toISOString(),
+      })) || [],
     }),
   });
 
@@ -77,11 +90,6 @@ export default function ListingPage() {
     );
   }
 
-  // Find the relevant request for the recipient
-  const activeRequest = requests.find(r => 
-    ["pending", "accepted", "awaiting_pickup_confirmation", "scheduled"].includes(r.status)
-  );
-
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -93,10 +101,10 @@ export default function ListingPage() {
             bids={bids}
             currentUserId={user?.id ?? 0}
           />
-        ) : isRecipient && activeRequest ? (
+        ) : isRecipient ? (
           <RecipientListingView
             item={item}
-            request={activeRequest}
+            request={requests[0]}
             currentUserId={user?.id ?? 0}
           />
         ) : (
