@@ -88,6 +88,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalConnections: connectedClients.size
       });
 
+      // Send connection success message
+      ws.send(JSON.stringify({
+        type: 'connection_established',
+        data: { 
+          userId,
+          timestamp: new Date().toISOString()
+        }
+      }));
+
       // Handle WebSocket events
       ws.on('close', () => {
         logger.info('WebSocket client disconnected:', { 
@@ -102,15 +111,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ws.close();
         connectedClients.delete(userId);
       });
-
-      // Send connection success message
-      ws.send(JSON.stringify({
-        type: 'connection_established',
-        data: { 
-          userId,
-          timestamp: new Date().toISOString()
-        }
-      }));
 
     } catch (error) {
       logger.error('Error during WebSocket connection setup:', error);
@@ -341,6 +341,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const request = await storage.createItemRequest(parseResult.data);
+      
+      // Check if this is the first request and update item status
+      const requests = await storage.getItemRequests(itemId);
+      if (requests.length === 1) {
+        await db
+          .update(schema.items)
+          .set({ status: schema.ITEM_STATUS.REQUESTED })
+          .where(eq(schema.items.id, itemId));
+      }
+      
       res.status(201).json(request);
     } catch (error) {
       logger.error('Error creating request:', error);
@@ -611,7 +621,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .update(schema.items)
         .set({ 
           proposedPickupWindows: proposedWindows,
-          status: schema.ITEM_STATUS.PENDING_PICKUP,
+          status: schema.ITEM_STATUS.SCHEDULING,
           recipientId: selectedRequest.requesterId
         })
         .where(eq(schema.items.id, itemId));
@@ -697,7 +707,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (confirmed) {
         await db
           .update(schema.items)
-          .set({ status: schema.ITEM_STATUS.COMPLETED })
+          .set({ status: schema.ITEM_STATUS.SCHEDULED })
           .where(eq(schema.items.id, itemId));
       }
 
@@ -811,7 +821,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .set({ 
           pickupStart: pickupStart,
           pickupEnd: pickupEnd,
-          status: 'pending_pickup',
+          status: schema.ITEM_STATUS.SCHEDULED,
           recipientId: req.user.id 
         })
         .where(eq(schema.items.id, itemId));
@@ -936,18 +946,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to cancel this pickup" });
       }
 
-      // Reset item status and clear pickup windows
-      await db
-        .update(schema.items)
-        .set({ 
-          status: schema.ITEM_STATUS.AVAILABLE,
-          proposedPickupWindows: null,
-          pickupStart: null,
-          pickupEnd: null,
-          recipientId: null
-        })
-        .where(eq(schema.items.id, itemId));
-
       // Mark cancelled request as rejected
       await db
         .update(schema.itemRequests)
@@ -957,7 +955,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.itemRequests.id, request.id));
 
-      // Other requests remain in their current state
+      // Check for remaining non-cancelled requests
+      const remainingRequests = await db
+        .select()
+        .from(schema.itemRequests)
+        .where(
+          and(
+            eq(schema.itemRequests.itemId, itemId),
+            not(eq(schema.itemRequests.status, schema.REQUEST_STATUS.REJECTED)),
+            not(eq(schema.itemRequests.status, schema.REQUEST_STATUS.CANCELED))
+          )
+        );
+
+      // Set status based on remaining requests
+      const newStatus = remainingRequests.length > 0 
+        ? schema.ITEM_STATUS.REQUESTED 
+        : schema.ITEM_STATUS.AVAILABLE;
+
+      // Update item status and clear pickup info
+      await db
+        .update(schema.items)
+        .set({ 
+          status: newStatus,
+          proposedPickupWindows: null,
+          pickupStart: null,
+          pickupEnd: null,
+          recipientId: null
+        })
+        .where(eq(schema.items.id, itemId));
 
       logger.debug('Pickup canceled:', { 
         itemId,
