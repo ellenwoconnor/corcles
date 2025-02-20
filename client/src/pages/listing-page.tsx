@@ -64,7 +64,11 @@ export default function ListingPage() {
   });
 
   const isOwner = user?.id === item?.userId;
-  const hasAcceptedRequest = user?.id === item?.recipientId && item?.status !== "available";
+  const hasAcceptedRequest = Boolean(
+    user?.id === item?.recipientId && 
+    item?.status && 
+    ['scheduling', 'scheduled', 'pending_pickup'].includes(item.status)
+  );
 
   const {
     data: requests = [],
@@ -83,6 +87,10 @@ export default function ListingPage() {
     queryKey: [`/api/items/${params?.id}/bids`],
     enabled: !!params?.id && !!user && !item?.isGift,
   });
+
+  const activeRequest = hasAcceptedRequest 
+    ? requests.find(r => r.requesterId === user?.id)
+    : undefined;
 
   const hasRequested = requests?.some((r) => r.status === "pending");
   const hasBid = bids?.some((bid) => bid.status === "pending");
@@ -122,10 +130,10 @@ export default function ListingPage() {
             bids={bids}
             currentUserId={user?.id ?? 0}
           />
-        ) : hasAcceptedRequest ? (
+        ) : hasAcceptedRequest && activeRequest ? (
           <RecipientListingView
             item={item}
-            request={requests[0]}
+            request={activeRequest}
             currentUserId={user?.id ?? 0}
           />
         ) : (
