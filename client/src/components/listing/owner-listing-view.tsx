@@ -34,7 +34,7 @@ export default function OwnerListingView({
     ["pending", "accepted", "awaiting_pickup_confirmation", "scheduled"].includes(r.status)
   );
 
-  const showPickupScheduler = ['requested', 'scheduling', 'scheduled'].includes(item.status || '');
+  const showPickupScheduler = item.isGift && ['requested', 'scheduling', 'scheduled'].includes(item.status || '');
   const showMessageAndCancel = ['scheduling', 'scheduled'].includes(item.status || '') && activeRequest;
 
   return (
@@ -127,7 +127,7 @@ export default function OwnerListingView({
         )}
 
         {/* Pickup Scheduling Section */}
-        {item.isGift && showPickupScheduler && activeRequest && (
+        {showPickupScheduler && activeRequest && (
           <div className={SECTION_CLASS}>
             <h3 className="text-base font-medium">Pickup Scheduling</h3>
 
