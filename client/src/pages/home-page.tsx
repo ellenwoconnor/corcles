@@ -30,14 +30,20 @@ export default function HomePage() {
     queryKey: ["/api/items", debouncedSearch, communityIds, showFreeOnly],
     queryFn: async () => {
       if (!communityIds.length) return [];
-      const response = await fetch(`/api/items/${communityIds[0]}?search=${encodeURIComponent(debouncedSearch || '')}`);
-      if (!response.ok) return [];
+      const params = new URLSearchParams();
+      if (debouncedSearch) params.set('search', debouncedSearch);
+      if (showFreeOnly) params.set('freeOnly', 'true');
+      communityIds.forEach(id => params.append('communities[]', id.toString()));
+
+      const response = await fetch(`/api/items?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch items');
+      }
       return response.json();
-    }
+    },
+    enabled: communityIds.length > 0,
   });
 
-  console.log("items", items);
-  console.log("comms", userCommunities);
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
