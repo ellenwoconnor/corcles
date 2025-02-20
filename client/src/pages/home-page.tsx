@@ -1,6 +1,6 @@
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { Item } from "@shared/schema";
+import { Item, type Community } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import ItemGrid from "@/components/item-grid";
 import CreateListingDialog from "@/components/create-listing-dialog";
@@ -8,7 +8,7 @@ import { Loader2, Search, Gift } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 
 export default function HomePage() {
@@ -17,27 +17,32 @@ export default function HomePage() {
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
 
-  const { data: items, isLoading } = useQuery<
-    (Item & { userHasFavorited: boolean })[]
+  const { data: userCommunities = [] } = useQuery<
+    (Community & { role: string; memberCount: number })[]
   >({
-    queryKey: [`/api/items/${user?.community}`, debouncedSearch, showFreeOnly],
+    queryKey: ["/api/user/communities"],
+    enabled: !!user,
+  });
+
+  const communityIds = userCommunities.map((c) => c.id);
+
+  const { data: items = [], isLoading } = useQuery<Item[]>({
+    queryKey: ["/api/items"],
     queryFn: async () => {
-      const searchParams = new URLSearchParams();
-      if (debouncedSearch) {
-        searchParams.append("search", debouncedSearch);
-      }
-      const response = await fetch(
-        `/api/items/${user?.community}?${searchParams.toString()}`,
-      );
+      if (communityIds.length === 0) return [];
+
+      const params = new URLSearchParams();
+      params.append('communities', communityIds.join(','));
+      if (debouncedSearch) params.append('search', debouncedSearch);
+      if (showFreeOnly) params.append('freeOnly', 'true');
+
+      const response = await fetch(`/api/items?${params.toString()}`);
       if (!response.ok) {
-        throw new Error("Failed to fetch items");
+        throw new Error('Failed to fetch items');
       }
-      const allItems = await response.json();
-      return showFreeOnly
-        ? allItems.filter((item: Item) => item.isGift)
-        : allItems;
+      return response.json();
     },
-    enabled: !!user?.community,
+    enabled: communityIds.length > 0,
   });
 
   return (
@@ -52,7 +57,7 @@ export default function HomePage() {
             </p>
           </div>
           <div className="order-first sm:order-none">
-            <CreateListingDialog />
+            <CreateListingDialog communities={userCommunities} />
           </div>
         </div>
 
@@ -84,19 +89,21 @@ export default function HomePage() {
           <div className="flex items-center justify-center min-h-[400px]">
             <Loader2 className="h-8 w-8 animate-spin text-border" />
           </div>
-        ) : items?.length === 0 ? (
+        ) : !items || items.length === 0 ? (
           <div className="text-center py-12">
             <h2 className="text-xl font-semibold mb-2">No items found</h2>
             <p className="text-muted-foreground">
               {search
                 ? "Try adjusting your search terms"
                 : showFreeOnly
-                  ? "No free items available in your community yet"
-                  : "Be the first to list an item in your community"}
+                  ? "No free items available in your communities yet"
+                  : communityIds.length === 0
+                    ? "Join a community to see items"
+                    : "Be the first to list an item in your communities"}
             </p>
           </div>
         ) : (
-          <ItemGrid items={items ?? []} />
+          <ItemGrid items={items} />
         )}
       </main>
     </div>

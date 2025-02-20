@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Menu, User } from "lucide-react";
+import { LogOut, Menu, User, Users } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export default function Navbar() {
@@ -25,6 +25,14 @@ export default function Navbar() {
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+          <div className="hidden md:flex md:items-center md:space-x-4">
+            <Link href="/communities">
+              <Button variant="ghost" className="flex items-center space-x-2">
+                <Users className="h-4 w-4" />
+                <span>Communities</span>
+              </Button>
+            </Link>
+          </div>
           <nav className="flex items-center space-x-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -48,6 +56,12 @@ export default function Navbar() {
                   <Link href="/profile" className="flex items-center">
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/communities" className="flex items-center">
+                    <Users className="mr-2 h-4 w-4" />
+                    <span>Communities</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
