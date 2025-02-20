@@ -80,7 +80,7 @@ export default function OwnerListingView({
           </p>
         </div>
 
-        {/* Show confirmed pickup time */}
+        {/* Show confirmed pickup time if it exists */}
         {item.pickupStart && item.pickupEnd && (
           <div className="border-t border-border pt-4">
             <h3 className="font-medium mb-2">Confirmed Pickup Time</h3>
@@ -121,6 +121,26 @@ export default function OwnerListingView({
                 {/* Show pickup scheduling if needed */}
                 {showPickupScheduler && activeRequest && (
                   <div className="border-t border-border pt-4">
+                    {/* Show proposed pickup windows if they exist */}
+                    {item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && (
+                      <div className="mb-4">
+                        <h4 className="text-sm font-medium mb-2">Proposed Pickup Times</h4>
+                        <div className="space-y-2">
+                          {item.proposedPickupWindows.map((window, index) => (
+                            <div key={index} className="p-2 bg-secondary/50 rounded-md border border-border text-sm">
+                              <div className="flex items-center gap-2">
+                                <Clock className="w-3.5 h-3.5" />
+                                <span>
+                                  {format(new Date(window.start), "EEE, MMM d")} at{" "}
+                                  {format(new Date(window.start), "h:mm a")} -{" "}
+                                  {format(new Date(window.end), "h:mm a")}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <PickupSchedulingContainer
                       item={item}
                       requestId={activeRequest.id}
