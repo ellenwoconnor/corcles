@@ -11,7 +11,7 @@ import { CancelButton } from "@/components/cancel-button";
 
 interface RecipientListingViewProps {
   item: Item & { userHasFavorited?: boolean };
-  request: ItemRequest & { userId?: number };
+  request?: ItemRequest & { userId?: number };
   currentUserId: number;
 }
 
@@ -20,9 +20,21 @@ export default function RecipientListingView({
   request, 
   currentUserId 
 }: RecipientListingViewProps) {
+  // Only show pickup scheduler if we have a valid request in the right status
   const showPickupScheduler = request?.status === "awaiting_pickup_confirmation";
-  const showCancelAndMessage = ['scheduling', 'scheduled'].includes(item?.status || '');
+  const showCancelAndMessage = request && ['scheduling', 'scheduled'].includes(item?.status || '');
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+
+  if (!request) {
+    return (
+      <div className="text-center py-8">
+        <h2 className="text-xl font-semibold mb-2">Error Loading Request</h2>
+        <p className="text-muted-foreground">
+          Unable to load request details. Please try again later.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid md:grid-cols-2 gap-8">

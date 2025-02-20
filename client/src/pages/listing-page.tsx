@@ -25,8 +25,8 @@ export default function ListingPage() {
 
   const {
     data: item,
-    isLoading,
-    error,
+    isLoading: itemLoading,
+    error: itemError,
   } = useQuery({
     queryKey: [`/api/items/${params?.id}`],
     enabled: !!params?.id,
@@ -45,43 +45,49 @@ export default function ListingPage() {
           createdAt: transformDate(data.createdAt) || new Date().toISOString(),
           pickupStart: transformDate(data.pickupStart),
           pickupEnd: transformDate(data.pickupEnd),
-          proposedPickupWindows: Array.isArray(data.proposedPickupWindows) 
+          proposedPickupWindows: Array.isArray(data.proposedPickupWindows)
             ? data.proposedPickupWindows.map((window: any) => ({
                 start: transformDate(window.start) || new Date().toISOString(),
                 end: transformDate(window.end) || new Date().toISOString(),
               }))
-            : []
+            : [],
         };
       } catch (err) {
-        console.error('Data transformation error:', {
+        console.error("Data transformation error:", {
           error: err,
           data,
-          itemId: params?.id
+          itemId: params?.id,
         });
         return null;
       }
     },
   });
 
-  const isOwner = item?.userId === user?.id;
-  const isRecipient = user?.id === item?.recipientId;
+  const isOwner = user?.id === item?.userId;
+  const hasAcceptedRequest = user?.id === item?.recipientId && item?.status !== "available";
 
-  const { data: requests = [] } = useQuery<(ItemRequest & { userId?: number })[]>({
+  const {
+    data: requests = [],
+    isLoading: requestsLoading,
+  } = useQuery<(ItemRequest & { userId?: number })[]>({
     queryKey: [
       `/api/items/${params?.id}/${isOwner ? "requests" : "my-requests"}`,
     ],
     enabled: !!params?.id && !!user,
   });
 
-  const { data: bids } = useQuery<ItemBid[]>({
+  const {
+    data: bids = [],
+    isLoading: bidsLoading,
+  } = useQuery<ItemBid[]>({
     queryKey: [`/api/items/${params?.id}/bids`],
     enabled: !!params?.id && !!user && !item?.isGift,
   });
 
-  const hasRequested = requests?.some(r => r.status === "pending");
-  const hasBid = bids?.some(bid => bid.status === "pending");
+  const hasRequested = requests?.some((r) => r.status === "pending");
+  const hasBid = bids?.some((bid) => bid.status === "pending");
 
-  if (isLoading) {
+  if (itemLoading || requestsLoading || bidsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-border" />
@@ -89,7 +95,7 @@ export default function ListingPage() {
     );
   }
 
-  if (error || !item) {
+  if (itemError || !item) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -116,7 +122,7 @@ export default function ListingPage() {
             bids={bids}
             currentUserId={user?.id ?? 0}
           />
-        ) : isRecipient ? (
+        ) : hasAcceptedRequest ? (
           <RecipientListingView
             item={item}
             request={requests[0]}
