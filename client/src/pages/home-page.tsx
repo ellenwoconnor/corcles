@@ -27,7 +27,21 @@ export default function HomePage() {
   const communityIds = userCommunities.map((c) => c.id);
 
   const { data: items = [], isLoading } = useQuery<Item[]>({
-    queryKey: ["/api/items", { communities: communityIds.join(','), ...(debouncedSearch ? { search: debouncedSearch } : {}), ...(showFreeOnly ? { freeOnly: true } : {}) }],
+    queryKey: ["/api/items"],
+    queryFn: async () => {
+      if (communityIds.length === 0) return [];
+
+      const params = new URLSearchParams();
+      params.append('communities', communityIds.join(','));
+      if (debouncedSearch) params.append('search', debouncedSearch);
+      if (showFreeOnly) params.append('freeOnly', 'true');
+
+      const response = await fetch(`/api/items?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch items');
+      }
+      return response.json();
+    },
     enabled: communityIds.length > 0,
   });
 

@@ -266,18 +266,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { search, communities: communityParam, freeOnly } = req.query;
       const searchTerm = typeof search === 'string' ? search : undefined;
 
+      // Log raw parameters for debugging
+      logger.debug('Raw query parameters:', {
+        communityParam,
+        search,
+        freeOnly,
+        type: typeof communityParam
+      });
+
       // Parse communities from comma-separated string
       let communities: number[] = [];
       if (typeof communityParam === 'string') {
         communities = communityParam.split(',').map(c => parseInt(c)).filter(c => !isNaN(c));
       }
 
-      // Log the request parameters for debugging
-      logger.debug('Fetching items:', {
+      // Log parsed communities
+      logger.debug('Parsed communities:', {
         communities,
-        userId: req.user?.id,
-        searchTerm,
-        authenticated: req.isAuthenticated()
+        length: communities.length
       });
 
       if (communities.length === 0) {
@@ -292,7 +298,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         freeOnly === 'true'
       );
 
-      // Log the number of items returned
       logger.debug('Items fetched:', {
         communities,
         itemCount: items.length
@@ -931,8 +936,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       logger.debug('Fetching item bids:', {
         itemId,
         bidCount: bids.length,        ownerId: item.userId
-      });
-      res.json(bids);
+      });      res.json(bids);
     } catch (error) {
       logger.error('Error fetching bids:', error);
       res.status(500).json({ error: 'Failed to fetch bids' });
