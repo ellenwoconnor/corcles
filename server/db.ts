@@ -2,6 +2,7 @@ import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
+import logger from './logger';
 
 neonConfig.webSocketConstructor = ws;
 
@@ -118,9 +119,9 @@ async function migrate() {
   for (const migration of migrations) {
     try {
       await pool.query(migration);
-      logger.info('Successfully executed migration');
+      logger.info('Successfully executed migration:', { migration: migration.substring(0, 100) + '...' });
     } catch (error) {
-      logger.error('Error executing migration:', error);
+      logger.error('Error executing migration:', { error, migration: migration.substring(0, 100) + '...' });
       throw error;
     }
   }
