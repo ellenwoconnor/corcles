@@ -7,27 +7,29 @@ import { storage } from "./storage";
 import * as schema from "@shared/schema";
 import { ITEM_STATUS, REQUEST_STATUS } from "@shared/constants";
 import { z } from "zod";
-import { insertItemSchema, insertItemRequestSchema, insertItemBidSchema, insertMessageSchema, insertUserSchema } from "@shared/schema";
 import { eq, and, not, or } from "drizzle-orm";
 import { db } from "./db";
 import logger from './logger';
-import { addHours, isAfter, isBefore, addDays } from "date-fns";
 import session from 'express-session';
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
-import { insertCommunityInviteSchema } from "@shared/schema"; // Import the new schema
-const { userCommunities, communityInvites } = schema; // Import the necessary tables
-
+import cookieParser from "cookie-parser";
+import { promisify } from "util";
+import passport from "passport";
+import { hashPassword } from "./utils/auth";
 
 const PostgresSessionStore = connectPg(session);
 
+// Create session store
+const sessionStore = new PostgresSessionStore({
+  pool,
+  createTableIfMissing: true,
+  tableName: 'session'
+});
+
 // Create session middleware configuration
 const sessionMiddleware = session({
-  store: new PostgresSessionStore({ 
-    pool,
-    createTableIfMissing: true,
-    tableName: 'session'
-  }),
+  store: sessionStore,
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
@@ -40,57 +42,61 @@ const sessionMiddleware = session({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Apply session middleware to Express app
+  // Apply middlewares in correct order
+  app.use(cookieParser());
   app.use(sessionMiddleware);
+  app.use(passport.initialize());
+  app.use(passport.session());
 
   setupAuth(app);
 
-  // Initialize WebSocket server and connected clients map
+  // Initialize WebSocket server
   const httpServer = createServer(app);
   const wss = new WebSocketServer({ 
-    server: httpServer, 
+    server: httpServer,
     path: '/ws',
-    verifyClient: (info, cb) => {
-      logger.debug('WebSocket connection attempt:', {
-        headers: info.req.headers,
-        url: info.req.url,
-        cookies: info.req.headers.cookie
-      });
+    verifyClient: async (info, cb) => {
+      try {
+        const req = info.req;
 
-      // Parse session before WebSocket upgrade
-      sessionMiddleware(info.req as any, {} as any, (err: any) => {
-        if (err) {
-          logger.error('WebSocket session parsing error:', err);
-          cb(false, 401, 'Unauthorized');
-          return;
-        }
+        // Log headers for debugging
+        logger.debug('WebSocket connection attempt:', {
+          cookies: req.headers.cookie,
+          sessionID: req.headers['sec-websocket-key']
+        });
 
-        // @ts-ignore - req.session is added by express-session
-        const session = (info.req as any).session;
+        // Apply session middleware
+        const runSessionMiddleware = promisify(sessionMiddleware);
+        await runSessionMiddleware(req as any, {} as any);
+
+        // Verify session exists
+        const session = (req as any).session;
         if (!session) {
-          logger.warn('WebSocket unauthorized - no session found');
-          cb(false, 401, 'Unauthorized');
+          logger.warn('WebSocket unauthorized - no session');
+          cb(false, 401, 'No session found');
           return;
         }
 
-        // @ts-ignore - passport adds user to session
-        const user = session.passport?.user;
-        if (!user) {
-          logger.warn('WebSocket unauthorized - no user in session', {
-            sessionId: session.id,
-            hasPassport: !!session.passport
+        // Verify user is authenticated
+        const userId = session.passport?.user;
+        if (!userId) {
+          logger.warn('WebSocket unauthorized - no user', {
+            sessionId: session.id
           });
-          cb(false, 401, 'Unauthorized');
+          cb(false, 401, 'Not authenticated');
           return;
         }
 
-        logger.debug('WebSocket session authenticated:', {
-          userId: user,
+        logger.info('WebSocket connection authenticated:', {
+          userId,
           sessionId: session.id
         });
 
         cb(true);
-      });
+      } catch (error) {
+        logger.error('WebSocket authentication error:', error);
+        cb(false, 500, 'Server error');
+      }
     }
   });
 
@@ -397,6 +403,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const request = await storage.createItemRequest(parseResult.data);
       
+
       // Check if this is the first request and update item status
       const requests = await storage.getItemRequests(itemId);
       if (requests.length === 1) {
@@ -406,6 +413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .where(eq(schema.items.id, itemId));
       }
       
+
       res.status(201).json(request);
     } catch (error) {
       logger.error('Error creating request:', error);
@@ -941,7 +949,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/items/:id/bids", async (req, res) => {
+  app.get("/apiapi/items/:id/bids", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
 
@@ -1123,426 +1131,249 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/register", async (req, res, next) => {
     try {
-      const parseResult = insertUserSchema.safeParse(req.body);
+      logger.info('Starting registration process', {
+        body: { ...req.body, password: '[REDACTED]' }
+      });
+
+      const parseResult = schema.insertUserSchema.safeParse(req.body);
       if (!parseResult.success) {
         logger.warn('Registration validation failed:', {
           errors: parseResult.error.errors,
-          body: req.body
+          body: { ...req.body, password: '[REDACTED]' }
         });
         return res.status(400).json(parseResult.error);
       }
 
-      const existingUser = await storage.getUserByUsername(parseResult.data.username);
+      // Normalize email to lowercase for consistent matching
+      const email = parseResult.data.email.toLowerCase();
+      logger.debug('Checking for existing user/email', { 
+        username: parseResult.data.username,
+        email 
+      });
+
+      // Validate unique username and email
+      const [existingUser, existingEmail] = await Promise.all([
+        storage.getUserByUsername(parseResult.data.username),
+        storage.getUserByEmail(email)
+      ]);
+
       if (existingUser) {
-        logger.warn('Registration attempt with existing username:', {
+        logger.warn('Registration blocked - username exists:', {
           username: parseResult.data.username,
           ip: req.ip
         });
         return res.status(400).json({ error: "Username already exists" });
       }
 
-      const existingEmail = await storage.getUserByEmail(parseResult.data.email);
       if (existingEmail) {
-        logger.warn('Registration attempt with existing email:', {
-          email: parseResult.data.email,
+        logger.warn('Registration blocked - email exists:', {
+          email,
           ip: req.ip
         });
         return res.status(400).json({ error: "Email already exists" });
       }
 
-      // Start a transaction to ensure both user creation and community enrollment succeed
+      logger.info('Starting user creation transaction');
+      const hashedPassword = await hashPassword(parseResult.data.password);
+
+      // Execute registration transaction
       const result = await db.transaction(async (tx) => {
-        // Create the user
-        const hashedPassword = await hashPassword(parseResult.data.password);
+        logger.debug('Transaction step 1: Creating user');
+        // Step 1: Create user
         const [user] = await tx
           .insert(schema.users)
           .values({
             ...parseResult.data,
+            email,
             password: hashedPassword,
-            email: parseResult.data.email.toLowerCase() // Store email in lowercase
           })
           .returning();
 
-        // Check for pending invitations using case-insensitive email comparison
+        logger.info('User created successfully:', {
+          userId: user.id,
+          username: user.username,
+          email
+        });
+
+        logger.debug('Transaction step 2: Finding pending invites');
+        // Step 2: Find all pending invites for this email
         const pendingInvites = await tx
           .select()
           .from(schema.communityInvites)
           .where(
             and(
-              eq(schema.communityInvites.invitedEmail, parseResult.data.email.toLowerCase()),
+              eq(schema.communityInvites.invitedEmail, email),
               eq(schema.communityInvites.status, 'pending')
             )
           );
 
-        logger.info('Found pending invites for new user:', {
+        logger.info('Found pending invites:', {
           userId: user.id,
-          email: parseResult.data.email,
+          email,
           inviteCount: pendingInvites.length,
-          invites: pendingInvites.map(i => ({ id: i.id, communityId: i.communityId }))
+          invites: pendingInvites.map(i => ({
+            id: i.id,
+            communityId: i.communityId,
+            invitedBy: i.invitedBy
+          }))
         });
 
-        // Auto-enroll user in communities they were invited to
+        logger.debug('Transaction step 3: Processing invites');
+        // Step 3: Process each invite
+        const processedInvites = [];
         for (const invite of pendingInvites) {
-          // First, add user to the community
-          await tx
-            .insert(schema.userCommunities)
-            .values({
+          try {
+            logger.debug('Processing invite:', {
+              inviteId: invite.id,
+              communityId: invite.communityId
+            });
+
+            // Verify community exists
+            const [community] = await tx
+              .select()
+              .from(schema.communities)
+              .where(eq(schema.communities.id, invite.communityId));
+
+            if (!community) {
+              logger.warn('Skipping invite - community not found:', {
+                inviteId: invite.id,
+                communityId: invite.communityId
+              });
+              continue;
+            }
+
+            // Add user to community
+            await tx
+              .insert(schema.userCommunities)
+              .values({
+                userId: user.id,
+                communityId: invite.communityId,
+                role: 'member',
+                joinedAt: new Date()
+              })
+              .onConflictDoNothing();
+
+            // Update invite status
+            await tx
+              .update(schema.communityInvites)
+              .set({
+                status: 'accepted',
+                acceptedAt: new Date()
+              })
+              .where(eq(schema.communityInvites.id, invite.id));
+
+            processedInvites.push(invite.id);
+            logger.info('Successfully processed invite:', {
               userId: user.id,
+              inviteId: invite.id,
               communityId: invite.communityId,
-              role: 'member',
-              joinedAt: new Date()
-            })
-            .onConflictDoNothing();
+              communityName: community.name
+            });
+          } catch (err) {
+            logger.error('Failed to process invite:', {
+              userId: user.id,
+              inviteId: invite.id,
+              error: err,
+              errorStack: err.stack
+            });
+            throw err;
+          }
+        }
 
-          // Then update the invitation status
-          await tx
-            .update(schema.communityInvites)
-            .set({ 
-              status: 'accepted',
-              acceptedAt: new Date()
-            })
-            .where(eq(schema.communityInvites.id, invite.id));
+        logger.debug('Transaction step 4: Handling zip code community');
+        // Step 4: Handle zip code community enrollment
+        const zipCodeCommunityName = `Community ${parseResult.data.zipCode}`;
+        let zipCommunity = await tx
+          .select()
+          .from(schema.communities)
+          .where(eq(schema.communities.name, zipCodeCommunityName))
+          .limit(1);
 
-          logger.info('Auto-enrolled user in community:', {
+        // Create zip code community if it doesn't exist
+        if (zipCommunity.length === 0) {
+          logger.info('Creating new zip code community:', {
+            zipCode: parseResult.data.zipCode,
+            communityName: zipCodeCommunityName
+          });
+
+          [zipCommunity] = await tx
+            .insert(schema.communities)
+            .values({
+              name: zipCodeCommunityName,
+              description: `Local community for ${parseResult.data.zipCode}`,
+              createdBy: user.id,
+              isCustom: false
+            })
+            .returning();
+
+          logger.info('Created zip code community:', {
             userId: user.id,
-            communityId: invite.communityId,
-            inviteId: invite.id
+            communityId: zipCommunity.id,
+            zipCode: parseResult.data.zipCode
+          });
+        } else {
+          logger.info('Found existing zip code community:', {
+            communityId: zipCommunity[0].id,
+            communityName: zipCodeCommunityName
           });
         }
 
-        // Also create/add user to their zip code community
-        const zipCodeCommunityName = `Community ${parseResult.data.zipCode}`;
-        const [zipCommunity] = await tx
-          .select()
-          .from(schema.communities)
-          .where(eq(schema.communities.name, zipCodeCommunityName));
+        // Add user to zip code community
+        await tx
+          .insert(schema.userCommunities)
+          .values({
+            userId: user.id,
+            communityId: zipCommunity[0].id,
+            role: 'member',
+            joinedAt: new Date()
+          })
+          .onConflictDoNothing();
 
-        if (zipCommunity) {
-          await tx
-            .insert(schema.userCommunities)
-            .values({
-              userId: user.id,
-              communityId: zipCommunity.id,
-              role: 'member',
-              joinedAt: new Date()
-            })
-            .onConflictDoNothing();
-        }
+        logger.info('Added user to zip code community:', {
+          userId: user.id,
+          communityId: zipCommunity[0].id,
+          zipCode: parseResult.data.zipCode
+        });
 
-        return { user, enrolledCount: pendingInvites.length };
+        return { 
+          user, 
+          enrolledCommunities: processedInvites.length + 1,
+          processedInvites 
+        };
       });
 
-      const { user, enrolledCount } = result;
-
-      logger.info('User registered successfully:', {
-        userId: user.id,
-        username: user.username,
-        autoEnrolledCommunities: enrolledCount
+      logger.info('Registration completed successfully:', {
+        userId: result.user.id,
+        username: result.user.username,
+        enrolledCommunities: result.enrolledCommunities,
+        processedInvites: result.processedInvites
       });
 
-      req.login(user, (err) => {
+      // Log the user in
+      req.login(result.user, (err) => {
         if (err) {
           logger.error('Error during login after registration:', {
             error: err,
-            userId: user.id
+            errorStack: err.stack,
+            userId: result.user.id
           });
           return next(err);
         }
-        res.status(201).json(user);
+
+        logger.info('User logged in after registration:', {
+          userId: result.user.id,
+          username: result.user.username
+        });
+
+        res.status(201).json(result.user);
       });
     } catch (error) {
       logger.error('Error during user registration:', {
         error,
-        username: req.body.username
+        errorStack: error.stack,
+        username: req.body?.username
       });
       next(error);
-    }
-  });
-
-  app.post("/api/items/:id/cancel-pickup", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
-      const itemId = parseInt(req.params.id);
-      if (isNaN(itemId)) {
-        return res.status(400).json({ error: "Invalid item ID" });
-      }
-
-      const { reason } = req.body;
-
-      const item = await storage.getItem(itemId);
-      if (!item) {
-        return res.status(404).json({ error: "Item not found" });
-      }
-
-      // Get the current request for this item
-      const [request] = await db
-        .select()
-        .from(schema.itemRequests)
-        .where(
-          and(
-            eq(schema.itemRequests.itemId, itemId),
-            or(
-              eq(schema.itemRequests.status, REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION),
-              eq(schema.itemRequests.status, REQUEST_STATUS.ACCEPTED)
-            )
-          )
-        );
-
-      if (!request) {
-        return res.status(404).json({ error: "No active pickup request found" });
-      }
-
-      // Only allow cancellation by item owner or recipient
-      const canCancel = req.user.id === item.userId || req.user.id === request.requesterId;
-      if (!canCancel) {
-        return res.status(403).json({ error: "Not authorized to cancel this pickup" });
-      }
-
-      // Mark cancelled request as rejected
-      await db
-        .update(schema.itemRequests)
-        .set({ 
-          status: REQUEST_STATUS.REJECTED,
-          cancellationInfo: reason ? { reason, canceledBy: req.user.id } : null
-        })
-        .where(eq(schema.itemRequests.id, request.id));
-
-      // Check for remaining non-cancelled requests
-      const remainingRequests = await db
-        .select()
-        .from(schema.itemRequests)
-        .where(
-          and(
-            eq(schema.itemRequests.itemId, itemId),
-            not(eq(schema.itemRequests.status, REQUEST_STATUS.REJECTED)),
-            not(eq(schema.itemRequests.status, REQUEST_STATUS.CANCELED))
-          )
-        );
-
-      // Set status based on remaining requests
-      const newStatus = remainingRequests.length > 0 
-        ? ITEM_STATUS.REQUESTED 
-        : ITEM_STATUS.AVAILABLE;
-
-      // Update item status and clear pickup info
-      await db
-        .update(schema.items)
-        .set({ 
-          status: newStatus,
-          proposedPickupWindows: null,
-          pickupStart: null,
-          pickupEnd: null,
-          recipientId: null
-        })
-        .where(eq(schema.items.id, itemId));
-
-      logger.debug('Pickup canceled:', { 
-        itemId,
-        requestId: request.id,
-        canceledBy: req.user.id,
-        reason: reason || 'No reason provided'
-      });
-
-      res.json({ success: true });
-    } catch (error) {
-      logger.error('Error canceling pickup:', error);
-      res.status(500).json({ error: 'Failed to cancel pickup' });
-    }
-  });
-
-  app.get("/api/user/requests", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
-      const requests = await storage.getUserRequests(req.user.id);
-      logger.debug('Fetching user requests:', {
-        userId: req.user.id,        requestCount: requests?.length
-      });
-      res.json(requests);
-    } catch (error) {
-      logger.error('Error fetching user requests:', error);
-      res.status(500).json({ error: 'Failed to fetch user requests' });
-    }
-  });
-
-  app.get("/api/items/:id/bids", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
-      const itemId = parseInt(req.params.id);
-      if (isNaN(itemId)) {
-        return res.status(400).json({ error: "Invalid item ID" });
-      }
-
-      const item = await storage.getItem(itemId);
-      if (!item) {
-        return res.status(404).json({ error: "Item not found" });
-      }
-
-      if (item.userId !== req.user.id) {
-        return res.sendStatus(403);
-      }
-
-      const bids = await storage.getItemBids(itemId);
-      logger.debug('Fetching item bids:', {
-        itemId,
-        bidCount: bids.length,
-        ownerId: item.userId
-      });
-      res.json(bids);
-    } catch (error) {
-      logger.error('Error fetching bids:', error);
-      res.status(500).json({ error: 'Failed to fetch bids' });
-    }
-  });
-
-  app.get("/api/user/communities", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
-      const communities = await storage.getUserCommunities(req.user.id);
-      logger.debug('Retrieved user communities:', { 
-        userId: req.user.id,
-        communities: communities.map(c => ({
-          id: c.id,
-          name: c.name,
-          role: c.role,
-          memberCount: c.memberCount
-        }))
-      });
-      res.json(communities);
-    } catch (error) {
-      logger.error('Error fetching user communities:', error);
-      res.status(500).json({ error: 'Failed to fetch user communities' });
-    }
-  });
-
-  app.post("/api/communities", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
-      const { name, description } = req.body;
-
-      if (!name) {
-        return res.status(400).json({ error: "Community name is required" });
-      }
-
-      const community = await storage.createCommunity({
-        name,
-        description,
-        createdBy: req.user.id,
-        isCustom: true
-      });
-
-      logger.debug('Created new community:', {
-        communityId: community.id,
-        name: community.name,
-        createdBy: req.user.id
-      });
-
-      res.status(201).json(community);
-    } catch (error) {
-      logger.error('Error creating community:', error);
-      res.status(500).json({ error: 'Failed to create community' });
-    }
-  });
-
-  app.post("/api/communities/:id/invite", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
-      const communityId = parseInt(req.params.id);
-      if (isNaN(communityId)) {
-        return res.status(400).json({ error: "Invalid community ID" });
-      }
-
-      // Store email in lowercase for consistency
-      const data = {
-        ...req.body,
-        invitedEmail: req.body.email.toLowerCase(),
-        communityId,
-        invitedBy: req.user.id
-      };
-
-      const parseResult = insertCommunityInviteSchema.safeParse(data);
-      if (!parseResult.success) {
-        return res.status(400).json(parseResult.error);
-      }
-
-      logger.debug('Processing community invite:', {
-        communityId,
-        invitedEmail: data.invitedEmail,
-        invitedBy: req.user.id
-      });
-
-      // Check if user is already in the community
-      const existingUser = await storage.getUserByEmail(data.invitedEmail);
-      if (existingUser) {
-        const [existingMembership] = await db
-          .select()
-          .from(schema.userCommunities)
-          .where(
-            and(
-              eq(schema.userCommunities.userId, existingUser.id),
-              eq(schema.userCommunities.communityId, communityId)
-            )
-          );
-
-        if (existingMembership) {
-          return res.status(400).json({ error: "User is already a member of this community" });
-        }
-
-        // Auto-enroll existing user
-        await db.transaction(async (tx) => {
-          // Add user to community
-          await tx
-            .insert(schema.userCommunities)
-            .values({
-              userId: existingUser.id,
-              communityId,
-              role: 'member',
-              joinedAt: new Date()
-            });
-
-          // Create and mark invite as accepted
-          const [invite] = await tx
-            .insert(schema.communityInvites)
-            .values({
-              ...parseResult.data,
-              status: 'accepted',
-              acceptedAt: new Date()
-            })
-            .returning();
-
-          return invite;
-        });
-
-        logger.info('Auto-enrolled existing user:', {
-          userId: existingUser.id,
-          communityId,
-          email: data.invitedEmail
-        });
-
-        return res.json({ autoEnrolled: true });
-      }
-
-      // Create pending invite for new user
-      const [invite] = await db
-        .insert(schema.communityInvites)
-        .values(parseResult.data)
-        .returning();
-
-      logger.info('Created pending community invite:', {
-        inviteId: invite.id,
-        communityId,
-        email: data.invitedEmail
-      });
-
-      res.status(201).json({ autoEnrolled: false });
-    } catch (error) {
-      logger.error('Error creating community invite:', error);
-      res.status(500).json({ error: 'Failed to create community invite' });
     }
   });
 
