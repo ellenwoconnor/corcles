@@ -7,7 +7,7 @@ import { storage } from "./storage";
 import * as schema from "@shared/schema";
 import { ITEM_STATUS, REQUEST_STATUS } from "@shared/constants";
 import { z } from "zod";
-import { insertItemSchema, insertItemRequestSchema, insertItemBidSchema, insertMessageSchema } from "@shared/schema";
+import { insertItemSchema, insertItemRequestSchema, insertItemBidSchema, insertMessageSchema, insertUserSchema } from "@shared/schema";
 import { eq, and, not, or } from "drizzle-orm";
 import { db } from "./db";
 import logger from './logger';
@@ -933,8 +933,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const requests = await storage.getUserRequests(req.user.id);
       logger.debug('Fetching user requests:', {
-        userId: req.user.id,
-        requestCount: requests?.length
+        userId: req.user.id,        requestCount: requests?.length
       });
       res.json(requests);
     } catch (error) {
@@ -1020,6 +1019,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error('Error creating community:', error);
       res.status(500).json({ error: 'Failed to create community' });
+    }
+  });
+
+  app.post("/api/communities/:id/invite", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const communityId = parseInt(req.params.id);
+      if (isNaN(communityId)) {
+        return res.status(400).json({ error: "Invalid community ID" });
+      }
+
+      // Verify user has admin rights for the community
+      const userCommunities = await storage.getUserCommunities(req.user.id);
+      const community = userCommunities.find(c => c.id === communityId && c.role === 'admin');
+      if (!community) {
+        return res.status(403).json({ error: "Not authorized to send invitations for this community" });
+      }
+
+      const parseResult = insertCommunityInviteSchema.safeParse({
+        communityId,
+        invitedBy: req.user.id,
+        invitedEmail: req.body.email
+      });
+
+      if (!parseResult.success) {
+        return res.status(400).json(parseResult.error);
+      }
+
+      // Check if user with this email already exists
+      const existingUser = await storage.getUserByEmail(req.body.email);
+      if (existingUser) {
+        // Auto-enroll the user if they exist
+        await db
+          .insert(userCommunities)
+          .values({
+            userId: existingUser.id,
+            communityId,
+            role: 'member'
+          })
+          .onConflictDoNothing();
+
+        return res.json({ 
+          autoEnrolled: true,
+          message: "User automatically enrolled in community"
+        });
+      }
+
+      // Create invitation for non-existent user
+      const invite = await db
+        .insert(communityInvites)
+        .values(parseResult.data)
+        .returning();
+
+      logger.info('Community invitation created:', { 
+        communityId,
+        invitedEmail: req.body.email,
+        invitedBy: req.user.id
+      });
+
+      res.status(201).json({ 
+        autoEnrolled: false,
+        invite: invite[0]
+      });
+    } catch (error) {
+      logger.error('Error creating community invitation:', error);
+      res.status(500).json({ error: 'Failed to create invitation' });
     }
   });
 
@@ -1222,150 +1288,160 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid community ID" });
       }
 
-      // Check if user has permission to invite (is member of community)
-      const [userCommunity] = await db
-        .select()
-        .from(schema.userCommunities)
-        .where(
-          and(
-            eq(schema.userCommunities.userId, req.user.id),
-            eq(schema.userCommunities.communityId, communityId)
-          )
-        );
-
-      if (!userCommunity) {
-        return res.status(403).json({ error: "Not authorized to invite to this community" });
+      // Verify user has admin rights for the community
+      const userCommunities = await storage.getUserCommunities(req.user.id);
+      const community = userCommunities.find(c => c.id === communityId && c.role === 'admin');
+      if (!community) {
+        return res.status(403).json({ error: "Not authorized to send invitations for this community" });
       }
 
       const parseResult = insertCommunityInviteSchema.safeParse({
         communityId,
         invitedBy: req.user.id,
-        invitedEmail: req.body.email,
-        status: 'pending'
+        invitedEmail: req.body.email
       });
 
       if (!parseResult.success) {
         return res.status(400).json(parseResult.error);
       }
 
-      // Check if invited user already exists
-      const [existingUser] = await db
-        .select()
-        .from(schema.users)
-        .where(eq(schema.users.email, req.body.email));
-
+      // Check if user with this email already exists
+      const existingUser = await storage.getUserByEmail(req.body.email);
       if (existingUser) {
-        // Check if user is already a member
-        const [existingMembership] = await db
-          .select()
-          .from(schema.userCommunities)
-          .where(
-            and(
-              eq(schema.userCommunities.userId, existingUser.id),
-              eq(schema.userCommunities.communityId, communityId)
-            )
-          );
-
-        if (existingMembership) {
-          return res.status(400).json({ error: "User is already a member of this community" });
-        }
-
-        // Automatically enroll existing user
+        // Auto-enroll the user if they exist
         await db
-          .insert(schema.userCommunities)
+          .insert(userCommunities)
           .values({
             userId: existingUser.id,
             communityId,
             role: 'member'
-          });
+          })
+          .onConflictDoNothing();
 
-        // Update invite status
-        await db
-          .insert(schema.communityInvites)
-          .values({
-            ...parseResult.data,
-            status: 'accepted',
-            acceptedAt: new Date()
-          });
-
-        logger.info('Auto-enrolled existing user:', {
-          userId: existingUser.id,
-          communityId
+        return res.json({ 
+          autoEnrolled: true,
+          message: "User automatically enrolled in community"
         });
-
-        return res.json({ success: true, autoEnrolled: true });
       }
 
-      // Create pending invite for non-existing user
-      await db
-        .insert(schema.communityInvites)
-        .values(parseResult.data);
+      // Create invitation for non-existent user
+      const invite = await db
+        .insert(communityInvites)
+        .values(parseResult.data)
+        .returning();
 
-      logger.info('Created community invite:', {
-        email: req.body.email,
-        communityId
+      logger.info('Community invitation created:', { 
+        communityId,
+        invitedEmail: req.body.email,
+        invitedBy: req.user.id
       });
 
-      res.json({ success: true });
+      res.status(201).json({ 
+        autoEnrolled: false,
+        invite: invite[0]
+      });
     } catch (error) {
-      logger.error('Error creating community invite:', error);
-      res.status(500).json({ error: 'Failed to create community invite' });
+      logger.error('Error creating community invitation:', error);
+      res.status(500).json({ error: 'Failed to create invitation' });
     }
   });
 
-  // Update the existing registration route to check for invites
-  // In setupAuth function, modify the /api/register route:
+  // Add auto-enrollment check in the registration handler
   app.post("/api/register", async (req, res, next) => {
-    const existingUser = await storage.getUserByUsername(req.body.username);
-    if (existingUser) {
-      return res.status(400).send("Username already exists");
-    }
+    try {
+      const parseResult = insertUserSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        logger.warn('Registration validation failed:', {
+          errors: parseResult.error.errors,
+          body: req.body
+        });
+        return res.status(400).json(parseResult.error);
+      }
 
-    const user = await storage.createUser({
-      ...req.body,
-      password: await hashPassword(req.body.password),
-    });
+      const existingUser = await storage.getUserByUsername(parseResult.data.username);
+      if (existingUser) {
+        logger.warn('Registration attempt with existing username:', {
+          username: parseResult.data.username,
+          ip: req.ip
+        });
+        return res.status(400).json({ error: "Username already exists" });
+      }
 
-    // Check for pending invites
-    const pendingInvites = await db
-      .select()
-      .from(schema.communityInvites)
-      .where(
-        and(
-          eq(schema.communityInvites.invitedEmail, req.body.email),
-          eq(schema.communityInvites.status, 'pending')
-        )
-      );
+      const existingEmail = await storage.getUserByEmail(parseResult.data.email);
+      if (existingEmail) {
+        logger.warn('Registration attempt with existing email:', {
+          email: parseResult.data.email,
+          ip: req.ip
+        });
+        return res.status(400).json({ error: "Email already exists" });
+      }
 
-    // Process pending invites
-    for (const invite of pendingInvites) {
-      await db
-        .insert(schema.userCommunities)
-        .values({
+      const hashedPassword = await hashPassword(parseResult.data.password);
+      const user = await storage.createUser({
+        ...parseResult.data,
+        password: hashedPassword,
+      });
+
+      // Check for pending invitations
+      const pendingInvites = await db
+        .select()
+        .from(communityInvites)
+        .where(
+          and(
+            eq(communityInvites.invitedEmail, parseResult.data.email),
+            eq(communityInvites.status, 'pending')
+          )
+        );
+
+      // Auto-enroll user in communities they were invited to
+      for (const invite of pendingInvites) {
+        await db
+          .insert(userCommunities)
+          .values({
+            userId: user.id,
+            communityId: invite.communityId,
+            role: 'member'
+          });
+
+        // Update invitation status
+        await db
+          .update(communityInvites)
+          .set({ 
+            status: 'accepted',
+            acceptedAt: new Date()
+          })
+          .where(eq(communityInvites.id, invite.id));
+
+        logger.info('Auto-enrolled user in community:', {
           userId: user.id,
           communityId: invite.communityId,
-          role: 'member'
+          inviteId: invite.id
         });
+      }
 
-      // Update invite status
-      await db
-        .update(schema.communityInvites)
-        .set({ 
-          status: 'accepted',
-          acceptedAt: new Date()
-        })
-        .where(eq(schema.communityInvites.id, invite.id));
-
-      logger.info('Enrolled new user in community from invite:', {
+      logger.info('User registered successfully:', {
         userId: user.id,
-        communityId: invite.communityId
+        username: user.username,
+        autoEnrolledCommunities: pendingInvites.length
       });
-    }
 
-    req.login(user, (err) => {
-      if (err) return next(err);
-      res.status(201).json(user);
-    });
+      req.login(user, (err) => {
+        if (err) {
+          logger.error('Error during login after registration:', {
+            error: err,
+            userId: user.id
+          });
+          return next(err);
+        }
+        res.status(201).json(user);
+      });
+    } catch (error) {
+      logger.error('Error during user registration:', {
+        error,
+        username: req.body.username
+      });
+      next(error);
+    }
   });
 
   return httpServer;
