@@ -19,7 +19,7 @@ const PostgresSessionStore = connectPg(session);
 
 // Create session middleware configuration
 const sessionMiddleware = session({
-  store: new PostgresSessionStore({ 
+ store: new PostgresSessionStore({ 
     pool,
     createTableIfMissing: true,
     tableName: 'session'
@@ -43,37 +43,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Initialize WebSocket server and connected clients map
   const httpServer = createServer(app);
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/ws',
+    verifyClient: (info, cb) => {
+      logger.debug('WebSocket connection attempt:', {
+        headers: info.req.headers,
+        url: info.req.url
+      });
+
+      // Parse session before WebSocket upgrade
+      sessionMiddleware(info.req as any, {} as any, (err: any) => {
+        if (err) {
+          logger.error('WebSocket session parsing error:', err);
+          cb(false, 401, 'Unauthorized');
+          return;
+        }
+
+        // @ts-ignore - req.user is added by passport
+        const userId = info.req.user?.id;
+        if (!userId) {
+          logger.warn('WebSocket unauthorized - no user found in session');
+          cb(false, 401, 'Unauthorized');
+          return;
+        }
+
+        logger.debug('WebSocket session parsed successfully:', {
+          userId,
+          sessionID: (info.req as any).sessionID
+        });
+
+        cb(true);
+      });
+    }
+  });
+
   const connectedClients = new Map<number, WebSocket>();
 
   // Log WebSocket server initialization
   logger.info('WebSocket server initialized on path: /ws');
 
-  // WebSocket connection handling with enhanced session parsing
+  // WebSocket connection handling
   wss.on('connection', async (ws, req) => {
     try {
-      // Parse session using Promise wrapper
-      await new Promise<void>((resolve, reject) => {
-        sessionMiddleware(req as any, {} as any, (err: any) => {
-          if (err) {
-            logger.error('Session parsing error:', err);
-            reject(err);
-            return;
-          }
-          resolve();
-        });
-      });
-
       // @ts-ignore - req.user is added by passport session
       const userId = req.user?.id;
-
-      // Enhanced logging for connection attempt
-      logger.debug('WebSocket connection attempt:', { 
-        userId,
-        hasSession: !!req.user,
-        headers: req.headers['cookie'] ? 'Cookie present' : 'No cookie'
-      });
-
       if (!userId) {
         logger.warn('WebSocket connection rejected - no authenticated user');
         ws.close(1008, 'Authentication required');
@@ -247,28 +261,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/items/:community", async (req, res) => {
+  app.get("/api/items", async (req, res) => {
     try {
-      const { search } = req.query;
+      const { search, communities: communityParam, freeOnly } = req.query;
       const searchTerm = typeof search === 'string' ? search : undefined;
 
-      // Log the request parameters for debugging
-      logger.debug('Fetching items:', {
-        community: req.params.community,
-        userId: req.user?.id,
-        searchTerm,
-        authenticated: req.isAuthenticated()
+      // Log raw parameters for debugging
+      logger.debug('Raw query parameters:', {
+        communityParam,
+        search,
+        freeOnly,
+        type: typeof communityParam
       });
 
+      // Parse communities from comma-separated string
+      let communities: number[] = [];
+      if (typeof communityParam === 'string') {
+        communities = communityParam.split(',').map(c => parseInt(c)).filter(c => !isNaN(c));
+      }
+
+      // Log parsed communities
+      logger.debug('Parsed communities:', {
+        communities,
+        length: communities.length
+      });
+
+      if (communities.length === 0) {
+        return res.status(400).json({ error: "At least one valid community ID is required" });
+      }
+
       const items = await storage.getItems(
-        req.params.community, 
+        communities,
         req.user?.id,
-        searchTerm
+        searchTerm,
+        false,
+        freeOnly === 'true'
       );
 
-      // Log the number of items returned
       logger.debug('Items fetched:', {
-        community: req.params.community,
+        communities,
         itemCount: items.length
       });
 
@@ -282,6 +313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
   app.post("/api/items", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -289,8 +321,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const data = {
         ...req.body,
         price: Number(req.body.price),
-        isGift: !!req.body.isGift
+        isGift: !!req.body.isGift,
+        communityId: parseInt(req.body.communityId)
       };
+
+      logger.debug('Creating item with data:', {
+        ...data,
+        userId: req.user.id
+      });
 
       const parseResult = insertItemSchema.safeParse(data);
       if (!parseResult.success) {
@@ -300,6 +338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const item = await storage.createItem({
         ...parseResult.data,
         userId: req.user.id,
+        communityId: data.communityId // Explicitly pass communityId
       });
 
       res.status(201).json({
@@ -896,13 +935,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bids = await storage.getItemBids(itemId);
       logger.debug('Fetching item bids:', {
         itemId,
-        bidCount: bids.length,
-        ownerId: item.userId
-      });
-      res.json(bids);
+        bidCount: bids.length,        ownerId: item.userId
+      });      res.json(bids);
     } catch (error) {
       logger.error('Error fetching bids:', error);
       res.status(500).json({ error: 'Failed to fetch bids' });
+    }
+  });
+
+  app.get("/api/user/communities", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const communities = await storage.getUserCommunities(req.user.id);
+      logger.debug('Retrieved user communities:', { 
+        userId: req.user.id,
+        communities: communities.map(c => ({
+          id: c.id,
+          name: c.name,
+          role: c.role,
+          memberCount: c.memberCount
+        }))
+      });
+      res.json(communities);
+    } catch (error) {
+      logger.error('Error fetching user communities:', error);
+      res.status(500).json({ error: 'Failed to fetch user communities' });
+    }
+  });
+
+  app.post("/api/communities", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const { name, description } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ error: "Community name is required" });
+      }
+
+      const community = await storage.createCommunity({
+        name,
+        description,
+        createdBy: req.user.id,
+        isCustom: true
+      });
+
+      logger.debug('Created new community:', {
+        communityId: community.id,
+        name: community.name,
+        createdBy: req.user.id
+      });
+
+      res.status(201).json(community);
+    } catch (error) {
+      logger.error('Error creating community:', error);
+      res.status(500).json({ error: 'Failed to create community' });
     }
   });
 
@@ -1042,6 +1130,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error('Error fetching bids:', error);
       res.status(500).json({ error: 'Failed to fetch bids' });
+    }
+  });
+
+  app.get("/api/user/communities", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const communities = await storage.getUserCommunities(req.user.id);
+      logger.debug('Retrieved user communities:', { 
+        userId: req.user.id,
+        communities: communities.map(c => ({
+          id: c.id,
+          name: c.name,
+          role: c.role,
+          memberCount: c.memberCount
+        }))
+      });
+      res.json(communities);
+    } catch (error) {
+      logger.error('Error fetching user communities:', error);
+      res.status(500).json({ error: 'Failed to fetch user communities' });
+    }
+  });
+
+  app.post("/api/communities", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const { name, description } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ error: "Community name is required" });
+      }
+
+      const community = await storage.createCommunity({
+        name,
+        description,
+        createdBy: req.user.id,
+        isCustom: true
+      });
+
+      logger.debug('Created new community:', {
+        communityId: community.id,
+        name: community.name,
+        createdBy: req.user.id
+      });
+
+      res.status(201).json(community);
+    } catch (error) {
+      logger.error('Error creating community:', error);
+      res.status(500).json({ error: 'Failed to create community' });
     }
   });
 

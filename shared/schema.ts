@@ -18,7 +18,34 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   address: text("address").notNull(),
   zipCode: text("zip_code").notNull(),
-  community: text("community").notNull(),
+  email: text("email").notNull().unique(),
+});
+
+export const communities = pgTable("communities", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdBy: integer("created_by").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  isCustom: boolean("is_custom").notNull().default(true),
+});
+
+export const userCommunities = pgTable("user_communities", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  communityId: integer("community_id").notNull().references(() => communities.id),
+  joinedAt: timestamp("joined_at").notNull().defaultNow(),
+  role: text("role").notNull().default('member'),
+});
+
+export const communityInvites = pgTable("community_invites", {
+  id: serial("id").primaryKey(),
+  communityId: integer("community_id").notNull().references(() => communities.id),
+  invitedBy: integer("invited_by").notNull().references(() => users.id),
+  invitedEmail: text("invited_email").notNull(),
+  status: text("status").notNull().default('pending'),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  acceptedAt: timestamp("accepted_at"),
 });
 
 export const ITEM_STATUS = {
@@ -46,7 +73,7 @@ export const items = pgTable("items", {
   isGift: boolean("is_gift").notNull().default(false),
   imageUrl: text("image_url").notNull(),
   userId: integer("user_id").notNull(),
-  community: text("community").notNull(),
+  communityId: integer("community_id").notNull().references(() => communities.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   status: text("status").notNull().default(ITEM_STATUS.AVAILABLE),
   recipientId: integer("recipient_id"),
@@ -62,7 +89,7 @@ export const itemRequests = pgTable("item_requests", {
   status: text("status").notNull().default(REQUEST_STATUS.PENDING),
   message: text("message"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  cancellationInfo: jsonb("cancellation_info"), // Changed from cancellationInfo to cancellation_info
+  cancellationInfo: jsonb("cancellation_info"),
 });
 
 export const itemBids = pgTable("item_bids", {
@@ -100,7 +127,7 @@ export const insertUserSchema = createInsertSchema(users).extend({
     .max(5, "Zip code must be 5 digits")
     .refine((val) => /^\d{5}$/.test(val), "Zip code must be exactly 5 digits"),
 }).omit({
-  community: true
+  email: true
 });
 
 export const insertItemSchema = createInsertSchema(items).omit({
@@ -110,12 +137,13 @@ export const insertItemSchema = createInsertSchema(items).omit({
   status: true,
   recipientId: true,
   pickupStart: true,
-  pickupEnd: true
+  pickupEnd: true,
 }).extend({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
   price: z.number().nullable().optional(),
   imageFile: z.instanceof(File).optional(),
+  communityId: z.number({ required_error: "Please select a community" }),
 }).refine((data) => {
   if (!data.isGift && (!data.price || data.price < 0.01)) {
     return false;
@@ -152,6 +180,29 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
   content: z.string().min(1, "Message cannot be empty").max(1000, "Message is too long"),
 });
 
+export const insertCommunitySchema = createInsertSchema(communities).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  name: z.string().min(3, "Community name must be at least 3 characters"),
+  description: z.string().optional(),
+});
+
+export const insertUserCommunitySchema = createInsertSchema(userCommunities).omit({
+  id: true,
+  joinedAt: true,
+});
+
+export const insertCommunityInviteSchema = createInsertSchema(communityInvites).omit({
+  id: true,
+  createdAt: true,
+  acceptedAt: true,
+  status: true,
+}).extend({
+  invitedEmail: z.string().email("Invalid email address"),
+});
+
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertItem = z.infer<typeof insertItemSchema>;
@@ -167,6 +218,10 @@ export type InsertItemBid = z.infer<typeof insertItemBidSchema>;
 export type ItemBid = typeof itemBids.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
+export type InsertCommunity = z.infer<typeof insertCommunitySchema>;
+export type Community = typeof communities.$inferSelect;
+export type UserCommunity = typeof userCommunities.$inferSelect;
+export type CommunityInvite = typeof communityInvites.$inferSelect;
 
 export const MOCK_COMMUNITIES = [
   "Downtown Seattle",
@@ -176,7 +231,6 @@ export const MOCK_COMMUNITIES = [
   "South End Boston"
 ];
 
-// Add cancellation info type
 export const cancellationInfoSchema = z.object({
   canceledBy: z.number(),
   canceledAt: z.string(),
