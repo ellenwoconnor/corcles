@@ -7,10 +7,12 @@ import { apiRequest } from "@/lib/queryClient";
 
 interface CancelButtonProps {
   itemId: number;
-  onCanceled: () => void;
+  requestId: number;
+  variant?: "link" | "default" | "destructive" | "outline" | "secondary" | "ghost";
+  onCanceled?: () => void;
 }
 
-export function CancelButton({ itemId, onCanceled }: CancelButtonProps) {
+export function CancelButton({ itemId, requestId, variant = "destructive", onCanceled }: CancelButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -18,7 +20,9 @@ export function CancelButton({ itemId, onCanceled }: CancelButtonProps) {
   const handleCancel = async () => {
     setIsSubmitting(true);
     try {
-      const response = await apiRequest("POST", `/api/items/${itemId}/cancel-pickup`, {});
+      const response = await apiRequest("POST", `/api/items/${itemId}/cancel-pickup`, {
+        requestId
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -49,7 +53,7 @@ export function CancelButton({ itemId, onCanceled }: CancelButtonProps) {
   return (
     <>
       <Button
-        variant="destructive"
+        variant={variant}
         onClick={() => setIsOpen(true)}
       >
         Cancel Pickup

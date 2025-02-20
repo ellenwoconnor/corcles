@@ -4,6 +4,10 @@ import { formatDistanceToNow, format } from "date-fns";
 import { Clock } from "lucide-react";
 import PickupSchedulingContainer from "@/components/pickup-scheduling-container";
 import { MessageDialog } from "@/components/message-dialog";
+import { Button } from "@/components/ui/button";
+import { apiRequest } from "@/lib/queryClient";
+import { useState } from "react";
+import { CancelButton } from "@/components/cancel-button";
 
 interface RecipientListingViewProps {
   item: Item & { userHasFavorited?: boolean };
@@ -17,7 +21,8 @@ export default function RecipientListingView({
   currentUserId 
 }: RecipientListingViewProps) {
   const showPickupScheduler = request?.status === "awaiting_pickup_confirmation";
-  const showMessageDialog = ['scheduling', 'scheduled', 'completed'].includes(item?.status || '') && !showPickupScheduler;
+  const showCancelAndMessage = ['scheduling', 'scheduled'].includes(item?.status || '');
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false);
 
   return (
     <div className="grid md:grid-cols-2 gap-8">
@@ -102,14 +107,26 @@ export default function RecipientListingView({
             </div>
           )}
 
-          {/* Then show messaging if needed */}
-          {showMessageDialog && (
-            <div className={`${showPickupScheduler ? 'mt-6 pt-6 border-t border-border' : ''}`}>
+          {/* Show cancel and message buttons for scheduling/scheduled status */}
+          {showCancelAndMessage && (
+            <div className="flex items-center gap-4">
+              <CancelButton 
+                itemId={item.id} 
+                requestId={request.id}
+                variant="outline"
+              />
               <MessageDialog
                 requestId={request.id}
                 currentUserId={currentUserId}
                 otherPartyId={item.userId}
                 recipientId={currentUserId}
+                isOpen={messageDialogOpen}
+                onOpenChange={setMessageDialogOpen}
+                trigger={
+                  <Button variant="outline">
+                    Message
+                  </Button>
+                }
               />
             </div>
           )}
