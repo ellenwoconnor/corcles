@@ -30,7 +30,11 @@ export default function HomePage() {
   console.log("Community IDs for query:", communityIds);
 
   const { data: items = [], isLoading } = useQuery<Item[]>({
-    queryKey: ["/api/items", { search: debouncedSearch, communities: communityIds, freeOnly: showFreeOnly }],
+    queryKey: ["/api/items", { 
+      communities: communityIds,
+      ...(debouncedSearch ? { search: debouncedSearch } : {}),
+      ...(showFreeOnly ? { freeOnly: true } : {})
+    }],
     enabled: communityIds.length > 0,
   });
 
