@@ -17,27 +17,18 @@ export default function HomePage() {
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
 
+  const { data: userCommunities } = useQuery({
+    queryKey: ["/api/user/communities"],
+    enabled: !!user,
+  });
+
+  const communityIds = userCommunities?.map(c => c.id) || [];
+
   const { data: items, isLoading } = useQuery<
     (Item & { userHasFavorited: boolean })[]
   >({
-    queryKey: [`/api/items/${user?.community}`, debouncedSearch, showFreeOnly],
-    queryFn: async () => {
-      const searchParams = new URLSearchParams();
-      if (debouncedSearch) {
-        searchParams.append("search", debouncedSearch);
-      }
-      const response = await fetch(
-        `/api/items/${user?.community}?${searchParams.toString()}`,
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch items");
-      }
-      const allItems = await response.json();
-      return showFreeOnly
-        ? allItems.filter((item: Item) => item.isGift)
-        : allItems;
-    },
-    enabled: !!user?.community,
+    queryKey: ["/api/items", communityIds, debouncedSearch, showFreeOnly],
+    enabled: communityIds.length > 0,
   });
 
   return (
@@ -52,7 +43,7 @@ export default function HomePage() {
             </p>
           </div>
           <div className="order-first sm:order-none">
-            <CreateListingDialog />
+            <CreateListingDialog communities={userCommunities || []} />
           </div>
         </div>
 
@@ -91,8 +82,8 @@ export default function HomePage() {
               {search
                 ? "Try adjusting your search terms"
                 : showFreeOnly
-                  ? "No free items available in your community yet"
-                  : "Be the first to list an item in your community"}
+                  ? "No free items available in your communities yet"
+                  : "Be the first to list an item in your communities"}
             </p>
           </div>
         ) : (

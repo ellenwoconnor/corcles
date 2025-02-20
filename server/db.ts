@@ -1,4 +1,3 @@
-
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
@@ -27,8 +26,7 @@ async function migrate() {
       display_name TEXT NOT NULL,
       avatar_url TEXT,
       address TEXT NOT NULL,
-      zip_code TEXT NOT NULL,
-      community TEXT NOT NULL
+      zip_code TEXT NOT NULL
     )`,
     `CREATE TABLE IF NOT EXISTS items (
       id SERIAL PRIMARY KEY,
@@ -38,7 +36,6 @@ async function migrate() {
       is_gift BOOLEAN NOT NULL DEFAULT FALSE,
       image_url TEXT NOT NULL,
       user_id INTEGER NOT NULL,
-      community TEXT NOT NULL,
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       recipient_id INTEGER REFERENCES users(id),
       pickup_start TIMESTAMP,
@@ -98,7 +95,46 @@ async function migrate() {
       EXCEPTION
         WHEN duplicate_column THEN NULL;
       END;
-    END $$;`
+    END $$;`,
+    // Add new tables
+    `CREATE TABLE IF NOT EXISTS communities (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      created_by INTEGER NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      is_custom BOOLEAN NOT NULL DEFAULT TRUE
+    )`,
+
+    `CREATE TABLE IF NOT EXISTS user_communities (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      community_id INTEGER NOT NULL REFERENCES communities(id),
+      joined_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      role TEXT NOT NULL DEFAULT 'member'
+    )`,
+
+    `CREATE TABLE IF NOT EXISTS community_invites (
+      id SERIAL PRIMARY KEY,
+      community_id INTEGER NOT NULL REFERENCES communities(id),
+      invited_by INTEGER NOT NULL REFERENCES users(id),
+      invited_email TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      accepted_at TIMESTAMP
+    )`,
+
+    // Update existing tables
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT`,
+    `ALTER TABLE users DROP COLUMN IF EXISTS community`,
+    `ALTER TABLE items DROP COLUMN IF EXISTS community`,
+    `ALTER TABLE items ADD COLUMN IF NOT EXISTS community_id INTEGER REFERENCES communities(id)`,
+
+    // Add indexes for better query performance
+    `CREATE INDEX IF NOT EXISTS idx_user_communities_user_id ON user_communities(user_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_user_communities_community_id ON user_communities(community_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_items_community_id ON items(community_id)`,
+    `CREATE INDEX IF NOT EXISTS idx_community_invites_email ON community_invites(invited_email)`,
   ];
 
   for (const migration of migrations) {
