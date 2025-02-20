@@ -217,20 +217,15 @@ export class DatabaseStorage implements IStorage {
         );
       }
 
-      // Apply all conditions
-      const finalQuery = query.where(and(...conditions));
-      const results = await finalQuery.orderBy(desc(items.createdAt));
+      // Apply all conditions and get raw results
+      const results = await query
+        .where(and(...conditions))
+        .orderBy(desc(items.createdAt));
 
       logger.debug('Raw items query results:', {
         count: results.length,
         communities,
-        items: results.map(item => ({
-          id: item.id,
-          title: item.title,
-          status: item.status,
-          communityId: item.communityId,
-          userId: item.userId
-        }))
+        results
       });
 
       // Transform dates and handle null values
