@@ -1,6 +1,9 @@
 import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { ITEM_STATUS, REQUEST_STATUS } from "./constants";
+
+export { ITEM_STATUS, REQUEST_STATUS };
 
 export const pickupWindowSchema = z.object({
   pickupStart: z.string(),
@@ -12,7 +15,7 @@ export type PickupWindow = z.infer<typeof pickupWindowSchema>;
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
+  username: text("username").notNull(),
   password: text("password").notNull(),
   displayName: text("display_name").notNull(),
   avatarUrl: text("avatar_url"),
@@ -47,23 +50,6 @@ export const communityInvites = pgTable("community_invites", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   acceptedAt: timestamp("accepted_at"),
 });
-
-export const ITEM_STATUS = {
-  AVAILABLE: 'available',
-  REQUESTED: 'requested',
-  SCHEDULING: 'scheduling',
-  SCHEDULED: 'scheduled',
-  COMPLETED: 'completed'
-} as const;
-
-export const REQUEST_STATUS = {
-  PENDING: 'pending',
-  READY_FOR_DRAWING: 'ready_for_drawing',
-  AWAITING_PICKUP_CONFIRMATION: 'awaiting_pickup_confirmation',
-  ACCEPTED: 'accepted',
-  BACKUP: 'backup',
-  CANCELED: 'canceled'
-} as const;
 
 export const items = pgTable("items", {
   id: serial("id").primaryKey(),
@@ -126,9 +112,44 @@ export const insertUserSchema = createInsertSchema(users).extend({
     .min(5, "Zip code must be 5 digits")
     .max(5, "Zip code must be 5 digits")
     .refine((val) => /^\d{5}$/.test(val), "Zip code must be exactly 5 digits"),
-}).omit({
-  email: true
+  email: z.string().email("Invalid email format")
 });
+
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+export type InsertItem = z.infer<typeof insertItemSchema>;
+export type Item = typeof items.$inferSelect & {
+  userDisplayName?: string;
+  proposedPickupWindows?: PickupWindow[];
+};
+export type InsertItemRequest = z.infer<typeof insertItemRequestSchema>;
+export type ItemRequest = typeof itemRequests.$inferSelect & {
+  cancellationInfo?: CancellationInfo;
+};
+export type InsertItemBid = z.infer<typeof insertItemBidSchema>;
+export type ItemBid = typeof itemBids.$inferSelect;
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type Message = typeof messages.$inferSelect;
+export type InsertCommunity = z.infer<typeof insertCommunitySchema>;
+export type Community = typeof communities.$inferSelect;
+export type UserCommunity = typeof userCommunities.$inferSelect;
+export type CommunityInvite = typeof communityInvites.$inferSelect;
+
+export const MOCK_COMMUNITIES = [
+  "Downtown Seattle",
+  "East Village NYC",
+  "Mission District SF",
+  "Wicker Park Chicago",
+  "South End Boston"
+];
+
+export const cancellationInfoSchema = z.object({
+  canceledBy: z.number(),
+  canceledAt: z.string(),
+  reason: z.string().optional()
+});
+
+export type CancellationInfo = z.infer<typeof cancellationInfoSchema>;
 
 export const insertItemSchema = createInsertSchema(items).omit({
   id: true,
@@ -201,40 +222,3 @@ export const insertCommunityInviteSchema = createInsertSchema(communityInvites).
 }).extend({
   invitedEmail: z.string().email("Invalid email address"),
 });
-
-
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
-export type InsertItem = z.infer<typeof insertItemSchema>;
-export type Item = typeof items.$inferSelect & {
-  userDisplayName?: string;
-  proposedPickupWindows?: PickupWindow[];
-};
-export type InsertItemRequest = z.infer<typeof insertItemRequestSchema>;
-export type ItemRequest = typeof itemRequests.$inferSelect & {
-  cancellationInfo?: CancellationInfo;
-};
-export type InsertItemBid = z.infer<typeof insertItemBidSchema>;
-export type ItemBid = typeof itemBids.$inferSelect;
-export type InsertMessage = z.infer<typeof insertMessageSchema>;
-export type Message = typeof messages.$inferSelect;
-export type InsertCommunity = z.infer<typeof insertCommunitySchema>;
-export type Community = typeof communities.$inferSelect;
-export type UserCommunity = typeof userCommunities.$inferSelect;
-export type CommunityInvite = typeof communityInvites.$inferSelect;
-
-export const MOCK_COMMUNITIES = [
-  "Downtown Seattle",
-  "East Village NYC",
-  "Mission District SF",
-  "Wicker Park Chicago",
-  "South End Boston"
-];
-
-export const cancellationInfoSchema = z.object({
-  canceledBy: z.number(),
-  canceledAt: z.string(),
-  reason: z.string().optional()
-});
-
-export type CancellationInfo = z.infer<typeof cancellationInfoSchema>;

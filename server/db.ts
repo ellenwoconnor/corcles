@@ -1,7 +1,6 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
-import * as schema from "@shared/schema";
 import logger from './logger';
 
 neonConfig.webSocketConstructor = ws;
@@ -13,6 +12,9 @@ if (!process.env.DATABASE_URL) {
 }
 
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+// Import schema after pool setup to avoid circular dependencies
+import * as schema from "@shared/schema";
 export const db = drizzle(pool, { schema });
 
 // Run initial migration

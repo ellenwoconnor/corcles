@@ -5,6 +5,7 @@ import multer from "multer";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import * as schema from "@shared/schema";
+import { ITEM_STATUS, REQUEST_STATUS } from "@shared/constants";
 import { z } from "zod";
 import { insertItemSchema, insertItemRequestSchema, insertItemBidSchema, insertMessageSchema } from "@shared/schema";
 import { eq, and, not, or } from "drizzle-orm";
@@ -386,7 +387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (requests.length === 1) {
         await db
           .update(schema.items)
-          .set({ status: schema.ITEM_STATUS.REQUESTED })
+          .set({ status: ITEM_STATUS.REQUESTED })
           .where(eq(schema.items.id, itemId));
       }
       
@@ -660,7 +661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .update(schema.items)
         .set({ 
           proposedPickupWindows: proposedWindows,
-          status: schema.ITEM_STATUS.SCHEDULING,
+          status: ITEM_STATUS.SCHEDULING,
           recipientId: selectedRequest.requesterId
         })
         .where(eq(schema.items.id, itemId));
@@ -668,13 +669,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Update the selected request to awaiting_pickup_confirmation
       await db
         .update(schema.itemRequests)
-        .set({ status: schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
+        .set({ status: REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
         .where(eq(schema.itemRequests.id, selectedRequest.id));
 
       // Update other requests to rejected
       await db
         .update(schema.itemRequests)
-        .set({ status: schema.REQUEST_STATUS.REJECTED })
+        .set({ status: REQUEST_STATUS.REJECTED })
         .where(
           and(
             eq(schema.itemRequests.itemId, itemId),
@@ -685,8 +686,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       logger.debug('Updated item and request statuses for pickup:', { 
         itemId,
         selectedRequestId: selectedRequest.id,
-        newStatus: schema.ITEM_STATUS.PENDING_PICKUP,
-        requestStatus: schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION,
+        newStatus: ITEM_STATUS.PENDING_PICKUP,
+        requestStatus: REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION,
         proposedWindows
       });
 
@@ -724,7 +725,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           and(
             eq(schema.itemRequests.itemId, itemId),
             eq(schema.itemRequests.requesterId, req.user.id),
-            eq(schema.itemRequests.status, schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION)
+            eq(schema.itemRequests.status, REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION)
           )
         );
 
@@ -737,8 +738,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .update(schema.itemRequests)
         .set({ 
           status: confirmed 
-            ? schema.REQUEST_STATUS.ACCEPTED 
-            : schema.REQUEST_STATUS.REJECTED 
+            ? REQUEST_STATUS.ACCEPTED 
+            : REQUEST_STATUS.REJECTED 
         })
         .where(eq(schema.itemRequests.id, request.id));
 
@@ -746,7 +747,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (confirmed) {
         await db
           .update(schema.items)
-          .set({ status: schema.ITEM_STATUS.SCHEDULED })
+          .set({ status: ITEM_STATUS.SCHEDULED })
           .where(eq(schema.items.id, itemId));
       }
 
@@ -860,7 +861,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .set({ 
           pickupStart: pickupStart,
           pickupEnd: pickupEnd,
-          status: schema.ITEM_STATUS.SCHEDULED,
+          status: ITEM_STATUS.SCHEDULED,
           recipientId: req.user.id 
         })
         .where(eq(schema.items.id, itemId));
@@ -1018,8 +1019,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           and(
             eq(schema.itemRequests.itemId, itemId),
             or(
-              eq(schema.itemRequests.status, schema.REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION),
-              eq(schema.itemRequests.status, schema.REQUEST_STATUS.ACCEPTED)
+              eq(schema.itemRequests.status, REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION),
+              eq(schema.itemRequests.status, REQUEST_STATUS.ACCEPTED)
             )
           )
         );
@@ -1038,7 +1039,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await db
         .update(schema.itemRequests)
         .set({ 
-          status: schema.REQUEST_STATUS.REJECTED,
+          status: REQUEST_STATUS.REJECTED,
           cancellationInfo: reason ? { reason, canceledBy: req.user.id } : null
         })
         .where(eq(schema.itemRequests.id, request.id));
@@ -1050,15 +1051,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(
           and(
             eq(schema.itemRequests.itemId, itemId),
-            not(eq(schema.itemRequests.status, schema.REQUEST_STATUS.REJECTED)),
-            not(eq(schema.itemRequests.status, schema.REQUEST_STATUS.CANCELED))
+            not(eq(schema.itemRequests.status, REQUEST_STATUS.REJECTED)),
+            not(eq(schema.itemRequests.status, REQUEST_STATUS.CANCELED))
           )
         );
 
       // Set status based on remaining requests
       const newStatus = remainingRequests.length > 0 
-        ? schema.ITEM_STATUS.REQUESTED 
-        : schema.ITEM_STATUS.AVAILABLE;
+        ? ITEM_STATUS.REQUESTED 
+        : ITEM_STATUS.AVAILABLE;
 
       // Update item status and clear pickup info
       await db
