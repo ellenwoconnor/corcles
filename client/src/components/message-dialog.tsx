@@ -12,7 +12,7 @@ import { useWebSocket } from "@/hooks/use-websocket";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, MessageSquare } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { z } from "zod";
 
 interface Message {
@@ -138,12 +138,7 @@ export function MessageDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        {trigger || (
-          <Button variant="outline" className="flex gap-2 w-full">
-            <MessageSquare className="h-4 w-4" />
-            Messages
-          </Button>
-        )}
+        {trigger}
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
