@@ -34,7 +34,7 @@ export default function OwnerListingView({
     ["pending", "accepted", "awaiting_pickup_confirmation", "scheduled"].includes(r.status)
   );
 
-  const showPickupScheduler = ['requested', 'scheduling'].includes(item.status || '');
+  const showPickupScheduler = ['requested', 'scheduling', 'scheduled'].includes(item.status || '');
   const showMessageAndCancel = ['scheduling', 'scheduled'].includes(item.status || '') && activeRequest;
 
   return (
