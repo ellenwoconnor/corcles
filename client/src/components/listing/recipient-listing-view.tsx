@@ -2,7 +2,7 @@ import { Item, ItemRequest } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow, format } from "date-fns";
 import { Clock } from "lucide-react";
-import PickupSchedulingContainer from "@/components/pickup-scheduling-container";
+import PickupTimeSelector from "@/components/pickup-scheduling-container";
 import { MessageDialog } from "@/components/message-dialog";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
@@ -15,14 +15,16 @@ interface RecipientListingViewProps {
   currentUserId: number;
 }
 
-export default function RecipientListingView({ 
-  item, 
-  request, 
-  currentUserId 
+export default function RecipientListingView({
+  item,
+  request,
+  currentUserId,
 }: RecipientListingViewProps) {
   // Only show pickup scheduler if we have a valid request in the right status
-  const showPickupScheduler = request?.status === "awaiting_pickup_confirmation";
-  const showCancelAndMessage = request && ['scheduling', 'scheduled'].includes(item?.status || '');
+  const showPickupScheduler =
+    request?.status === "awaiting_pickup_confirmation";
+  const showCancelAndMessage =
+    request && ["scheduling", "scheduled"].includes(item?.status || "");
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
 
   if (!request) {
@@ -60,9 +62,7 @@ export default function RecipientListingView({
                 Free
               </div>
             ) : (
-              <p className="text-2xl font-bold text-primary">
-                ${item.price}
-              </p>
+              <p className="text-2xl font-bold text-primary">${item.price}</p>
             )}
           </div>
         </div>
@@ -108,13 +108,13 @@ export default function RecipientListingView({
           {/* First show pickup scheduling if needed */}
           {showPickupScheduler && (
             <div className="space-y-4">
-              <PickupSchedulingContainer
-                item={item}
+              <PickupTimeSelector
+                itemId={item.id}
+                itemOwnerId={item.userId}
+                currentUserId={user.id}
                 requestId={request.id}
-                requesterId={currentUserId}
-                onScheduled={() => {
-                  // Handle scheduling completion
-                }}
+                windows={item.proposedPickupWindows}
+                onSelected={handleSchedulingComplete}
               />
             </div>
           )}
@@ -122,8 +122,8 @@ export default function RecipientListingView({
           {/* Show cancel and message buttons for scheduling/scheduled status */}
           {showCancelAndMessage && (
             <div className="flex items-center gap-4">
-              <CancelButton 
-                itemId={item.id} 
+              <CancelButton
+                itemId={item.id}
                 requestId={request.id}
                 variant="outline"
               />
@@ -134,11 +134,7 @@ export default function RecipientListingView({
                 recipientId={currentUserId}
                 isOpen={messageDialogOpen}
                 onOpenChange={setMessageDialogOpen}
-                trigger={
-                  <Button variant="outline">
-                    Message
-                  </Button>
-                }
+                trigger={<Button variant="outline">Message</Button>}
               />
             </div>
           )}

@@ -41,57 +41,19 @@ export default function PickupSchedulingContainer({
   const showCancelButton = showSelectedTime && (isOwner || isRecipient);
 
   // Show scheduler for owner based on item status
-  const showScheduler = isOwner && ['requested', 'scheduling', 'scheduled'].includes(item.status);
+  const showScheduler =
+    isOwner && ["requested", "scheduling", "scheduled"].includes(item.status);
 
   if (!user) return null;
 
   return (
     <div className="space-y-4">
-      {showSelectedTime && (
-        <Alert>
-          <div className="space-y-2">
-            <h3 className="font-medium">Selected Pickup Time</h3>
-            <p className="text-sm text-muted-foreground">
-              {format(new Date(item.pickupStart!), "EEEE, MMMM d")} at{" "}
-              {format(new Date(item.pickupStart!), "h:mm a")} -{" "}
-              {format(new Date(item.pickupEnd!), "h:mm a")}
-            </p>
-            <div className="flex items-center justify-between">
-              <Badge variant="outline">Pickup Scheduled</Badge>
-              {showCancelButton && (
-                <CancelButton 
-                  itemId={item.id}
-                  onCanceled={handleSchedulingComplete}
-                />
-              )}
-            </div>
-          </div>
-        </Alert>
-      )}
-
-      {isOwner ? (
-        // Owner view - show scheduler based on item status
-        showScheduler && (
-          <PickupScheduler
-            itemId={item.id}
-            itemStatus={item.status}
-            onScheduled={handleSchedulingComplete}
-          />
-        )
-      ) : (
-        // Requester view - show time selector to pick from proposed times if no time is selected yet
-        !showSelectedTime && 
-        item.proposedPickupWindows && 
-        item.proposedPickupWindows.length > 0 && (
-          <PickupTimeSelector
-            itemId={item.id}
-            itemOwnerId={item.userId}
-            currentUserId={user.id}
-            requestId={requestId}
-            windows={item.proposedPickupWindows}
-            onSelected={handleSchedulingComplete}
-          />
-        )
+      {isOwner && showScheduler && (
+        <PickupScheduler
+          itemId={item.id}
+          itemStatus={item.status}
+          onScheduled={handleSchedulingComplete}
+        />
       )}
     </div>
   );
