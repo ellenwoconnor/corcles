@@ -159,20 +159,28 @@ export class DatabaseStorage implements IStorage {
     userItemsOnly?: boolean
   ): Promise<(Item & { userHasFavorited: boolean })[]> {
     try {
+      logger.debug('Fetching items with params:', {
+        communities,
+        userId,
+        search,
+        userItemsOnly
+      });
+
       const query = db
         .select({
           ...items,
           userDisplayName: sql<string>`(
-            SELECT display_name FROM ${users} WHERE ${users.id} = ${items.userId}
+            SELECT username FROM ${users} WHERE ${users.id} = ${items.userId}
           )`.as("userDisplayName"),
           userHasFavorited: sql<boolean>`false`.as("userHasFavorited"),
         })
         .from(items)
         .where(notInArray(items.status, ['completed']));
 
+      // Build query conditions
       if (userItemsOnly && userId) {
         query.where(eq(items.userId, userId));
-      } else if (communities.length > 0) {
+      } else if (communities && communities.length > 0) {
         query.where(inArray(items.communityId, communities));
       }
 
@@ -188,27 +196,36 @@ export class DatabaseStorage implements IStorage {
 
       const results = await query.orderBy(desc(items.createdAt));
 
-      logger.debug('Retrieved items:', { 
-        communities,
-        userId,
-        userItemsOnly,
+      logger.debug('Raw items query results:', {
         count: results.length,
+        communities,
         items: results.map(item => ({
           id: item.id,
           title: item.title,
-          communityId: item.communityId
+          status: item.status,
+          communityId: item.communityId,
+          userId: item.userId
         }))
       });
 
-      return results.map(item => ({
+      // Transform dates and handle null values
+      const transformedItems = results.map(item => ({
         ...item,
-        proposedPickupWindows: item.proposedPickupWindows 
+        proposedPickupWindows: item.proposedPickupWindows
           ? (item.proposedPickupWindows as unknown as PickupWindow[])
           : undefined,
         pickupStart: item.pickupStart ? new Date(item.pickupStart).toISOString() : null,
         pickupEnd: item.pickupEnd ? new Date(item.pickupEnd).toISOString() : null,
-        createdAt: new Date(item.createdAt).toISOString()
+        createdAt: new Date(item.createdAt).toISOString(),
+        userDisplayName: item.userDisplayName || "Anonymous"
       }));
+
+      logger.debug('Transformed items:', {
+        count: transformedItems.length,
+        sample: transformedItems.slice(0, 2)
+      });
+
+      return transformedItems;
     } catch (error) {
       logger.error('Error retrieving items:', { error, communities, search });
       throw error;
@@ -235,7 +252,7 @@ export class DatabaseStorage implements IStorage {
 
       const processedItem = {
         ...item,
-        proposedPickupWindows: item.proposedPickupWindows 
+        proposedPickupWindows: item.proposedPickupWindows
           ? (item.proposedPickupWindows as unknown as PickupWindow[])
           : undefined,
         pickupStart: item.pickupStart ? new Date(item.pickupStart).toISOString() : null,
