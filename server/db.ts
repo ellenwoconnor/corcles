@@ -62,13 +62,13 @@ async function migrate() {
       is_gift BOOLEAN NOT NULL DEFAULT FALSE,
       image_url TEXT NOT NULL,
       user_id INTEGER NOT NULL,
+      community_id INTEGER NOT NULL REFERENCES communities(id),
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-      recipient_id INTEGER REFERENCES users(id),
+      status TEXT NOT NULL DEFAULT 'available',
+      recipient_id INTEGER,
       pickup_start TIMESTAMP,
       pickup_end TIMESTAMP,
-      status TEXT NOT NULL DEFAULT 'available',
-      proposed_pickup_windows JSONB[],
-      community_id INTEGER NOT NULL REFERENCES communities(id)
+      proposed_pickup_windows JSONB[]
     )`,
     `CREATE TABLE IF NOT EXISTS item_requests (
       id SERIAL PRIMARY KEY,
@@ -79,50 +79,59 @@ async function migrate() {
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       cancellation_info JSONB
     )`,
-    // Update existing users to have email if missing
-    `DO $$ 
-    BEGIN 
-      UPDATE users SET email = username || '@example.com' 
-      WHERE email IS NULL;
-    EXCEPTION WHEN OTHERS THEN NULL;
-    END $$;`,
     // Create default communities for existing zip codes if none exist
     `DO $$ 
-    BEGIN 
-      INSERT INTO communities (name, description, created_by, is_custom)
-      SELECT DISTINCT 
-        'Community ' || zip_code,
-        'Default community for ' || zip_code,
-        MIN(id),
-        FALSE
-      FROM users u
-      WHERE NOT EXISTS (
-        SELECT 1 FROM communities c 
-        WHERE c.name = 'Community ' || u.zip_code
-      )
-      GROUP BY zip_code;
+    DECLARE
+      v_user RECORD;
+      v_community_id INTEGER;
+    BEGIN
+      -- First, handle any users without email
+      UPDATE users SET email = username || '@example.com' WHERE email IS NULL;
 
-      -- Add users to their zip code communities
-      INSERT INTO user_communities (user_id, community_id, role)
-      SELECT u.id, c.id, 'member'
-      FROM users u
-      JOIN communities c ON c.name = 'Community ' || u.zip_code
-      WHERE NOT EXISTS (
-        SELECT 1 FROM user_communities uc 
-        WHERE uc.user_id = u.id AND uc.community_id = c.id
-      );
+      -- Create communities for each unique zip code
+      FOR v_user IN (
+        SELECT DISTINCT zip_code, MIN(id) as first_user_id
+        FROM users
+        GROUP BY zip_code
+      ) LOOP
+        -- Check if community already exists for this zip code
+        IF NOT EXISTS (
+          SELECT 1 FROM communities 
+          WHERE name = 'Community ' || v_user.zip_code
+        ) THEN
+          -- Create the community
+          INSERT INTO communities (
+            name, 
+            description, 
+            created_by, 
+            is_custom
+          ) VALUES (
+            'Community ' || v_user.zip_code,
+            'Default community for ' || v_user.zip_code,
+            v_user.first_user_id,
+            FALSE
+          ) RETURNING id INTO v_community_id;
 
-      -- Update existing items to link to zip code communities
-      UPDATE items i
-      SET community_id = (
-        SELECT c.id 
-        FROM communities c 
-        JOIN users u ON u.id = i.user_id 
-        WHERE c.name = 'Community ' || u.zip_code
-      )
-      WHERE community_id IS NULL;
-    EXCEPTION WHEN OTHERS THEN NULL;
-    END $$;`,
+          -- Add all users from this zip code to the community
+          INSERT INTO user_communities (user_id, community_id, role)
+          SELECT id, v_community_id, 'member'
+          FROM users
+          WHERE zip_code = v_user.zip_code
+          ON CONFLICT (user_id, community_id) DO NOTHING;
+
+          -- Update any items from users in this zip code to belong to this community
+          UPDATE items i
+          SET community_id = v_community_id
+          FROM users u
+          WHERE i.user_id = u.id
+          AND u.zip_code = v_user.zip_code
+          AND i.community_id IS NULL;
+        END IF;
+      END LOOP;
+    EXCEPTION 
+      WHEN OTHERS THEN
+        RAISE NOTICE 'Error in migration: %', SQLERRM;
+    END $$;`
   ];
 
   for (const migration of migrations) {
