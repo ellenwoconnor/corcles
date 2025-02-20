@@ -261,33 +261,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/items/:community", async (req, res) => {
+  app.get("/api/items", async (req, res) => {
     try {
-      const { search } = req.query;
+      const { search, communities: communityParam, freeOnly } = req.query;
       const searchTerm = typeof search === 'string' ? search : undefined;
-      const communityId = parseInt(req.params.community);
+
+      // Parse communities from query parameter
+      let communities: number[] = [];
+      if (Array.isArray(communityParam)) {
+        communities = communityParam.map(c => parseInt(c)).filter(c => !isNaN(c));
+      } else if (typeof communityParam === 'string') {
+        const communityId = parseInt(communityParam);
+        if (!isNaN(communityId)) {
+          communities = [communityId];
+        }
+      }
 
       // Log the request parameters for debugging
       logger.debug('Fetching items:', {
-        communityId,
+        communities,
         userId: req.user?.id,
         searchTerm,
         authenticated: req.isAuthenticated()
       });
 
-      if (isNaN(communityId)) {
-        return res.status(400).json({ error: "Invalid community ID" });
+      if (communities.length === 0) {
+        return res.status(400).json({ error: "At least one valid community ID is required" });
       }
 
       const items = await storage.getItems(
-        [communityId], // Pass as array of numbers
+        communities,
         req.user?.id,
-        searchTerm
+        searchTerm,
+        false,
+        freeOnly === 'true'
       );
 
       // Log the number of items returned
       logger.debug('Items fetched:', {
-        communityId,
+        communities,
         itemCount: items.length
       });
 
@@ -300,6 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to fetch items' });
     }
   });
+
 
   app.post("/api/items", async (req, res) => {
     try {
@@ -916,7 +929,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (item.userId !== req.user.id) {
-        return res.sendStatus(403);
+        returnres.sendStatus(403);
       }
 
       const bids = await storage.getItemBids(itemId);
@@ -933,7 +946,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/user/communities", async (req, res) => {
-    try {if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
 
       const communities = await storage.getUserCommunities(req.user.id);
       logger.debug('Retrieved user communities:', { 
