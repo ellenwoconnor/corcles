@@ -166,9 +166,23 @@ export class DatabaseStorage implements IStorage {
         userItemsOnly,
       });
 
+      // First select all fields from items table directly
       const query = db
         .select({
-          ...items,
+          id: items.id,
+          title: items.title,
+          description: items.description,
+          price: items.price,
+          isGift: items.isGift,
+          imageUrl: items.imageUrl,
+          userId: items.userId,
+          communityId: items.communityId,
+          status: items.status,
+          createdAt: items.createdAt,
+          recipientId: items.recipientId,
+          pickupStart: items.pickupStart,
+          pickupEnd: items.pickupEnd,
+          proposedPickupWindows: items.proposedPickupWindows,
           userDisplayName: sql<string>`(
             SELECT username FROM ${users} WHERE ${users.id} = ${items.userId}
           )`.as("userDisplayName"),
