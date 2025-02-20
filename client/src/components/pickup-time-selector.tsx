@@ -68,14 +68,6 @@ export default function PickupTimeSelector({
 
   return (
     <div className="space-y-4">
-      {windows && windows.length > 0 && (
-        <MessageDialog
-          requestId={requestId}
-          currentUserId={currentUserId}
-          otherPartyId={currentUserId === itemOwnerId ? requestId : itemOwnerId}
-          recipientId={itemOwnerId}
-        />
-      )}
       <div className="space-y-2">
         <div className="grid grid-cols-1 gap-1.5">
           {windows.map((window: PickupWindow, index: number) => (

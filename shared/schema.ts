@@ -23,7 +23,9 @@ export const users = pgTable("users", {
 
 export const ITEM_STATUS = {
   AVAILABLE: 'available',
-  PENDING_PICKUP: 'pending_pickup',
+  REQUESTED: 'requested',
+  SCHEDULING: 'scheduling',
+  SCHEDULED: 'scheduled',
   COMPLETED: 'completed'
 } as const;
 
@@ -105,7 +107,6 @@ export const insertItemSchema = createInsertSchema(items).omit({
   id: true,
   userId: true,
   createdAt: true,
-  favorites: true,
   status: true,
   recipientId: true,
   pickupStart: true,

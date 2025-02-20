@@ -2,7 +2,6 @@ import { formatDistanceToNow } from "date-fns";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ItemRequest } from "@shared/schema";
-//import { MessageDialog } from "./message-dialog"; // Removed import
 
 export function getRequestStatusVariant(status: string) {
   switch (status) {
