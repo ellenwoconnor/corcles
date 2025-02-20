@@ -130,8 +130,13 @@ export default function OwnerListingView({
                 {showPickupScheduler && activeRequest && (
                   <div className="border-t border-border pt-4">
                     {/* Show proposed pickup windows if they exist */}
+                    <PickupSchedulingContainer
+                      item={item}
+                      requestId={activeRequest.id}
+                      requesterId={activeRequest.userId ?? 0}
+                    />
                     {item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && (
-                      <div className="mb-4">
+                      <div className="mt-4">
                         <h4 className="text-sm font-medium mb-2">Proposed Pickup Times</h4>
                         <div className="space-y-2">
                           {item.proposedPickupWindows.map((window: PickupWindow, index: number) => (
@@ -149,11 +154,6 @@ export default function OwnerListingView({
                         </div>
                       </div>
                     )}
-                    <PickupSchedulingContainer
-                      item={item}
-                      requestId={activeRequest.id}
-                      requesterId={activeRequest.userId ?? 0}
-                    />
                   </div>
                 )}
 
