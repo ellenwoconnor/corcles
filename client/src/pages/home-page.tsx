@@ -26,13 +26,14 @@ export default function HomePage() {
 
   const communityIds = userCommunities.map((c) => c.id);
 
-  const { data: items, isLoading } = useQuery<Item[]>({
+  const { data: items = [], isLoading } = useQuery<Item[]>({
     queryKey: ["/api/items", debouncedSearch, communityIds, showFreeOnly],
-    queryFn: () => {
+    queryFn: async () => {
       if (!communityIds.length) return [];
-      return fetch(`/api/items/${communityIds[0]}?search=${encodeURIComponent(debouncedSearch || '')}`).then(r => r.json());
-    },
-    enabled: communityIds.length > 0
+      const response = await fetch(`/api/items/${communityIds[0]}?search=${encodeURIComponent(debouncedSearch || '')}`);
+      if (!response.ok) return [];
+      return response.json();
+    }
   });
 
   console.log("items", items);
