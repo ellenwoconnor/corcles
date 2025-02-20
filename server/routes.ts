@@ -15,6 +15,9 @@ import { addHours, isAfter, isBefore, addDays } from "date-fns";
 import session from 'express-session';
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
+import { insertCommunityInviteSchema } from "@shared/schema"; // Import the new schema
+const { userCommunities, communityInvites } = schema; // Import the necessary tables
+
 
 const PostgresSessionStore = connectPg(session);
 
@@ -1182,6 +1185,147 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error('Error creating community:', error);
       res.status(500).json({ error: 'Failed to create community' });
+    }
+  });
+
+  app.post("/api/communities/:id/invite", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const communityId = parseInt(req.params.id);
+      if (isNaN(communityId)) {
+        return res.status(400).json({ error: "Invalid community ID" });
+      }
+
+      const parseResult = insertCommunityInviteSchema.safeParse({
+        ...req.body,
+        communityId,
+        invitedBy: req.user.id
+      });
+
+      if (!parseResult.success) {
+        return res.status(400).json(parseResult.error);
+      }
+
+      // Check if user has permission to invite
+      const [membership] = await db
+        .select()
+        .from(userCommunities)
+        .where(
+          and(
+            eq(userCommunities.userId, req.user.id),
+            eq(userCommunities.communityId, communityId)
+          )
+        );
+
+      if (!membership) {
+        return res.status(403).json({ error: "You are not a member of this community" });
+      }
+
+      // Check for existing invite
+      const [existingInvite] = await db
+        .select()
+        .from(communityInvites)
+        .where(
+          and(
+            eq(communityInvites.communityId, communityId),
+            eq(communityInvites.invitedEmail, parseResult.data.invitedEmail),
+            eq(communityInvites.status, 'pending')
+          )
+        );
+
+      if (existingInvite) {
+        return res.status(400).json({ error: "Invite already exists for this email" });
+      }
+
+      const invite = await storage.createCommunityInvite(parseResult.data);
+
+      logger.debug('Created community invite:', {
+        communityId,
+        invitedEmail: parseResult.data.invitedEmail,
+        invitedBy: req.user.id
+      });
+
+      res.status(201).json(invite);
+    } catch (error) {
+      logger.error('Error creating community invite:', error);
+      res.status(500).json({ error: 'Failed to create community invite' });
+    }
+  });
+
+  app.post("/api/communities/invites/:id/accept", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const inviteId = parseInt(req.params.id);
+      if (isNaN(inviteId)) {
+        return res.status(400).json({ error: "Invalid invite ID" });
+      }
+
+      // Get the invite
+      const [invite] = await db
+        .select()
+        .from(communityInvites)
+        .where(eq(communityInvites.id, inviteId));
+
+      if (!invite) {
+        return res.status(404).json({ error: "Invite not found" });
+      }
+
+      if (invite.status !== 'pending') {
+        return res.status(400).json({ error: "Invite is no longer valid" });
+      }
+
+      if (invite.invitedEmail !== req.user.email) {
+        return res.status(403).json({ error: "This invite is for a different email address" });
+      }
+
+      // Check if user is already a member
+      const [membership] = await db
+        .select()
+        .from(userCommunities)
+        .where(
+          and(
+            eq(userCommunities.userId, req.user.id),
+            eq(userCommunities.communityId, invite.communityId)
+          )
+        );
+
+      if (membership) {
+        return res.status(400).json({ error: "You are already a member of this community" });
+      }
+
+      // Begin transaction
+      await db.transaction(async (tx) => {
+        // Update invite status
+        await tx
+          .update(communityInvites)
+          .set({ 
+            status: 'accepted',
+            acceptedAt: new Date()
+          })
+          .where(eq(communityInvites.id, inviteId));
+
+        // Add user to community
+        await tx
+          .insert(userCommunities)
+          .values({
+            userId: req.user.id,
+            communityId: invite.communityId,
+            role: 'member'
+          });
+      });
+
+      logger.debug('Accepted community invite:', {
+        inviteId,
+        communityId: invite.communityId,
+        userId: req.user.id
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error('Error accepting community invite:', error);
+      res.status(500).json({ error: 'Failed to accept community invite' });
     }
   });
 

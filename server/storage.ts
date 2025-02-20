@@ -4,6 +4,9 @@ import {
   itemRequests,
   itemBids,
   messages,
+  communities,
+  userCommunities,
+  communityInvites,
   type User,
   type InsertUser,
   type Item,
@@ -16,6 +19,11 @@ import {
   type InsertMessage,
   type PickupWindow,
   type CancellationInfo,
+  type Community,
+  type InsertCommunity,
+  type UserCommunity,
+  type CommunityInvite,
+  type InsertCommunityInvite,
   ITEM_STATUS,
   REQUEST_STATUS,
 } from "@shared/schema";
@@ -25,16 +33,6 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 import logger from './logger';
-import {
-  communities,
-  userCommunities,
-  communityInvites,
-  type Community,
-  type InsertCommunity,
-  type UserCommunity,
-  type CommunityInvite,
-  type InsertCommunityInvite,
-} from "@shared/schema";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -82,7 +80,7 @@ export interface IStorage {
     reason?: string
   ): Promise<ItemRequest>;
 
-  // Community methods
+  // Add proper types for community methods
   createCommunity(community: InsertCommunity & { createdBy: number }): Promise<Community>;
   getCommunity(id: number): Promise<Community | undefined>;
   getUserCommunities(userId: number): Promise<(Community & { role: string; memberCount: number })[]>;
@@ -199,7 +197,7 @@ export class DatabaseStorage implements IStorage {
       // Filter by user's items if requested
       if (userItemsOnly && userId) {
         conditions.push(eq(items.userId, userId));
-      } 
+      }
       // Filter by communities
       else if (communities && communities.length > 0) {
         logger.debug('Filtering by communities:', { communities });
@@ -314,8 +312,8 @@ export class DatabaseStorage implements IStorage {
         createdAt: new Date()
       }).returning();
 
-      logger.debug('Created new item:', { 
-        itemId: newItem.id, 
+      logger.debug('Created new item:', {
+        itemId: newItem.id,
         userId: newItem.userId,
         communityId: newItem.communityId,
         title: newItem.title
@@ -505,7 +503,7 @@ export class DatabaseStorage implements IStorage {
   async sendMessage(message: InsertMessage): Promise<Message> {
     try {
       const [newMessage] = await db.insert(messages).values(message).returning();
-      logger.debug('Created new message:', { 
+      logger.debug('Created new message:', {
         messageId: newMessage.id,
         senderId: newMessage.senderId,
         recipientId: newMessage.recipientId,
@@ -540,7 +538,7 @@ export class DatabaseStorage implements IStorage {
         )
         .orderBy(messages.createdAt);
 
-      logger.debug('Retrieved conversation:', { 
+      logger.debug('Retrieved conversation:', {
         userId1,
         userId2,
         requestId,
@@ -605,16 +603,16 @@ export class DatabaseStorage implements IStorage {
         canceledAt: new Date().toISOString()
       };
 
-      logger.debug('Attempting to cancel request:', { 
-        requestId, 
-        itemId 
+      logger.debug('Attempting to cancel request:', {
+        requestId,
+        itemId
       });
 
       const [updatedRequest] = await db
         .update(itemRequests)
-        .set({ 
+        .set({
           status: REQUEST_STATUS.CANCELED,
-          cancellationInfo 
+          cancellationInfo
         })
         .where(eq(itemRequests.id, requestId))
         .returning();
@@ -624,7 +622,7 @@ export class DatabaseStorage implements IStorage {
         throw new Error('Failed to update request');
       }
 
-      logger.debug('Updated request with cancellation:', { 
+      logger.debug('Updated request with cancellation:', {
         requestId,
         status: updatedRequest.status,
         cancellationInfo: updatedRequest.cancellationInfo
@@ -632,7 +630,7 @@ export class DatabaseStorage implements IStorage {
 
       const [updatedItem] = await db
         .update(items)
-        .set({ 
+        .set({
           status: ITEM_STATUS.AVAILABLE,
           recipientId: null,
           pickupStart: null,
@@ -647,7 +645,7 @@ export class DatabaseStorage implements IStorage {
         throw new Error('Failed to update item');
       }
 
-      logger.debug('Successfully canceled pickup request:', { 
+      logger.debug('Successfully canceled pickup request:', {
         requestId,
         itemId,
         canceledBy,
@@ -661,9 +659,9 @@ export class DatabaseStorage implements IStorage {
         cancellationInfo
       } as ItemRequest;
     } catch (error) {
-      logger.error('Error canceling pickup request:', { 
-        error, 
-        requestId, 
+      logger.error('Error canceling pickup request:', {
+        error,
+        requestId,
         itemId,
         canceledBy
       });
@@ -729,7 +727,12 @@ export class DatabaseStorage implements IStorage {
     try {
       const userComms = await db
         .select({
-          ...communities,
+          id: communities.id,
+          name: communities.name,
+          description: communities.description,
+          createdBy: communities.createdBy,
+          createdAt: communities.createdAt,
+          isCustom: communities.isCustom,
           role: userCommunities.role,
           memberCount: sql<number>`(
             SELECT COUNT(DISTINCT uc2.user_id) 
@@ -744,8 +747,8 @@ export class DatabaseStorage implements IStorage {
         )
         .where(eq(userCommunities.userId, userId));
 
-      logger.debug('Retrieved user communities:', { 
-        userId, 
+      logger.debug('Retrieved user communities:', {
+        userId,
         count: userComms.length,
         communities: userComms.map(uc => ({
           id: uc.id,
@@ -755,7 +758,7 @@ export class DatabaseStorage implements IStorage {
         }))
       });
 
-      return userComms.map(uc => ({ 
+      return userComms.map(uc => ({
         ...uc,
         memberCount: Number(uc.memberCount)
       }));
@@ -766,8 +769,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addUserToCommunity(
-    userId: number, 
-    communityId: number, 
+    userId: number,
+    communityId: number,
     role: string = 'member'
   ): Promise<UserCommunity> {
     try {
@@ -776,7 +779,7 @@ export class DatabaseStorage implements IStorage {
         .values({ userId, communityId, role })
         .returning();
 
-      logger.debug('Added user to community:', { 
+      logger.debug('Added user to community:', {
         userId,
         communityId,
         role,
@@ -785,7 +788,7 @@ export class DatabaseStorage implements IStorage {
 
       return userCommunity;
     } catch (error) {
-      logger.error('Error adding user to community:', { 
+      logger.error('Error adding user to community:', {
         error,
         userId,
         communityId,
@@ -799,10 +802,14 @@ export class DatabaseStorage implements IStorage {
     try {
       const [newInvite] = await db
         .insert(communityInvites)
-        .values(invite)
+        .values({
+          ...invite,
+          status: 'pending',
+          createdAt: new Date()
+        })
         .returning();
 
-      logger.debug('Created community invite:', { 
+      logger.debug('Created community invite:', {
         inviteId: newInvite.id,
         communityId: newInvite.communityId,
         invitedEmail: newInvite.invitedEmail
@@ -822,7 +829,7 @@ export class DatabaseStorage implements IStorage {
         .from(communityInvites)
         .where(eq(communityInvites.communityId, communityId));
 
-      logger.debug('Retrieved community invites:', { 
+      logger.debug('Retrieved community invites:', {
         communityId,
         count: invites.length
       });
@@ -838,7 +845,7 @@ export class DatabaseStorage implements IStorage {
     try {
       const [updatedInvite] = await db
         .update(communityInvites)
-        .set({ 
+        .set({
           status: 'accepted',
           acceptedAt: sql`CURRENT_TIMESTAMP`
         })
@@ -883,7 +890,7 @@ export class DatabaseStorage implements IStorage {
 
       return !!membership;
     } catch (error) {
-      logger.error('Error checking user community membership:', { 
+      logger.error('Error checking user community membership:', {
         error,
         userId,
         communityId
@@ -906,7 +913,7 @@ export class DatabaseStorage implements IStorage {
 
       return membership?.role;
     } catch (error) {
-      logger.error('Error getting user role:', { 
+      logger.error('Error getting user role:', {
         error,
         userId,
         communityId

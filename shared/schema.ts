@@ -222,3 +222,6 @@ export const insertCommunityInviteSchema = createInsertSchema(communityInvites).
 }).extend({
   invitedEmail: z.string().email("Invalid email address"),
 });
+
+export type InsertCommunityInvite = z.infer<typeof insertCommunityInviteSchema>;
+export type CommunityInvite = typeof communityInvites.$inferSelect;
