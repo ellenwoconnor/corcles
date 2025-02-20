@@ -1,6 +1,6 @@
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Community, InsertCommunity } from "@shared/schema";
+import { insertCommunitySchema, type Community, type InsertCommunity } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Plus, UserPlus, Users } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { insertCommunitySchema } from "@shared/schema";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +34,8 @@ export default function CommunitiesPage() {
     defaultValues: {
       name: "",
       description: "",
+      createdBy: user?.id,
+      isCustom: true
     },
   });
 
@@ -49,7 +50,15 @@ export default function CommunitiesPage() {
 
   const createCommunityMutation = useMutation({
     mutationFn: async (data: InsertCommunity) => {
-      const response = await apiRequest("POST", "/api/communities", data);
+      const response = await apiRequest("POST", "/api/communities", {
+        ...data,
+        createdBy: user?.id,
+        isCustom: true
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create community');
+      }
       return response.json();
     },
     onSuccess: () => {
@@ -73,6 +82,10 @@ export default function CommunitiesPage() {
   const inviteMutation = useMutation({
     mutationFn: async ({ email, communityId }: { email: string; communityId: number }) => {
       const response = await apiRequest("POST", `/api/communities/${communityId}/invite`, { invitedEmail: email });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to send invitation');
+      }
       return response.json();
     },
     onSuccess: () => {
