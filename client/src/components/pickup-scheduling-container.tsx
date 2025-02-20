@@ -74,6 +74,7 @@ export default function PickupSchedulingContainer({
         showScheduler && (
           <PickupScheduler
             itemId={item.id}
+            itemStatus={item.status}
             onScheduled={handleSchedulingComplete}
           />
         )
