@@ -1,4 +1,3 @@
-
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
@@ -29,6 +28,31 @@ async function migrate() {
       address TEXT NOT NULL,
       zip_code TEXT NOT NULL,
       community TEXT NOT NULL
+    )`,
+    `CREATE TABLE IF NOT EXISTS communities (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      created_by INTEGER NOT NULL REFERENCES users(id),
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      zip_code TEXT NOT NULL
+    )`,
+    `CREATE TABLE IF NOT EXISTS community_members (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      community_id INTEGER NOT NULL REFERENCES communities(id),
+      joined_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      role TEXT NOT NULL DEFAULT 'member',
+      UNIQUE(user_id, community_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS community_invitations (
+      id SERIAL PRIMARY KEY,
+      community_id INTEGER NOT NULL REFERENCES communities(id),
+      invited_by INTEGER NOT NULL REFERENCES users(id),
+      invited_email TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      accepted_at TIMESTAMP
     )`,
     `CREATE TABLE IF NOT EXISTS items (
       id SERIAL PRIMARY KEY,
@@ -72,7 +96,6 @@ async function migrate() {
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       read_at TIMESTAMP
     )`,
-    // Add missing columns to existing tables
     `DO $$ 
     BEGIN 
       BEGIN

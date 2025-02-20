@@ -25,6 +25,8 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 import logger from './logger';
+import { type Community, type InsertCommunity, type CommunityMember, type InsertCommunityInvitation, type CommunityInvitation } from "@shared/schema";
+
 
 const PostgresSessionStore = connectPg(session);
 
@@ -70,6 +72,15 @@ export interface IStorage {
     canceledBy: number,
     reason?: string
   ): Promise<ItemRequest>;
+
+  // Community methods
+  createCommunity(community: InsertCommunity & { createdBy: number }): Promise<Community>;
+  getCommunity(id: number): Promise<Community | undefined>;
+  getUserCommunities(userId: number): Promise<Community[]>;
+  addCommunityMember(userId: number, communityId: number, role?: string): Promise<CommunityMember>;
+  createCommunityInvitation(invitation: InsertCommunityInvitation): Promise<CommunityInvitation>;
+  acceptCommunityInvitation(invitationId: number, userId: number): Promise<CommunityMember>;
+  isCommunityMember(userId: number, communityId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -156,8 +167,8 @@ export class DatabaseStorage implements IStorage {
           ...items,
           userDisplayName: sql<string>`(
             SELECT username FROM ${users} WHERE ${users.id} = ${items.userId}
-          )`.as("userDisplayName"),
-          userHasFavorited: sql<boolean>`false`.as("userHasFavorited"),
+          )`,
+          userHasFavorited: sql<boolean>`false`
         })
         .from(items);
 
@@ -187,7 +198,7 @@ export class DatabaseStorage implements IStorage {
       const processedItems = itemResults.map(item => ({
         ...item,
         proposedPickupWindows: item.proposedPickupWindows 
-          ? (item.proposedPickupWindows as unknown as PickupWindow[])
+          ? (item.proposedPickupWindows as PickupWindow[])
           : undefined,
         pickupStart: item.pickupStart ? new Date(item.pickupStart).toISOString() : null,
         pickupEnd: item.pickupEnd ? new Date(item.pickupEnd).toISOString() : null
@@ -198,15 +209,7 @@ export class DatabaseStorage implements IStorage {
         userId,
         userItemsOnly,
         searchTerm: search, 
-        count: processedItems.length,
-        items: processedItems.map(item => ({
-          id: item.id,
-          title: item.title,
-          userId: item.userId,
-          status: item.status,
-          pickupStart: item.pickupStart,
-          pickupEnd: item.pickupEnd
-        }))
+        count: processedItems.length
       });
 
       return processedItems as (Item & { userHasFavorited: boolean })[];
@@ -226,8 +229,8 @@ export class DatabaseStorage implements IStorage {
           ...items,
           userDisplayName: sql<string>`(
             SELECT username FROM ${users} WHERE ${users.id} = ${items.userId}
-          )`.as("userDisplayName"),
-          userHasFavorited: sql<boolean>`false`.as("userHasFavorited"),
+          )`,
+          userHasFavorited: sql<boolean>`false`,
         })
         .from(items)
         .where(eq(items.id, id));
@@ -238,7 +241,7 @@ export class DatabaseStorage implements IStorage {
       const processedItem = {
         ...item,
         proposedPickupWindows: item.proposedPickupWindows 
-          ? (item.proposedPickupWindows as unknown as PickupWindow[])
+          ? (item.proposedPickupWindows as PickupWindow[])
           : undefined,
         pickupStart: item.pickupStart ? new Date(item.pickupStart).toISOString() : null,
         pickupEnd: item.pickupEnd ? new Date(item.pickupEnd).toISOString() : null
@@ -275,8 +278,6 @@ export class DatabaseStorage implements IStorage {
       throw error;
     }
   }
-
-  
 
   async createItemRequest(request: InsertItemRequest): Promise<ItemRequest> {
     try {
@@ -604,7 +605,6 @@ export class DatabaseStorage implements IStorage {
         requestId,
         itemId,
         canceledBy,
-        reason,
         updatedRequestStatus: updatedRequest.status,
         updatedItemStatus: updatedItem.status,
         cancellationInfo: updatedRequest.cancellationInfo
@@ -619,8 +619,7 @@ export class DatabaseStorage implements IStorage {
         error, 
         requestId, 
         itemId,
-        canceledBy,
-        reason 
+        canceledBy
       });
       throw error;
     }
@@ -647,6 +646,148 @@ export class DatabaseStorage implements IStorage {
       return requests.length > 0;
     } catch (error) {
       logger.error('Error checking if users can message:', { error, senderId, recipientId });
+      throw error;
+    }
+  }
+
+  async createCommunity(community: InsertCommunity & { createdBy: number }): Promise<Community> {
+    try {
+      const [newCommunity] = await db.insert(communities).values(community).returning();
+
+      // Add creator as admin member
+      await this.addCommunityMember(community.createdBy, newCommunity.id, 'admin');
+
+      logger.debug('Created new community:', { 
+        communityId: newCommunity.id, 
+        name: newCommunity.name,
+        createdBy: community.createdBy
+      });
+
+      return newCommunity;
+    } catch (error) {
+      logger.error('Error creating community:', { error, community });
+      throw error;
+    }
+  }
+
+  async getCommunity(id: number): Promise<Community | undefined> {
+    try {
+      const [community] = await db.select().from(communities).where(eq(communities.id, id));
+      logger.debug('Retrieved community:', { communityId: id, community });
+      return community;
+    } catch (error) {
+      logger.error('Error retrieving community:', { error, communityId: id });
+      throw error;
+    }
+  }
+
+  async getUserCommunities(userId: number): Promise<Community[]> {
+    try {
+      const userCommunities = await db
+        .select({
+          community: communities,
+          role: communityMembers.role
+        })
+        .from(communityMembers)
+        .innerJoin(communities, eq(communities.id, communityMembers.communityId))
+        .where(eq(communityMembers.userId, userId));
+
+      logger.debug('Retrieved user communities:', { 
+        userId, 
+        count: userCommunities.length 
+      });
+
+      return userCommunities.map(({ community }) => community);
+    } catch (error) {
+      logger.error('Error getting user communities:', { error, userId });
+      throw error;
+    }
+  }
+
+  async addCommunityMember(userId: number, communityId: number, role: string = 'member'): Promise<CommunityMember> {
+    try {
+      const [member] = await db
+        .insert(communityMembers)
+        .values({ userId, communityId, role })
+        .returning();
+
+      logger.debug('Added community member:', { 
+        userId,
+        communityId,
+        role,
+        memberId: member.id
+      });
+
+      return member;
+    } catch (error) {
+      logger.error('Error adding community member:', { error, userId, communityId });
+      throw error;
+    }
+  }
+
+  async createCommunityInvitation(invitation: InsertCommunityInvitation): Promise<CommunityInvitation> {
+    try {
+      const [newInvitation] = await db
+        .insert(communityInvitations)
+        .values(invitation)
+        .returning();
+
+      logger.debug('Created community invitation:', { 
+        invitationId: newInvitation.id,
+        communityId: invitation.communityId,
+        invitedEmail: invitation.invitedEmail
+      });
+
+      return newInvitation;
+    } catch (error) {
+      logger.error('Error creating community invitation:', { error, invitation });
+      throw error;
+    }
+  }
+
+  async acceptCommunityInvitation(invitationId: number, userId: number): Promise<CommunityMember> {
+    try {
+      const [invitation] = await db
+        .select()
+        .from(communityInvitations)
+        .where(eq(communityInvitations.id, invitationId));
+
+      if (!invitation) {
+        throw new Error('Invitation not found');
+      }
+
+      // Update invitation status
+      await db
+        .update(communityInvitations)
+        .set({ 
+          status: 'accepted',
+          acceptedAt: sql`CURRENT_TIMESTAMP`
+        })
+        .where(eq(communityInvitations.id, invitationId));
+
+      // Add user to community
+      return await this.addCommunityMember(userId, invitation.communityId);
+    } catch (error) {
+      logger.error('Error accepting community invitation:', { error, invitationId, userId });
+      throw error;
+    }
+  }
+
+  async isCommunityMember(userId: number, communityId: number): Promise<boolean> {
+    try {
+      const [membership] = await db
+        .select()
+        .from(communityMembers)
+        .where(
+          and(
+            eq(communityMembers.userId, userId),
+            eq(communityMembers.communityId, communityId)
+          )
+        );
+
+      return !!membership;
+    } catch (error) {
+      logger.error('Error checking community membership:', { error, userId, communityId });
       throw error;
     }
   }
