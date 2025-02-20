@@ -87,8 +87,8 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
     mutationFn: async (data: FormData) => {
       const response = await apiRequest("POST", "/api/items", {
         ...data,
-        price: data.isGift ? null : data.price,
-        communityId: data.communityId // Ensure communityId is included
+        price: data.isGift ? null : Number(data.price || 0),
+        communityId: Number(data.communityId)
       });
       if (!response.ok) {
         const error = await response.json();
@@ -240,6 +240,7 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
                         step="0.01"
                         placeholder="Enter price in dollars (minimum $0.01)"
                         {...field}
+                        value={field.value ?? ''}
                         onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
                       />
                     </FormControl>

@@ -312,6 +312,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         communityId: parseInt(req.body.communityId)
       };
 
+      logger.debug('Creating item with data:', {
+        ...data,
+        userId: req.user.id
+      });
+
       const parseResult = insertItemSchema.safeParse(data);
       if (!parseResult.success) {
         return res.status(400).json(parseResult.error);
@@ -320,6 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const item = await storage.createItem({
         ...parseResult.data,
         userId: req.user.id,
+        communityId: data.communityId // Explicitly pass communityId
       });
 
       res.status(201).json({
@@ -927,8 +933,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/user/communities", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {if (!req.isAuthenticated()) return res.sendStatus(401);
 
       const communities = await storage.getUserCommunities(req.user.id);
       logger.debug('Retrieved user communities:', { 

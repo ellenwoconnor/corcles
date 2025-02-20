@@ -291,10 +291,27 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createItem(item: InsertItem & { userId: number }): Promise<Item> {
+  async createItem(item: InsertItem & { userId: number; communityId: number }): Promise<Item> {
     try {
-      const [newItem] = await db.insert(items).values(item).returning();
-      logger.debug('Created new item:', { itemId: newItem.id, item: newItem });
+      // Validate required fields
+      if (!item.communityId) {
+        logger.error('Missing required communityId when creating item:', { item });
+        throw new Error('Community ID is required');
+      }
+
+      const [newItem] = await db.insert(items).values({
+        ...item,
+        status: 'available',
+        createdAt: new Date()
+      }).returning();
+
+      logger.debug('Created new item:', { 
+        itemId: newItem.id, 
+        userId: newItem.userId,
+        communityId: newItem.communityId,
+        title: newItem.title
+      });
+
       return newItem;
     } catch (error) {
       logger.error('Error creating item:', { error, item });

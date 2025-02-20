@@ -138,12 +138,12 @@ export const insertItemSchema = createInsertSchema(items).omit({
   recipientId: true,
   pickupStart: true,
   pickupEnd: true,
-  communityId: true
 }).extend({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
   price: z.number().nullable().optional(),
   imageFile: z.instanceof(File).optional(),
+  communityId: z.number({ required_error: "Please select a community" }),
 }).refine((data) => {
   if (!data.isGift && (!data.price || data.price < 0.01)) {
     return false;
