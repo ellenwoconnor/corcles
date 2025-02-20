@@ -14,42 +14,66 @@ interface PickupWindow {
   end: string;
 }
 
-interface ExtendedItem extends Item {
+type ExtendedItem = Item & { 
   userHasFavorited?: boolean;
   proposedPickupWindows?: PickupWindow[];
-}
+};
 
 export default function ListingPage() {
-  // Routing and auth
   const [, params] = useRoute("/item/:id");
   const { user } = useAuth();
 
-  // Item data query
   const {
     data: item,
     isLoading,
     error,
-  } = useQuery<ExtendedItem>({
+  } = useQuery({
     queryKey: [`/api/items/${params?.id}`],
     enabled: !!params?.id,
-    select: (data) => ({
-      ...data,
-      createdAt: new Date(data.createdAt).toISOString(),
-      pickupStart: data.pickupStart ? new Date(data.pickupStart).toISOString() : null,
-      pickupEnd: data.pickupEnd ? new Date(data.pickupEnd).toISOString() : null,
-      proposedPickupWindows: data.proposedPickupWindows?.map(window => ({
-        start: new Date(window.start).toISOString(),
-        end: new Date(window.end).toISOString(),
-      })) || [],
-    }),
+    select: (data: any) => {
+      try {
+        console.log('Raw item data:', data);
+        if (!data) return null;
+
+        // Safely transform dates
+        const transformDate = (dateStr: string | null | undefined) => {
+          if (!dateStr) return null;
+          try {
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) {
+              console.error('Invalid date:', dateStr);
+              return null;
+            }
+            return date.toISOString();
+          } catch (e) {
+            console.error('Error transforming date:', dateStr, e);
+            return null;
+          }
+        };
+
+        return {
+          ...data,
+          createdAt: transformDate(data.createdAt) || new Date().toISOString(),
+          pickupStart: transformDate(data.pickupStart),
+          pickupEnd: transformDate(data.pickupEnd),
+          proposedPickupWindows: Array.isArray(data.proposedPickupWindows) 
+            ? data.proposedPickupWindows.map((window: any) => ({
+                start: transformDate(window.start) || new Date().toISOString(),
+                end: transformDate(window.end) || new Date().toISOString(),
+              }))
+            : []
+        };
+      } catch (err) {
+        console.error('Error transforming item data:', err, data);
+        return data;
+      }
+    },
   });
 
-  // Determine user role
   const isOwner = item?.userId === user?.id;
   const isRecipient = user?.id === item?.recipientId;
 
-  // Requests and bids queries
-  const { data: requests = [] } = useQuery<ItemRequest[]>({
+  const { data: requests = [] } = useQuery<(ItemRequest & { userId?: number })[]>({
     queryKey: [
       `/api/items/${params?.id}/${isOwner ? "requests" : "my-requests"}`,
     ],
@@ -61,11 +85,9 @@ export default function ListingPage() {
     enabled: !!params?.id && !!user && !item?.isGift,
   });
 
-  // Add these near the top where other state is managed
   const hasRequested = requests?.some(r => r.status === "pending");
   const hasBid = bids?.some(bid => bid.status === "pending");
 
-  // Loading and error states
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -75,6 +97,7 @@ export default function ListingPage() {
   }
 
   if (error || !item) {
+    console.error('Item loading error:', error);
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -93,7 +116,7 @@ export default function ListingPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="container py-6">
+      <main className="container py-12">
         {isOwner ? (
           <OwnerListingView
             item={item}
