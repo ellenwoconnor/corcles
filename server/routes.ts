@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { WebSocketServer, WebSocket } from "ws";
+import { WebSocketServer, WebSocket } from 'ws';
 import multer from "multer";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
@@ -23,7 +23,7 @@ const PostgresSessionStore = connectPg(session);
 
 // Create session middleware configuration
 const sessionMiddleware = session({
- store: new PostgresSessionStore({ 
+  store: new PostgresSessionStore({ 
     pool,
     createTableIfMissing: true,
     tableName: 'session'
@@ -53,7 +53,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     verifyClient: (info, cb) => {
       logger.debug('WebSocket connection attempt:', {
         headers: info.req.headers,
-        url: info.req.url
+        url: info.req.url,
+        cookies: info.req.headers.cookie
       });
 
       // Parse session before WebSocket upgrade
@@ -64,17 +65,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return;
         }
 
-        // @ts-ignore - req.user is added by passport
-        const userId = info.req.user?.id;
-        if (!userId) {
-          logger.warn('WebSocket unauthorized - no user found in session');
+        // @ts-ignore - req.session is added by express-session
+        const session = (info.req as any).session;
+        if (!session) {
+          logger.warn('WebSocket unauthorized - no session found');
           cb(false, 401, 'Unauthorized');
           return;
         }
 
-        logger.debug('WebSocket session parsed successfully:', {
-          userId,
-          sessionID: (info.req as any).sessionID
+        // @ts-ignore - passport adds user to session
+        const user = session.passport?.user;
+        if (!user) {
+          logger.warn('WebSocket unauthorized - no user in session', {
+            sessionId: session.id,
+            hasPassport: !!session.passport
+          });
+          cb(false, 401, 'Unauthorized');
+          return;
+        }
+
+        logger.debug('WebSocket session authenticated:', {
+          userId: user,
+          sessionId: session.id
         });
 
         cb(true);

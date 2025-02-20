@@ -5,7 +5,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { User as SelectUser, insertUserSchema } from "@shared/schema";
 import logger from './logger';
 
 declare global {
@@ -60,35 +60,46 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/register", async (req, res, next) => {
-    const existingUser = await storage.getUserByUsername(req.body.username);
-    if (existingUser) {
-      logger.warn('Registration attempt with existing username:', {
-        username: req.body.username,
-        ip: req.ip
-      });
-      return res.status(400).send("Username already exists");
-    }
-
-    // Check for existing address
-    const existingAddress = await storage.getUserByAddress(req.body.address);
-    if (existingAddress) {
-      logger.warn('Registration attempt with existing address:', {
-        address: req.body.address,
-        ip: req.ip
-      });
-      return res.status(400).send("Address is already registered to another user");
-    }
-
     try {
+      // Validate request body against schema
+      const parseResult = insertUserSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        logger.warn('Registration validation failed:', {
+          errors: parseResult.error.errors,
+          body: req.body
+        });
+        return res.status(400).json(parseResult.error);
+      }
+
+      // Check for existing username
+      const existingUser = await storage.getUserByUsername(req.body.username);
+      if (existingUser) {
+        logger.warn('Registration attempt with existing username:', {
+          username: req.body.username,
+          ip: req.ip
+        });
+        return res.status(400).json({ error: "Username already exists" });
+      }
+
+      // Check for existing email
+      const existingEmail = await storage.getUserByEmail(req.body.email);
+      if (existingEmail) {
+        logger.warn('Registration attempt with existing email:', {
+          email: req.body.email,
+          ip: req.ip
+        });
+        return res.status(400).json({ error: "Email already exists" });
+      }
+
+      // Create user with validated data
       const user = await storage.createUser({
-        ...req.body,
-        password: await hashPassword(req.body.password),
+        ...parseResult.data,
+        password: await hashPassword(parseResult.data.password),
       });
 
       logger.info('User registered successfully:', {
         userId: user.id,
-        username: user.username,
-        community: user.community
+        username: user.username
       });
 
       req.login(user, (err) => {
@@ -111,6 +122,9 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", passport.authenticate("local"), (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Authentication failed" });
+    }
     logger.info('User logged in:', {
       userId: req.user.id,
       username: req.user.username

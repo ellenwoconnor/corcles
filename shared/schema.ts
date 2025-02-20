@@ -224,4 +224,3 @@ export const insertCommunityInviteSchema = createInsertSchema(communityInvites).
 });
 
 export type InsertCommunityInvite = z.infer<typeof insertCommunityInviteSchema>;
-export type CommunityInvite = typeof communityInvites.$inferSelect;

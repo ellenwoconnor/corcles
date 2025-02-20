@@ -40,6 +40,7 @@ export interface IStorage {
   // Existing methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   getUserByAddress(address: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getItems(
@@ -121,6 +122,20 @@ export class DatabaseStorage implements IStorage {
       return user;
     } catch (error) {
       logger.error('Error retrieving user by username:', { error, username });
+      throw error;
+    }
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.email, email));
+      logger.debug('Retrieved user by email:', { email, user: user });
+      return user;
+    } catch (error) {
+      logger.error('Error retrieving user by email:', { error, email });
       throw error;
     }
   }
