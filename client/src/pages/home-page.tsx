@@ -31,25 +31,6 @@ export default function HomePage() {
 
   const { data: items = [], isLoading } = useQuery<Item[]>({
     queryKey: ["/api/items", { search: debouncedSearch, communities: communityIds, freeOnly: showFreeOnly }],
-    queryFn: async () => {
-      if (!communityIds.length) {
-        console.log("No communities found, skipping items fetch");
-        return [];
-      }
-      const params = new URLSearchParams();
-      if (debouncedSearch) params.set('search', debouncedSearch);
-      if (showFreeOnly) params.set('freeOnly', 'true');
-      communityIds.forEach(id => params.append('communities[]', id.toString()));
-
-      console.log("Fetching items with params:", params.toString());
-      const response = await fetch(`/api/items?${params.toString()}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch items');
-      }
-      const data = await response.json();
-      console.log("Received items:", data);
-      return data;
-    },
     enabled: communityIds.length > 0,
   });
 
