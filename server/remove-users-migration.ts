@@ -1,7 +1,7 @@
 
 import { db } from "./db";
 import { messages, itemRequests, itemBids, items, userCommunities, communityInvites, users } from "@shared/schema";
-import { and, inArray } from "drizzle-orm";
+import { and, inArray, or } from "drizzle-orm";
 import logger from './logger';
 
 async function removeUsers() {
@@ -77,13 +77,13 @@ async function removeUsers() {
       .where(inArray(users.id, userIds));
 
     logger.info('Successfully removed users and related records', {
-      usersRemoved: deletedUsers.length,
-      itemsRemoved: deletedItems.length,
-      requestsRemoved: deletedRequests.length,
-      bidsRemoved: deletedBids.length,
-      messagesRemoved: deletedMessages.length,
-      invitesRemoved: deletedInvites.length,
-      membershipsRemoved: deletedMemberships.length
+      usersRemoved: deletedUsers.rowCount,
+      itemsRemoved: deletedItems.rowCount,
+      requestsRemoved: deletedRequests.rowCount,
+      bidsRemoved: deletedBids.rowCount,
+      messagesRemoved: deletedMessages.rowCount,
+      invitesRemoved: deletedInvites.rowCount,
+      membershipsRemoved: deletedMemberships.rowCount
     });
 
   } catch (error) {
