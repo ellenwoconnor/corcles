@@ -106,8 +106,8 @@ export default function ProfilePage() {
               )}
               {!userItems || userItems.length === 0 ? (
                 <Card>
-                  <CardHeader>
-                    <CardTitle>No Listings</CardTitle>
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-base">No Listings</CardTitle>
                     <CardDescription>
                       You haven't listed any items yet.
                     </CardDescription>
@@ -117,34 +117,35 @@ export default function ProfilePage() {
                 <div className="grid gap-4">
                   {userItems.map((item) => (
                     <Card key={item.id}>
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <CardTitle>
-                              <Link href={`/item/${item.id}`} className="hover:underline">
-                                {item.title}
-                              </Link>
-                            </CardTitle>
-                            <CardDescription>
-                              Listed {formatDistanceToNow(new Date(item.createdAt), {
-                                addSuffix: true,
-                              })}
+                      <CardHeader className="py-3">
+                        <div className="flex items-center gap-3">
+                          <img src={item.imageUrl} alt={item.title} className="w-12 h-12 rounded object-cover" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <CardTitle className="text-base truncate">
+                                <Link href={`/item/${item.id}`} className="hover:underline">
+                                  {item.title}
+                                </Link>
+                              </CardTitle>
+                              <Badge
+                                variant={
+                                  item.status === "completed" ? "outline" :
+                                  item.status === "pending_pickup" ? "secondary" :
+                                  "secondary"
+                                }
+                                className={item.status === "pending_pickup" ? "bg-background text-foreground border" : ""}
+                              >
+                                {item.status === "completed" ? "Pickup Complete" :
+                                 item.status === "scheduled" ? "Pickup Scheduled" :
+                                 item.status === "scheduling" ? "Setting Pickup Time" :
+                                 item.status === "requested" ? "Requests Received" :
+                                 "Available"}
+                              </Badge>
+                            </div>
+                            <CardDescription className="text-sm">
+                              Listed {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
                             </CardDescription>
                           </div>
-                          <Badge
-                            variant={
-                              item.status === "completed" ? "outline" :
-                              item.status === "pending_pickup" ? "secondary" :
-                              "secondary"
-                            }
-                            className={item.status === "pending_pickup" ? "bg-background text-foreground border" : ""}
-                          >
-                            {item.status === "completed" ? "Pickup Complete" :
-                             item.status === "scheduled" ? "Pickup Scheduled" :
-                             item.status === "scheduling" ? "Setting Pickup Time" :
-                             item.status === "requested" ? "Requests Received" :
-                             "Available"}
-                          </Badge>
                         </div>
                       </CardHeader>
                       <CardContent>
@@ -180,8 +181,8 @@ export default function ProfilePage() {
               )}
               {!userRequests || userRequests.length === 0 ? (
                 <Card>
-                  <CardHeader>
-                    <CardTitle>No Requests</CardTitle>
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-base">No Requests</CardTitle>
                     <CardDescription>
                       You haven't requested any items yet.
                     </CardDescription>
@@ -190,39 +191,39 @@ export default function ProfilePage() {
               ) : (
                 userRequests.map((request) => (
                   <Card key={request.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle>
-                            <Link href={`/item/${request.item.id}`} className="hover:underline">
-                              {request.item.title}
-                            </Link>
-                          </CardTitle>
-                          <CardDescription>
-                            Requested{" "}
-                            {formatDistanceToNow(new Date(request.createdAt), {
-                              addSuffix: true,
-                            })}
+                    <CardHeader className="py-3">
+                      <div className="flex items-center gap-3">
+                        <img src={request.item.imageUrl} alt={request.item.title} className="w-12 h-12 rounded object-cover" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <CardTitle className="text-base truncate">
+                              <Link href={`/item/${request.item.id}`} className="hover:underline">
+                                {request.item.title}
+                              </Link>
+                            </CardTitle>
+                            <Badge
+                              variant={
+                                request.status === "awaiting_pickup_confirmation"
+                                  ? "default"
+                                  : request.status === "accepted"
+                                  ? "secondary"
+                                  : request.status === "pending"
+                                  ? "secondary"
+                                  : "destructive"
+                              }
+                              className={request.status === "accepted" ? "bg-background text-foreground border" : ""}
+                            >
+                              {request.status === "awaiting_pickup_confirmation"
+                                ? "Confirm Pickup"
+                                : request.status === "accepted"
+                                ? "Pickup Scheduled"
+                                : request.status}
+                            </Badge>
+                          </div>
+                          <CardDescription className="text-sm">
+                            Requested {formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
                           </CardDescription>
                         </div>
-                        <Badge
-                          variant={
-                            request.status === "awaiting_pickup_confirmation"
-                              ? "default"
-                              : request.status === "accepted"
-                              ? "secondary"
-                              : request.status === "pending"
-                              ? "secondary"
-                              : "destructive"
-                          }
-                          className={request.status === "accepted" ? "bg-background text-foreground border" : ""}
-                        >
-                          {request.status === "awaiting_pickup_confirmation"
-                            ? "Confirm Pickup"
-                            : request.status === "accepted"
-                            ? "Pickup Scheduled"
-                            : request.status}
-                        </Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
