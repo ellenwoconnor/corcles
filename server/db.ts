@@ -119,9 +119,9 @@ async function migrate() {
   for (const migration of migrations) {
     try {
       await pool.query(migration);
-      logger.info('Successfully executed migration:', { migration: migration.substring(0, 100) + '...' });
+      logger.info('Successfully executed migration:', { migration: migration });
     } catch (error) {
-      logger.error('Error executing migration:', { error, migration: migration.substring(0, 100) + '...' });
+      logger.error('Error executing migration:', { error, migration });
       throw error;
     }
   }
