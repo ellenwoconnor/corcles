@@ -24,6 +24,7 @@ import {
   insertItemBidSchema,
   insertMessageSchema 
 } from "@shared/schema";
+import { addDays, addHours, isBefore, isAfter } from "date-fns";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -620,70 +621,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to schedule pickup for this item" });
       }
 
-      const requests = await storage.getItemRequests(itemId);
-      const pendingRequests = requests.filter(r => r.status === 'pending');
-
-      if (pendingRequests.length === 0) {
-        return res.status(400).json({ error: "No pending requests available for scheduling" });
-      }
-
-      const selectedRequest = pendingRequests[Math.floor(Math.random() * pendingRequests.length)];
-
       const { timeWindows } = req.body;
+
+      logger.debug('Received time windows:', timeWindows);
+
       if (!Array.isArray(timeWindows) || timeWindows.length === 0 || timeWindows.length > 10) {
         return res.status(400).json({ error: "Must provide between 1 and 10 time windows" });
       }
 
+      const now = new Date();
+      const twoWeeksFromNow = addDays(now, 14);
+
+      const validatedWindows = [];
       for (const window of timeWindows) {
-        const startDate = new Date(window.pickupStart);
-        const endDate = new Date(window.pickupEnd);
-        const now = new Date();
-        const twoWeeksFromNow = addDays(now, 14);
+        try {
+          const startDate = new Date(window.pickupStart);
+          const endDate = new Date(window.pickupEnd);
 
-        if (isBefore(startDate, now) || isAfter(startDate, twoWeeksFromNow)) {
-          return res.status(400).json({ error: "Pickup window must be within the next two weeks" });
-        }
+          if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            return res.status(400).json({ error: "Invalid date format" });
+          }
 
-        if (isAfter(endDate, addHours(startDate, 1))) {
-          return res.status(400).json({ error: "Pickup window cannot exceed 1 hour" });
+          if (isBefore(startDate, now)) {
+            return res.status(400).json({ error: "Pickup start time must be in the future" });
+          }
+
+          if (isAfter(startDate, twoWeeksFromNow)) {
+            return res.status(400).json({ error: "Pickup must be within the next two weeks" });
+          }
+
+          if (isAfter(endDate, addHours(startDate, 1))) {
+            return res.status(400).json({ error: "Pickup window cannot exceed 1 hour" });
+          }
+
+          validatedWindows.push({
+            pickupStart: startDate.toISOString(),
+            pickupEnd: endDate.toISOString()
+          });
+        } catch (error) {
+          logger.error('Date validation error:', error);
+          return res.status(400).json({ error: "Invalid date format in time windows" });
         }
       }
 
-      const proposedWindows = timeWindows.map((window, index) => ({
+      const proposedWindows = validatedWindows.map((window, index) => ({
         ...window,
         order: index
       }));
+
+      logger.debug('Validated windows:', proposedWindows);
 
       await db
         .update(schema.items)
         .set({ 
           proposedPickupWindows: proposedWindows,
-          status: ITEM_STATUS.SCHEDULING,
-          recipientId: selectedRequest.requesterId
+          status: ITEM_STATUS.SCHEDULING
         })
         .where(eq(schema.items.id, itemId));
 
-      await db
-        .update(schema.itemRequests)
-        .set({ status: REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
-        .where(eq(schema.itemRequests.id, selectedRequest.id));
-
-      await db
-        .update(schema.itemRequests)
-        .set({ status: REQUEST_STATUS.REJECTED })
-        .where(
-          and(
-            eq(schema.itemRequests.itemId, itemId),
-            not(eq(schema.itemRequests.id, selectedRequest.id))
-          )
-        );
-
-      logger.debug('Updated item and request statuses for pickup:', { 
+      logger.info('Updated item with pickup windows:', { 
         itemId,
-        selectedRequestId: selectedRequest.id,
-        newStatus: ITEM_STATUS.PENDING_PICKUP,
-        requestStatus: REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION,
-        proposedWindows
+        windowsCount: proposedWindows.length,
+        newStatus: ITEM_STATUS.SCHEDULING
       });
 
       res.json({ success: true });
