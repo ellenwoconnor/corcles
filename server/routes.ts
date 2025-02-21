@@ -621,6 +621,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to schedule pickup for this item" });
       }
 
+      // Get the pending request to set the recipient
+      const [pendingRequest] = await db
+        .select()
+        .from(schema.itemRequests)
+        .where(
+          and(
+            eq(schema.itemRequests.itemId, itemId),
+            eq(schema.itemRequests.status, REQUEST_STATUS.PENDING)
+          )
+        );
+
+      if (!pendingRequest) {
+        return res.status(400).json({ error: "No pending request found for scheduling" });
+      }
+
       const { timeWindows } = req.body;
 
       logger.debug('Received time windows:', timeWindows);
@@ -671,16 +686,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       logger.debug('Validated windows:', proposedWindows);
 
+      // Update item with pickup windows and recipient
       await db
         .update(schema.items)
         .set({ 
           proposedPickupWindows: proposedWindows,
-          status: ITEM_STATUS.SCHEDULING
+          status: ITEM_STATUS.SCHEDULING,
+          recipientId: pendingRequest.requesterId
         })
         .where(eq(schema.items.id, itemId));
 
-      logger.info('Updated item with pickup windows:', { 
+      // Update the pending request status
+      await db
+        .update(schema.itemRequests)
+        .set({ status: REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
+        .where(eq(schema.itemRequests.id, pendingRequest.id));
+
+      // Reject other requests
+      await db
+        .update(schema.itemRequests)
+        .set({ status: REQUEST_STATUS.REJECTED })
+        .where(
+          and(
+            eq(schema.itemRequests.itemId, itemId),
+            not(eq(schema.itemRequests.id, pendingRequest.id))
+          )
+        );
+
+      logger.info('Updated item with pickup windows and recipient:', { 
         itemId,
+        recipientId: pendingRequest.requesterId,
         windowsCount: proposedWindows.length,
         newStatus: ITEM_STATUS.SCHEDULING
       });
