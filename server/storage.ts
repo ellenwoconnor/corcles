@@ -33,6 +33,7 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 import logger from './logger';
+import { sendCommunityInvitation } from './utils/email';
 
 const PostgresSessionStore = connectPg(session);
 
@@ -934,22 +935,47 @@ export class DatabaseStorage implements IStorage {
 
   async createCommunityInvite(invite: InsertCommunityInvite): Promise<CommunityInvite> {
     try {
-      const [newInvite] = await db
-        .insert(communityInvites)
-        .values({
-          ...invite,
-          status: 'pending',
-          createdAt: new Date()
-        })
-        .returning();
+      return await db.transaction(async (tx) => {
+        // First get the community and inviter details
+        const [community] = await tx
+          .select()
+          .from(communities)
+          .where(eq(communities.id, invite.communityId));
 
-      logger.debug('Created community invite:', {
-        inviteId: newInvite.id,
-        communityId: newInvite.communityId,
-        invitedEmail: newInvite.invitedEmail
+        const [inviter] = await tx
+          .select()
+          .from(users)
+          .where(eq(users.id, invite.invitedBy));
+
+        if (!community || !inviter) {
+          throw new Error('Community or inviter not found');
+        }
+
+        // Create the invite
+        const [newInvite] = await tx
+          .insert(communityInvites)
+          .values({
+            ...invite,
+            status: 'pending',
+            createdAt: new Date()
+          })
+          .returning();
+
+        logger.debug('Created community invite:', {
+          inviteId: newInvite.id,
+          communityId: newInvite.communityId,
+          invitedEmail: newInvite.invitedEmail
+        });
+
+        // Send the invitation email
+        await sendCommunityInvitation(
+          invite.invitedEmail,
+          community.name,
+          inviter.displayName
+        );
+
+        return newInvite;
       });
-
-      return newInvite;
     } catch (error) {
       logger.error('Error creating community invite:', { error, invite });
       throw error;
