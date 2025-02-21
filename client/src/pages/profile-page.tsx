@@ -258,8 +258,8 @@ export default function ProfilePage() {
             <div className="grid gap-4">
               {!userBids || userBids.length === 0 ? (
                 <Card>
-                  <CardHeader>
-                    <CardTitle>No Bids</CardTitle>
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-base">No Bids</CardTitle>
                     <CardDescription>
                       You haven't placed any bids yet.
                     </CardDescription>
