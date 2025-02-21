@@ -227,6 +227,50 @@ export class DatabaseStorage implements IStorage {
           role: community.createdBy === user.id ? 'admin' : 'member'
         });
 
+        // Find and process any pending community invites for this user's email
+        const pendingInvites = await tx
+          .select({
+            invite: communityInvites,
+            community: communities,
+          })
+          .from(communityInvites)
+          .innerJoin(
+            communities,
+            eq(communityInvites.communityId, communities.id)
+          )
+          .where(
+            and(
+              eq(communityInvites.invitedEmail, insertUser.email),
+              eq(communityInvites.status, 'pending')
+            )
+          );
+
+        // Add user to each invited community and update invite status
+        for (const { invite, community } of pendingInvites) {
+          await tx
+            .insert(userCommunities)
+            .values({
+              userId: user.id,
+              communityId: invite.communityId,
+              role: 'member'
+            });
+
+          await tx
+            .update(communityInvites)
+            .set({
+              status: 'accepted',
+              acceptedAt: sql`CURRENT_TIMESTAMP`
+            })
+            .where(eq(communityInvites.id, invite.id));
+
+          logger.debug('Auto-enrolled user in invited community:', {
+            userId: user.id,
+            email: insertUser.email,
+            communityId: invite.communityId,
+            communityName: community.name
+          });
+        }
+
         return user;
       });
     } catch (error) {
