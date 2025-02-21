@@ -28,10 +28,13 @@ export default function HomePage() {
 
   useEffect(() => {
     if (user && userCommunities.length > 0) {
-      const hasSeenWelcome = localStorage.getItem(`welcome-seen-${user.id}`);
+      // Check if this is the first time the user has loaded their communities
+      const welcomeKey = `corcles-welcome-seen`;
+      const hasSeenWelcome = localStorage.getItem(welcomeKey);
+
       if (!hasSeenWelcome) {
         setShowWelcome(true);
-        localStorage.setItem(`welcome-seen-${user.id}`, 'true');
+        localStorage.setItem(welcomeKey, 'true');
       }
     }
   }, [user, userCommunities]);
@@ -60,7 +63,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      {showWelcome && userCommunities.length > 0 && (
+      {showWelcome && (
         <WelcomeDialog communities={userCommunities} />
       )}
       <main className="container py-12 px-8">
