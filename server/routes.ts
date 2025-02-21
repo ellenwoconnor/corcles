@@ -17,7 +17,13 @@ import cookieParser from "cookie-parser";
 import { promisify } from "util";
 import passport from "passport";
 import { hashPassword } from "./utils/auth";
-import { insertCommunityInviteSchema, insertItemSchema } from "@shared/schema";
+import { 
+  insertCommunityInviteSchema, 
+  insertItemSchema, 
+  insertItemRequestSchema,
+  insertItemBidSchema,
+  insertMessageSchema 
+} from "@shared/schema";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -371,11 +377,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!parseResult.success) {
+        logger.error('Item request validation failed:', parseResult.error);
         return res.status(400).json(parseResult.error);
       }
 
       const request = await storage.createItemRequest(parseResult.data);
-      
+      logger.info('Item request created:', {
+        itemId,
+        requesterId: req.user.id,
+        requestId: request.id
+      });
 
       const requests = await storage.getItemRequests(itemId);
       if (requests.length === 1) {
@@ -384,7 +395,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .set({ status: ITEM_STATUS.REQUESTED })
           .where(eq(schema.items.id, itemId));
       }
-      
 
       res.status(201).json(request);
     } catch (error) {
