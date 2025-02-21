@@ -29,11 +29,6 @@ export default function ProfilePage() {
     enabled: !!user,
   });
 
-  const { data: userCommunities, isLoading: communityLoading } = useQuery({
-    queryKey: ["/api/user/communities"],
-    enabled: !!user,
-  });
-
   const pendingConfirmations = userRequests?.filter(
     r => r.status === "awaiting_pickup_confirmation"
   ) || [];
@@ -54,16 +49,13 @@ export default function ProfilePage() {
     );
   }
 
-  if (itemsLoading || requestsLoading || bidsLoading || communityLoading) {
+  if (itemsLoading || requestsLoading || bidsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-border" />
       </div>
     );
   }
-
-  const userCommunitiesList = userCommunities?.map(c => c.name).join(", ") || "No communities joined";
-  const memberCount = userCommunities?.reduce((total, c) => total + c.memberCount, 0) || 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,20 +65,9 @@ export default function ProfilePage() {
           <div className="space-y-4">
             <div>
               <h1 className="text-3xl font-bold tracking-tight mb-2">{user.username}</h1>
-              <div className="flex items-center gap-x-6 text-sm">
-                <div>
-                  <span className="font-medium">Address: </span>
-                  <span className="text-muted-foreground">{user.address}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Communities: </span>
-                  <span className="text-muted-foreground">{userCommunitiesList}</span>
-                  {memberCount > 0 && (
-                    <Badge variant="secondary" className="ml-1">
-                      {memberCount} total {memberCount === 1 ? 'member' : 'members'}
-                    </Badge>
-                  )}
-                </div>
+              <div className="text-sm">
+                <span className="font-medium">Address: </span>
+                <span className="text-muted-foreground">{user.address}</span>
               </div>
             </div>
           </div>
@@ -125,8 +106,8 @@ export default function ProfilePage() {
               )}
               {!userItems || userItems.length === 0 ? (
                 <Card>
-                  <CardHeader>
-                    <CardTitle>No Listings</CardTitle>
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-base">No Listings</CardTitle>
                     <CardDescription>
                       You haven't listed any items yet.
                     </CardDescription>
@@ -136,34 +117,35 @@ export default function ProfilePage() {
                 <div className="grid gap-4">
                   {userItems.map((item) => (
                     <Card key={item.id}>
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <CardTitle>
-                              <Link href={`/item/${item.id}`} className="hover:underline">
-                                {item.title}
-                              </Link>
-                            </CardTitle>
-                            <CardDescription>
-                              Listed {formatDistanceToNow(new Date(item.createdAt), {
-                                addSuffix: true,
-                              })}
+                      <CardHeader className="py-3">
+                        <div className="flex items-center gap-3">
+                          <img src={item.imageUrl} alt={item.title} className="w-12 h-12 rounded object-cover" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <CardTitle className="text-base truncate">
+                                <Link href={`/item/${item.id}`} className="hover:underline">
+                                  {item.title}
+                                </Link>
+                              </CardTitle>
+                              <Badge
+                                variant={
+                                  item.status === "completed" ? "outline" :
+                                  item.status === "pending_pickup" ? "secondary" :
+                                  "secondary"
+                                }
+                                className={item.status === "pending_pickup" ? "bg-background text-foreground border" : ""}
+                              >
+                                {item.status === "completed" ? "Pickup Complete" :
+                                 item.status === "scheduled" ? "Pickup Scheduled" :
+                                 item.status === "scheduling" ? "Setting Pickup Time" :
+                                 item.status === "requested" ? "Requests Received" :
+                                 "Available"}
+                              </Badge>
+                            </div>
+                            <CardDescription className="text-sm">
+                              Listed {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
                             </CardDescription>
                           </div>
-                          <Badge
-                            variant={
-                              item.status === "completed" ? "outline" :
-                              item.status === "pending_pickup" ? "secondary" :
-                              "secondary"
-                            }
-                            className={item.status === "pending_pickup" ? "bg-background text-foreground border" : ""}
-                          >
-                            {item.status === "completed" ? "Pickup Complete" :
-                             item.status === "scheduled" ? "Pickup Scheduled" :
-                             item.status === "scheduling" ? "Setting Pickup Time" :
-                             item.status === "requested" ? "Requests Received" :
-                             "Available"}
-                          </Badge>
                         </div>
                       </CardHeader>
                       <CardContent>
@@ -199,8 +181,8 @@ export default function ProfilePage() {
               )}
               {!userRequests || userRequests.length === 0 ? (
                 <Card>
-                  <CardHeader>
-                    <CardTitle>No Requests</CardTitle>
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-base">No Requests</CardTitle>
                     <CardDescription>
                       You haven't requested any items yet.
                     </CardDescription>
@@ -209,39 +191,39 @@ export default function ProfilePage() {
               ) : (
                 userRequests.map((request) => (
                   <Card key={request.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle>
-                            <Link href={`/item/${request.item.id}`} className="hover:underline">
-                              {request.item.title}
-                            </Link>
-                          </CardTitle>
-                          <CardDescription>
-                            Requested{" "}
-                            {formatDistanceToNow(new Date(request.createdAt), {
-                              addSuffix: true,
-                            })}
+                    <CardHeader className="py-3">
+                      <div className="flex items-center gap-3">
+                        <img src={request.item.imageUrl} alt={request.item.title} className="w-12 h-12 rounded object-cover" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <CardTitle className="text-base truncate">
+                              <Link href={`/item/${request.item.id}`} className="hover:underline">
+                                {request.item.title}
+                              </Link>
+                            </CardTitle>
+                            <Badge
+                              variant={
+                                request.status === "awaiting_pickup_confirmation"
+                                  ? "default"
+                                  : request.status === "accepted"
+                                  ? "secondary"
+                                  : request.status === "pending"
+                                  ? "secondary"
+                                  : "destructive"
+                              }
+                              className={request.status === "accepted" ? "bg-background text-foreground border" : ""}
+                            >
+                              {request.status === "awaiting_pickup_confirmation"
+                                ? "Confirm Pickup"
+                                : request.status === "accepted"
+                                ? "Pickup Scheduled"
+                                : request.status}
+                            </Badge>
+                          </div>
+                          <CardDescription className="text-sm">
+                            Requested {formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
                           </CardDescription>
                         </div>
-                        <Badge
-                          variant={
-                            request.status === "awaiting_pickup_confirmation"
-                              ? "default"
-                              : request.status === "accepted"
-                              ? "secondary"
-                              : request.status === "pending"
-                              ? "secondary"
-                              : "destructive"
-                          }
-                          className={request.status === "accepted" ? "bg-background text-foreground border" : ""}
-                        >
-                          {request.status === "awaiting_pickup_confirmation"
-                            ? "Confirm Pickup"
-                            : request.status === "accepted"
-                            ? "Pickup Scheduled"
-                            : request.status}
-                        </Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
@@ -276,8 +258,8 @@ export default function ProfilePage() {
             <div className="grid gap-4">
               {!userBids || userBids.length === 0 ? (
                 <Card>
-                  <CardHeader>
-                    <CardTitle>No Bids</CardTitle>
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-base">No Bids</CardTitle>
                     <CardDescription>
                       You haven't placed any bids yet.
                     </CardDescription>
@@ -286,37 +268,35 @@ export default function ProfilePage() {
               ) : (
                 userBids.map((bid) => (
                   <Card key={bid.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle>
-                            <Link href={`/item/${bid.item.id}`} className="hover:underline">
-                              {bid.item.title}
-                            </Link>
-                          </CardTitle>
-                          <CardDescription>
-                            Bid placed{" "}
-                            {formatDistanceToNow(new Date(bid.createdAt), {
-                              addSuffix: true,
-                            })}
+                    <CardHeader className="py-3">
+                      <div className="flex items-center gap-3">
+                        <img src={bid.item.imageUrl} alt={bid.item.title} className="w-12 h-12 rounded object-cover" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <CardTitle className="text-base truncate">
+                              <Link href={`/item/${bid.item.id}`} className="hover:underline">
+                                {bid.item.title}
+                              </Link>
+                            </CardTitle>
+                            <Badge
+                              variant={
+                                bid.status === "pending"
+                                  ? "secondary"
+                                  : bid.status === "accepted"
+                                  ? "default"
+                                  : "destructive"
+                              }
+                            >
+                              {bid.status}
+                            </Badge>
+                          </div>
+                          <CardDescription className="text-sm">
+                            Bid placed {formatDistanceToNow(new Date(bid.createdAt), { addSuffix: true })}
                           </CardDescription>
+                          <div className="mt-1 font-medium text-sm">${bid.amount}</div>
                         </div>
-                        <Badge
-                          variant={
-                            bid.status === "pending"
-                              ? "secondary"
-                              : bid.status === "accepted"
-                              ? "default"
-                              : "destructive"
-                          }
-                        >
-                          {bid.status}
-                        </Badge>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <p className="font-medium">${bid.amount}</p>
-                    </CardContent>
                   </Card>
                 ))
               )}

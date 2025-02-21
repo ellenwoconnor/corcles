@@ -36,17 +36,12 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
   });
 
   const registerForm = useForm<z.infer<typeof insertUserSchema>>({
-    resolver: zodResolver(
-      insertUserSchema.extend({
-        password: z.string().min(6, "Password must be at least 6 characters"),
-        address: z.string().min(1, "Address is required"),
-        zipCode: z.string().regex(/^\d{5}$/, "ZIP code must be 5 digits"),
-      })
-    ),
+    resolver: zodResolver(insertUserSchema),
     defaultValues: {
       username: "",
       password: "",
       displayName: "",
+      email: "",
       address: "",
       zipCode: "",
     },
@@ -143,12 +138,12 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
             />
             <FormField
               control={registerForm.control}
-              name="password"
+              name="displayName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>Display Name</FormLabel>
                   <FormControl>
-                    <Input type="password" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -156,12 +151,25 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
             />
             <FormField
               control={registerForm.control}
-              name="displayName"
+              name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Display Name</FormLabel>
+                  <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input type="email" {...field} placeholder="your@email.com" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={registerForm.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
