@@ -322,18 +322,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         price: Number(req.body.price),
         isGift: !!req.body.isGift,
-        communityId: parseInt(req.body.communityId)
+        communityId: parseInt(req.body.communityId),
+        userId: req.user.id
       };
 
-      logger.debug('Creating item with data:', {
-        ...data,
-        userId: req.user.id
-      });
+      logger.debug('Creating item with data:', data);
 
-      const parseResult = insertItemSchema.safeParse({
-        ...data,
-        userId: req.user.id
-      });
+      const parseResult = insertItemSchema.safeParse(data);
 
       if (!parseResult.success) {
         return res.status(400).json(parseResult.error);
@@ -951,7 +946,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }))
       });
       res.json(communities);
-    } catch (error) {
+    }catch (error) {
       logger.error('Error fetching user communities:', error);
       res.status(500).json({ error: 'Failed to fetch user communities' });
     }
