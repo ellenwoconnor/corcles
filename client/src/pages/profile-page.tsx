@@ -29,11 +29,6 @@ export default function ProfilePage() {
     enabled: !!user,
   });
 
-  const { data: userCommunities, isLoading: communityLoading } = useQuery({
-    queryKey: ["/api/user/communities"],
-    enabled: !!user,
-  });
-
   const pendingConfirmations = userRequests?.filter(
     r => r.status === "awaiting_pickup_confirmation"
   ) || [];
@@ -54,16 +49,13 @@ export default function ProfilePage() {
     );
   }
 
-  if (itemsLoading || requestsLoading || bidsLoading || communityLoading) {
+  if (itemsLoading || requestsLoading || bidsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-border" />
       </div>
     );
   }
-
-  const userCommunitiesList = userCommunities?.map(c => c.name).join(", ") || "No communities joined";
-  const memberCount = userCommunities?.reduce((total, c) => total + c.memberCount, 0) || 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,20 +65,9 @@ export default function ProfilePage() {
           <div className="space-y-4">
             <div>
               <h1 className="text-3xl font-bold tracking-tight mb-2">{user.username}</h1>
-              <div className="flex items-center gap-x-6 text-sm">
-                <div>
-                  <span className="font-medium">Address: </span>
-                  <span className="text-muted-foreground">{user.address}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Communities: </span>
-                  <span className="text-muted-foreground">{userCommunitiesList}</span>
-                  {memberCount > 0 && (
-                    <Badge variant="secondary" className="ml-1">
-                      {memberCount} total {memberCount === 1 ? 'member' : 'members'}
-                    </Badge>
-                  )}
-                </div>
+              <div className="text-sm">
+                <span className="font-medium">Address: </span>
+                <span className="text-muted-foreground">{user.address}</span>
               </div>
             </div>
           </div>
