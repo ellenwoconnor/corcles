@@ -52,6 +52,19 @@ export function setupWebSocket() {
 
     socket.addEventListener('error', (error) => {
       console.error('WebSocket error:', error);
+      //Attempt to reconnect on error as well.
+      if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+        reconnectAttempts++;
+        const retryDelay = Math.min(
+          INITIAL_RETRY_DELAY * Math.pow(2, reconnectAttempts),
+          MAX_RETRY_DELAY
+        );
+        console.log(`Attempting to reconnect (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}) in ${retryDelay}ms due to error`);
+        setTimeout(setupWebSocket, retryDelay);
+      } else {
+        console.error('Maximum reconnection attempts reached due to error');
+      }
+
     });
 
     return socket;
