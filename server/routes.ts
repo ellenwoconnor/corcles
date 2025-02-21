@@ -320,10 +320,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const data = {
         ...req.body,
+        userId: req.user.id,
         price: Number(req.body.price),
         isGift: !!req.body.isGift,
         communityId: parseInt(req.body.communityId),
-        userId: req.user.id
       };
 
       logger.debug('Creating item with data:', data);

@@ -430,6 +430,11 @@ export class DatabaseStorage implements IStorage {
   async createItem(item: InsertItem & { userId: number; communityId: number }): Promise<Item> {
     try {
       // Validate required fields
+      if (!item.userId) {
+        logger.error('Missing required userId when creating item:', { item });
+        throw new Error('User ID is required');
+      }
+
       if (!item.communityId) {
         logger.error('Missing required communityId when creating item:', { item });
         throw new Error('Community ID is required');

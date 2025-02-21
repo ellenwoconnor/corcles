@@ -153,7 +153,6 @@ export type CancellationInfo = z.infer<typeof cancellationInfoSchema>;
 
 export const insertItemSchema = createInsertSchema(items).omit({
   id: true,
-  userId: true,
   createdAt: true,
   status: true,
   recipientId: true,
@@ -164,6 +163,7 @@ export const insertItemSchema = createInsertSchema(items).omit({
   description: z.string().optional(),
   price: z.number().nullable().optional(),
   imageFile: z.instanceof(File).optional(),
+  userId: z.number(),
   communityId: z.number({ required_error: "Please select a community" }),
 }).refine((data) => {
   if (!data.isGift && (!data.price || data.price < 0.01)) {
