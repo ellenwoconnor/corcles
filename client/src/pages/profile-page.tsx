@@ -268,37 +268,35 @@ export default function ProfilePage() {
               ) : (
                 userBids.map((bid) => (
                   <Card key={bid.id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle>
-                            <Link href={`/item/${bid.item.id}`} className="hover:underline">
-                              {bid.item.title}
-                            </Link>
-                          </CardTitle>
-                          <CardDescription>
-                            Bid placed{" "}
-                            {formatDistanceToNow(new Date(bid.createdAt), {
-                              addSuffix: true,
-                            })}
+                    <CardHeader className="py-3">
+                      <div className="flex items-center gap-3">
+                        <img src={bid.item.imageUrl} alt={bid.item.title} className="w-12 h-12 rounded object-cover" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <CardTitle className="text-base truncate">
+                              <Link href={`/item/${bid.item.id}`} className="hover:underline">
+                                {bid.item.title}
+                              </Link>
+                            </CardTitle>
+                            <Badge
+                              variant={
+                                bid.status === "pending"
+                                  ? "secondary"
+                                  : bid.status === "accepted"
+                                  ? "default"
+                                  : "destructive"
+                              }
+                            >
+                              {bid.status}
+                            </Badge>
+                          </div>
+                          <CardDescription className="text-sm">
+                            Bid placed {formatDistanceToNow(new Date(bid.createdAt), { addSuffix: true })}
                           </CardDescription>
+                          <div className="mt-1 font-medium text-sm">${bid.amount}</div>
                         </div>
-                        <Badge
-                          variant={
-                            bid.status === "pending"
-                              ? "secondary"
-                              : bid.status === "accepted"
-                              ? "default"
-                              : "destructive"
-                          }
-                        >
-                          {bid.status}
-                        </Badge>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <p className="font-medium">${bid.amount}</p>
-                    </CardContent>
                   </Card>
                 ))
               )}
