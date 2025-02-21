@@ -321,6 +321,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
+
   app.post("/api/items", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -622,19 +623,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Get the pending request to set the recipient
-      const [pendingRequest] = await db
+      const [activeRequest] = await db
         .select()
         .from(schema.itemRequests)
         .where(
           and(
             eq(schema.itemRequests.itemId, itemId),
-            eq(schema.itemRequests.status, REQUEST_STATUS.PENDING)
+            or(
+              eq(schema.itemRequests.status, REQUEST_STATUS.PENDING),
+              eq(schema.itemRequests.status, REQUEST_STATUS.ACCEPTED)
+            )
           )
         );
 
-      if (!pendingRequest) {
-        return res.status(400).json({ error: "No pending request found for scheduling" });
+      if (!activeRequest) {
+        return res.status(400).json({ error: "No active request found for scheduling" });
       }
+
+      logger.debug('Found active request for scheduling:', {
+        requestId: activeRequest.id,
+        requesterId: activeRequest.requesterId,
+        status: activeRequest.status
+      });
 
       const { timeWindows } = req.body;
 
@@ -692,7 +702,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .set({ 
           proposedPickupWindows: proposedWindows,
           status: ITEM_STATUS.SCHEDULING,
-          recipientId: pendingRequest.requesterId
+          recipientId: activeRequest.requesterId
         })
         .where(eq(schema.items.id, itemId));
 
@@ -700,7 +710,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await db
         .update(schema.itemRequests)
         .set({ status: REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
-        .where(eq(schema.itemRequests.id, pendingRequest.id));
+        .where(eq(schema.itemRequests.id, activeRequest.id));
 
       // Reject other requests
       await db
@@ -709,13 +719,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(
           and(
             eq(schema.itemRequests.itemId, itemId),
-            not(eq(schema.itemRequests.id, pendingRequest.id))
+            not(eq(schema.itemRequests.id, activeRequest.id))
           )
         );
 
       logger.info('Updated item with pickup windows and recipient:', { 
         itemId,
-        recipientId: pendingRequest.requesterId,
+        recipientId: activeRequest.requesterId,
         windowsCount: proposedWindows.length,
         newStatus: ITEM_STATUS.SCHEDULING
       });
