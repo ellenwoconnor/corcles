@@ -946,8 +946,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         communities: communities.map(c => ({
           id: c.id,
           name: c.name,
-          role: c.role,
-          memberCount: c.memberCount
+          role: c.role,          memberCount: c.memberCount
         }))
       });
       res.json(communities);
@@ -1013,9 +1012,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const parseResult = insertCommunityInviteSchema.safeParse({
-        ...req.body,
         communityId,
-        invitedBy: req.user.id
+        invitedBy: req.user.id,
+        invitedEmail: req.body.email.toLowerCase(),
+        status: 'pending'
       });
 
       if (!parseResult.success) {
@@ -1025,7 +1025,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [existingUser] = await db
         .select()
         .from(schema.users)
-        .where(eq(schema.users.email, req.body.email))
+        .where(eq(schema.users.email, parseResult.data.invitedEmail))
         .limit(1);
 
       if (existingUser) {
