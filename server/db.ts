@@ -13,7 +13,7 @@ if (!process.env.DATABASE_URL) {
 }
 
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle(pool, { schema });
+export const db = drizzle({ client: pool, schema });
 
 // Run initial migration
 async function migrate() {
@@ -119,9 +119,9 @@ async function migrate() {
   for (const migration of migrations) {
     try {
       await pool.query(migration);
-      logger.info('Successfully executed migration');
+      logger.info('Successfully executed migration:', { migration: migration });
     } catch (error) {
-      logger.error('Error executing migration:', error);
+      logger.error('Error executing migration:', { error, migration });
       throw error;
     }
   }

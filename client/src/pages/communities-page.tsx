@@ -81,17 +81,19 @@ export default function CommunitiesPage() {
 
   const inviteMutation = useMutation({
     mutationFn: async ({ email, communityId }: { email: string; communityId: number }) => {
-      const response = await apiRequest("POST", `/api/communities/${communityId}/invite`, { invitedEmail: email });
+      const response = await apiRequest("POST", `/api/communities/${communityId}/invite`, { email });
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to send invitation');
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
-        title: "Invitation sent",
-        description: "The user has been invited to join the community.",
+        title: data.autoEnrolled ? "User enrolled" : "Invitation sent",
+        description: data.autoEnrolled 
+          ? "The user has been automatically enrolled in the community."
+          : "The invitation has been sent successfully.",
       });
       setInviteDialogOpen(false);
       inviteForm.reset();
@@ -225,23 +227,28 @@ export default function CommunitiesPage() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {communities.map((community) => (
               <Card key={community.id}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>{community.name}</CardTitle>
-                      <CardDescription>{community.description}</CardDescription>
+                <CardHeader className="py-3">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <CardTitle className="text-base truncate">{community.name}</CardTitle>
+                        <Badge variant={community.role === 'admin' ? 'default' : 'secondary'}>
+                          {community.role}
+                        </Badge>
+                      </div>
+                      <CardDescription className="line-clamp-1">{community.description}</CardDescription>
+                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                        <div className="flex items-center">
+                          <Users className="h-4 w-4 mr-1" />
+                          <span>{community.memberCount} members</span>
+                        </div>
+                        <div>
+                          Created {format(new Date(community.createdAt), 'PP')}
+                        </div>
+                      </div>
                     </div>
-                    <Badge variant={community.role === 'admin' ? 'default' : 'secondary'}>
-                      {community.role}
-                    </Badge>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <Users className="h-4 w-4 mr-1" />
-                    <span>Created {format(new Date(community.createdAt), 'PP')}</span>
-                  </div>
-                </CardContent>
                 {community.role === 'admin' && (
                   <CardFooter>
                     <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
@@ -261,7 +268,7 @@ export default function CommunitiesPage() {
                             <DialogHeader>
                               <DialogTitle>Invite to {community.name}</DialogTitle>
                               <DialogDescription>
-                                Send an invitation to join this community.
+                                Send an invitation to join this community. If the user already exists, they will be automatically enrolled.
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-4">

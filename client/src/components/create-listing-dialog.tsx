@@ -78,20 +78,26 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
       price: undefined,
       isGift: true,
       imageUrl: MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)],
-      communityId: communities.find(c => !c.is_custom)?.id,
+      communityId: communities.find(c => !c.isCustom)?.id,
+      userId: user?.id
     },
     mode: "onChange"
   });
 
   const createItemMutation = useMutation({
     mutationFn: async (data: FormData) => {
+      console.log('Submitting form data:', data);
       const response = await apiRequest("POST", "/api/items", {
         ...data,
         price: data.isGift ? null : Number(data.price || 0),
-        communityId: Number(data.communityId)
+        communityId: Number(data.communityId),
+        userId: user?.id
       });
+
+      console.log('API Response status:', response.status);
       if (!response.ok) {
         const error = await response.json();
+        console.error('API Error:', error);
         throw new Error(error.message || "Failed to create listing");
       }
       return response.json();
@@ -113,6 +119,15 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
         variant: "destructive",
       });
     }
+  });
+
+  const onSubmit = form.handleSubmit((data) => {
+    console.log('Form submitted with data:', data);
+    console.log('Form validation state:', form.formState);
+    if (form.formState.errors) {
+      console.log('Form errors:', form.formState.errors);
+    }
+    createItemMutation.mutate(data);
   });
 
   return (
@@ -137,9 +152,7 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
         </DialogHeader>
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit((data) => {
-              createItemMutation.mutate(data);
-            })}
+            onSubmit={onSubmit}
             className="space-y-4"
           >
             <FormField
@@ -253,7 +266,7 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
             <Button
               type="submit"
               className="w-full"
-              disabled={createItemMutation.isPending}
+              disabled={createItemMutation.isPending || !form.formState.isValid}
             >
               {createItemMutation.isPending ? (
                 <>
