@@ -17,17 +17,16 @@ import cookieParser from "cookie-parser";
 import { promisify } from "util";
 import passport from "passport";
 import { hashPassword } from "./utils/auth";
+import { insertCommunityInviteSchema } from "@shared/schema";
 
 const PostgresSessionStore = connectPg(session);
 
-// Create session store
 const sessionStore = new PostgresSessionStore({
   pool,
   createTableIfMissing: true,
   tableName: 'session'
 });
 
-// Create session middleware configuration
 const sessionMiddleware = session({
   store: sessionStore,
   secret: process.env.SESSION_SECRET || 'your-secret-key',
@@ -42,7 +41,6 @@ const sessionMiddleware = session({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Apply middlewares in correct order
   app.use(cookieParser());
   app.use(sessionMiddleware);
   app.use(passport.initialize());
@@ -50,7 +48,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   setupAuth(app);
 
-  // Initialize WebSocket server
   const httpServer = createServer(app);
   const wss = new WebSocketServer({ 
     server: httpServer,
@@ -59,17 +56,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const req = info.req;
 
-        // Log headers for debugging
         logger.debug('WebSocket connection attempt:', {
           cookies: req.headers.cookie,
           sessionID: req.headers['sec-websocket-key']
         });
 
-        // Apply session middleware
         const runSessionMiddleware = promisify(sessionMiddleware);
         await runSessionMiddleware(req as any, {} as any);
 
-        // Verify session exists
         const session = (req as any).session;
         if (!session) {
           logger.warn('WebSocket unauthorized - no session');
@@ -77,7 +71,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return;
         }
 
-        // Verify user is authenticated
         const userId = session.passport?.user;
         if (!userId) {
           logger.warn('WebSocket unauthorized - no user', {
@@ -102,13 +95,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const connectedClients = new Map<number, WebSocket>();
 
-  // Log WebSocket server initialization
   logger.info('WebSocket server initialized on path: /ws');
 
-  // WebSocket connection handling
   wss.on('connection', async (ws, req) => {
     try {
-      // @ts-ignore - req.user is added by passport session
       const userId = req.user?.id;
       if (!userId) {
         logger.warn('WebSocket connection rejected - no authenticated user');
@@ -116,7 +106,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // Store connection
       connectedClients.set(userId, ws);
 
       logger.info('WebSocket client connected:', { 
@@ -124,7 +113,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalConnections: connectedClients.size
       });
 
-      // Send connection success message
       ws.send(JSON.stringify({
         type: 'connection_established',
         data: { 
@@ -133,7 +121,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }));
 
-      // Handle WebSocket events
       ws.on('close', () => {
         logger.info('WebSocket client disconnected:', { 
           userId,
@@ -154,7 +141,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add messaging routes
   app.post("/api/messages/send", async (req, res) => {
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
@@ -175,7 +161,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const message = await storage.sendMessage(parseResult.data);
 
-      // Notify both sender and recipient via WebSocket
       const recipientWs = connectedClients.get(recipientId);
       const senderWs = connectedClients.get(req.user.id);
 
@@ -212,7 +197,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid user ID or request ID" });
       }
 
-      // Check if the current user is either the sender or recipient of the request
       const request = await db
         .select()
         .from(schema.itemRequests)
@@ -230,16 +214,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Item not found" });
       }
 
-      // Allow message access if user is either the item owner or requester
       const canAccess = req.user.id === item.userId || req.user.id === itemRequest.requesterId;
       if (!canAccess) {
         return res.status(403).json({ error: "You cannot view these messages" });
       }
 
-      // Get messages for both sender and recipient
       const messages = await storage.getConversation(item.userId, itemRequest.requesterId, requestId);
 
-      // Mark messages as read for the current user
       await storage.markMessagesAsRead(req.user.id, userId, requestId);
 
       res.json(messages);
@@ -288,7 +269,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { search, communities: communityParam, freeOnly } = req.query;
       const searchTerm = typeof search === 'string' ? search : undefined;
 
-      // Log raw parameters for debugging
       logger.debug('Raw query parameters:', {
         communityParam,
         search,
@@ -296,13 +276,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: typeof communityParam
       });
 
-      // Parse communities from comma-separated string
       let communities: number[] = [];
       if (typeof communityParam === 'string') {
         communities = communityParam.split(',').map(c => parseInt(c)).filter(c => !isNaN(c));
       }
 
-      // Log parsed communities
       logger.debug('Parsed communities:', {
         communities,
         length: communities.length
@@ -360,7 +338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const item = await storage.createItem({
         ...parseResult.data,
         userId: req.user.id,
-        communityId: data.communityId // Explicitly pass communityId
+        communityId: data.communityId 
       });
 
       res.status(201).json({
@@ -404,7 +382,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const request = await storage.createItemRequest(parseResult.data);
       
 
-      // Check if this is the first request and update item status
       const requests = await storage.getItemRequests(itemId);
       if (requests.length === 1) {
         await db
@@ -482,7 +459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userCommunities.map(c => c.id),
         req.user.id,
         undefined,
-        true // This is userOnly flag
+        true 
       );
 
       logger.debug('Fetching user items:', {
@@ -589,7 +566,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Drawing already completed" });
       }
 
-      // Get all pending requests
       const requests = await storage.getItemRequests(itemId);
       const pendingRequests = requests.filter(r => r.status === 'pending');
 
@@ -597,10 +573,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No pending requests available for drawing" });
       }
 
-      // Randomly select a recipient
       const winningRequest = pendingRequests[Math.floor(Math.random() * pendingRequests.length)];
 
-      // Update item with recipient
       await db
         .update(schema.items)
         .set({ 
@@ -609,7 +583,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.items.id, itemId));
 
-      // Update request statuses
       for (const request of requests) {
         await storage.updateItemRequestStatus(
           request.id,
@@ -642,7 +615,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to schedule pickup for this item" });
       }
 
-      // Get all pending requests first
       const requests = await storage.getItemRequests(itemId);
       const pendingRequests = requests.filter(r => r.status === 'pending');
 
@@ -650,7 +622,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No pending requests available for scheduling" });
       }
 
-      // Randomly select one recipient from pending requests
       const selectedRequest = pendingRequests[Math.floor(Math.random() * pendingRequests.length)];
 
       const { timeWindows } = req.body;
@@ -673,13 +644,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Store the proposed time windows in the database
       const proposedWindows = timeWindows.map((window, index) => ({
         ...window,
         order: index
       }));
 
-      // Update item with recipient and pickup windows
       await db
         .update(schema.items)
         .set({ 
@@ -689,13 +658,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.items.id, itemId));
 
-      // Update the selected request to awaiting_pickup_confirmation
       await db
         .update(schema.itemRequests)
         .set({ status: REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
         .where(eq(schema.itemRequests.id, selectedRequest.id));
 
-      // Update other requests to rejected
       await db
         .update(schema.itemRequests)
         .set({ status: REQUEST_STATUS.REJECTED })
@@ -740,7 +707,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Item not found" });
       }
 
-      // Get the user's request for this item
       const [request] = await db
         .select()
         .from(schema.itemRequests)
@@ -756,7 +722,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "No pending pickup confirmation found" });
       }
 
-      // Update request status based on confirmation
       await db
         .update(schema.itemRequests)
         .set({ 
@@ -766,7 +731,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.itemRequests.id, request.id));
 
-      // Update other requests to pending
       await db
         .update(schema.itemRequests)
         .set({ 
@@ -779,7 +743,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           )
         );
 
-      // If confirmed, update item status to completed
       if (confirmed) {
         await db
           .update(schema.items)
@@ -819,7 +782,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to edit this item" });
       }
 
-      // Make all fields optional for updates
       const partialItemSchema = z.object({
         title: z.string().optional(),
         description: z.string().optional(),
@@ -858,7 +820,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { windowIndex } = req.body;
 
-      // Handle acceptance case
       if (typeof windowIndex !== 'number') {
         return res.status(400).json({ error: "Window index is required" });
       }
@@ -874,11 +835,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const selectedWindow = item.proposedPickupWindows[windowIndex];
 
-      // Convert string dates to Date objects
       const pickupStart = new Date(selectedWindow.pickupStart);
       const pickupEnd = new Date(selectedWindow.pickupEnd);
 
-      // Validate dates
       if (isNaN(pickupStart.getTime()) || isNaN(pickupEnd.getTime())) {
         return res.status(400).json({ error: "Invalid pickup window dates" });
       }
@@ -891,7 +850,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         originalEnd: selectedWindow.pickupEnd
       });
 
-      // Update item with selected pickup time and status
       await db
         .update(schema.items)
         .set({ 
@@ -902,7 +860,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.items.id, itemId));
 
-      // Update the requester's request to accepted
       await db
         .update(schema.itemRequests)
         .set({ 
@@ -915,7 +872,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           )
         );
 
-      // Update other requests to rejected
       await db
         .update(schema.itemRequests)
         .set({ 
@@ -1040,89 +996,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid community ID" });
       }
 
-      // Store email in lowercase for consistency
-      const data = {
+      const userCommunity = await db
+        .select()
+        .from(schema.userCommunities)
+        .where(
+          and(
+            eq(schema.userCommunities.userId, req.user.id),
+            eq(schema.userCommunities.communityId, communityId),
+            eq(schema.userCommunities.role, 'admin')
+          )
+        )
+        .limit(1);
+
+      if (!userCommunity.length) {
+        return res.status(403).json({ error: "Not authorized to invite to this community" });
+      }
+
+      const parseResult = insertCommunityInviteSchema.safeParse({
         ...req.body,
-        invitedEmail: req.body.email.toLowerCase(),
         communityId,
         invitedBy: req.user.id
-      };
+      });
 
-      const parseResult = insertCommunityInviteSchema.safeParse(data);
       if (!parseResult.success) {
         return res.status(400).json(parseResult.error);
       }
 
-      logger.debug('Processing community invite:', {
-        communityId,
-        invitedEmail: data.invitedEmail,
-        invitedBy: req.user.id
-      });
+      const [existingUser] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.email, req.body.email))
+        .limit(1);
 
-      // Check if user is already in the community
-      const existingUser = await storage.getUserByEmail(data.invitedEmail);
       if (existingUser) {
-        const [existingMembership] = await db
-          .select()
-          .from(schema.userCommunities)
-          .where(
-            and(
-              eq(schema.userCommunities.userId, existingUser.id),
-              eq(schema.userCommunities.communityId, communityId)
-            )
-          );
-
-        if (existingMembership) {
-          return res.status(400).json({ error: "User is already a member of this community" });
-        }
-
-        // Auto-enroll existing user
-        await db.transaction(async (tx) => {
-          // Add user to community
-          await tx
-            .insert(schema.userCommunities)
-            .values({
-              userId: existingUser.id,
-              communityId,
-              role: 'member',
-              joinedAt: new Date()
-            });
-
-          // Create and mark invite as accepted
-          const [invite] = await tx
-            .insert(schema.communityInvites)
-            .values({
-              ...parseResult.data,
-              status: 'accepted',
-              acceptedAt: new Date()
-            })
-            .returning();
-
-          return invite;
-        });
-
-        logger.info('Auto-enrolled existing user:', {
-          userId: existingUser.id,
-          communityId,
-          email: data.invitedEmail
-        });
+        await db
+          .insert(schema.userCommunities)
+          .values({
+            userId: existingUser.id,
+            communityId,
+            role: 'member'
+          })
+          .onConflictDoNothing();
 
         return res.json({ autoEnrolled: true });
       }
 
-      // Create pending invite for new user
       const [invite] = await db
         .insert(schema.communityInvites)
         .values(parseResult.data)
         .returning();
 
-      logger.info('Created pending community invite:', {
-        inviteId: invite.id,
-        communityId,
-        email: data.invitedEmail
-      });
-
-      res.status(201).json({ autoEnrolled: false });
+      res.status(201).json({ ...invite, autoEnrolled: false });
     } catch (error) {
       logger.error('Error creating community invite:', error);
       res.status(500).json({ error: 'Failed to create community invite' });
@@ -1144,14 +1068,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json(parseResult.error);
       }
 
-      // Normalize email to lowercase for consistent matching
       const email = parseResult.data.email.toLowerCase();
       logger.debug('Checking for existing user/email', { 
         username: parseResult.data.username,
         email 
       });
 
-      // Validate unique username and email
       const [existingUser, existingEmail] = await Promise.all([
         storage.getUserByUsername(parseResult.data.username),
         storage.getUserByEmail(email)
@@ -1176,10 +1098,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       logger.info('Starting user creation transaction');
       const hashedPassword = await hashPassword(parseResult.data.password);
 
-      // Execute registration transaction
       const result = await db.transaction(async (tx) => {
         logger.debug('Transaction step 1: Creating user');
-        // Step 1: Create user
         const [user] = await tx
           .insert(schema.users)
           .values({
@@ -1196,7 +1116,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         logger.debug('Transaction step 2: Finding pending invites');
-        // Step 2: Find all pending invites for this email
         const pendingInvites = await tx
           .select()
           .from(schema.communityInvites)
@@ -1219,7 +1138,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         logger.debug('Transaction step 3: Processing invites');
-        // Step 3: Process each invite
         const processedInvites = [];
         for (const invite of pendingInvites) {
           try {
@@ -1228,7 +1146,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               communityId: invite.communityId
             });
 
-            // Verify community exists
             const [community] = await tx
               .select()
               .from(schema.communities)
@@ -1242,7 +1159,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               continue;
             }
 
-            // Add user to community
             await tx
               .insert(schema.userCommunities)
               .values({
@@ -1253,7 +1169,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               })
               .onConflictDoNothing();
 
-            // Update invite status
             await tx
               .update(schema.communityInvites)
               .set({
@@ -1281,7 +1196,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         logger.debug('Transaction step 4: Handling zip code community');
-        // Step 4: Handle zip code community enrollment
         const zipCodeCommunityName = `Community ${parseResult.data.zipCode}`;
         let zipCommunity = await tx
           .select()
@@ -1289,7 +1203,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .where(eq(schema.communities.name, zipCodeCommunityName))
           .limit(1);
 
-        // Create zip code community if it doesn't exist
         if (zipCommunity.length === 0) {
           logger.info('Creating new zip code community:', {
             zipCode: parseResult.data.zipCode,
@@ -1318,7 +1231,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // Add user to zip code community
         await tx
           .insert(schema.userCommunities)
           .values({
@@ -1349,7 +1261,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         processedInvites: result.processedInvites
       });
 
-      // Log the user in
       req.login(result.user, (err) => {
         if (err) {
           logger.error('Error during login after registration:', {
