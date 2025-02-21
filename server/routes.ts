@@ -17,7 +17,7 @@ import cookieParser from "cookie-parser";
 import { promisify } from "util";
 import passport from "passport";
 import { hashPassword } from "./utils/auth";
-import { insertCommunityInviteSchema } from "@shared/schema";
+import { insertCommunityInviteSchema, insertItemSchema } from "@shared/schema";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -330,16 +330,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.user.id
       });
 
-      const parseResult = insertItemSchema.safeParse(data);
+      const parseResult = insertItemSchema.safeParse({
+        ...data,
+        userId: req.user.id
+      });
+
       if (!parseResult.success) {
         return res.status(400).json(parseResult.error);
       }
 
-      const item = await storage.createItem({
-        ...parseResult.data,
-        userId: req.user.id,
-        communityId: data.communityId 
-      });
+      const item = await storage.createItem(parseResult.data);
 
       res.status(201).json({
         ...item,
@@ -946,8 +946,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         communities: communities.map(c => ({
           id: c.id,
           name: c.name,
-          role: c.role,          memberCount: c.memberCount
-        }))
+          role: c.role,
+          memberCount: c.memberCount
+                }))
       });
       res.json(communities);
     } catch (error) {
@@ -1012,10 +1013,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const parseResult = insertCommunityInviteSchema.safeParse({
+        ...req.body,
         communityId,
-        invitedBy: req.user.id,
-        invitedEmail: req.body.email.toLowerCase(),
-        status: 'pending'
+        invitedBy: req.user.id
       });
 
       if (!parseResult.success) {
@@ -1025,7 +1025,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [existingUser] = await db
         .select()
         .from(schema.users)
-        .where(eq(schema.users.email, parseResult.data.invitedEmail))
+        .where(eq(schema.users.email, req.body.email))
         .limit(1);
 
       if (existingUser) {
