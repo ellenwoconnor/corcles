@@ -29,8 +29,12 @@ export default function HomePage() {
   useEffect(() => {
     if (user && userCommunities.length > 0) {
       // Check if this is the first time the user has loaded their communities
-      const welcomeKey = `corcles-welcome-seen`;
+      const welcomeKey = `corcles-welcome-seen-${user.id}`;
       const hasSeenWelcome = localStorage.getItem(welcomeKey);
+      if (!hasSeenWelcome) {
+        setShowWelcome(true);
+        localStorage.setItem(welcomeKey, 'true');
+      }
 
       if (!hasSeenWelcome) {
         setShowWelcome(true);
