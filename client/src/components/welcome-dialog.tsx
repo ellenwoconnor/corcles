@@ -31,7 +31,7 @@ export function WelcomeDialog({ communities }: WelcomeDialogProps) {
             </p>
 
             {homeZipCommunity && (
-              <div>>
+              <div>
                 <p>You've been added to your local community, {homeZipCommunity.name}.</p>
               </div>
             )}
