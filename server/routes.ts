@@ -1063,6 +1063,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const parseResult = insertCommunityInviteSchema.safeParse({
         ...req.body,
+        invitedEmail: req.body.invitedEmail || req.body.email,
         communityId,
         invitedBy: req.user.id
       });
