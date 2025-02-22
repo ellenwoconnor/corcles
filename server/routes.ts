@@ -1068,7 +1068,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!parseResult.success) {
-        return res.status(400).json(parseResult.error);
+        logger.error('Community invite validation failed:', {
+          errors: parseResult.error.errors,
+          body: req.body,
+          communityId,
+          invitedBy: req.user.id
+        });
+        return res.status(400).json({
+          error: "Invalid invitation data",
+          details: parseResult.error.errors
+        });
       }
 
       const [existingUser] = await db
