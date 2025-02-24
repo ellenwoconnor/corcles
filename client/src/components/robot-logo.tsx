@@ -1,6 +1,4 @@
 
-import { motion } from "framer-motion";
-
 export default function RobotLogo() {
   return (
     <motion.svg
@@ -18,10 +16,8 @@ export default function RobotLogo() {
       }}
     >
       {/* Head */}
-      <motion.circle
-        cx="60"
-        cy="45"
-        r="25"
+      <motion.path
+        d="M40 30 L80 30 L85 40 L85 60 L35 60 L35 40 L40 30"
         fill="#6ABF69"
         initial={{ y: -3 }}
         animate={{ y: 0 }}
@@ -32,10 +28,11 @@ export default function RobotLogo() {
         }}
       />
       {/* Eyes */}
-      <motion.circle
-        cx="48"
-        cy="45"
-        r="4"
+      <motion.rect
+        x="45"
+        y="40"
+        width="8"
+        height="8"
         fill="white"
         initial={{ scale: 1 }}
         animate={{ scale: 1.2 }}
@@ -45,10 +42,11 @@ export default function RobotLogo() {
           repeatType: "reverse",
         }}
       />
-      <motion.circle
-        cx="72"
-        cy="45"
-        r="4"
+      <motion.rect
+        x="67"
+        y="40"
+        width="8"
+        height="8"
         fill="white"
         initial={{ scale: 1 }}
         animate={{ scale: 1.2 }}
@@ -59,13 +57,27 @@ export default function RobotLogo() {
         }}
       />
       {/* Body */}
-      <rect x="45" y="70" width="30" height="35" rx="4" fill="#6ABF69" />
+      <path
+        d="M35 65 L85 65 L90 90 L30 90 L35 65"
+        fill="#6ABF69"
+      />
       {/* Body details */}
-      <rect x="50" y="75" width="20" height="4" rx="1" fill="white" />
-      <rect x="50" y="83" width="20" height="4" rx="1" fill="white" />
-      {/* Arms */}
-      <rect x="30" y="75" width="15" height="8" rx="2" fill="#6ABF69" />
-      <rect x="75" y="75" width="15" height="8" rx="2" fill="#6ABF69" />
+      <rect x="45" y="72" width="30" height="3" rx="1" fill="white" />
+      <rect x="45" y="80" width="30" height="3" rx="1" fill="white" />
+      {/* Antenna */}
+      <motion.path
+        d="M60 20 L60 30"
+        stroke="#6ABF69"
+        strokeWidth="4"
+        strokeLinecap="round"
+        initial={{ rotateZ: -5 }}
+        animate={{ rotateZ: 5 }}
+        transition={{
+          duration: 1,
+          repeat: Infinity,
+          repeatType: "reverse",
+        }}
+      />
     </motion.svg>
   );
 }
