@@ -1051,14 +1051,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(
           and(
             eq(schema.userCommunities.userId, req.user.id),
-            eq(schema.userCommunities.communityId, communityId),
-            eq(schema.userCommunities.role, 'admin')
+            eq(schema.userCommunities.communityId, communityId)
           )
         )
         .limit(1);
 
       if (!userCommunity.length) {
-        return res.status(403).json({ error: "Not authorized to invite to this community" });
+        return res.status(403).json({ error: "You must be a member of this community to invite others" });
       }
 
       const parseResult = insertCommunityInviteSchema.safeParse({
