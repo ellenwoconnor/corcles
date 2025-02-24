@@ -18,12 +18,10 @@ export default function RobotLogo() {
       }}
     >
       {/* Head */}
-      <motion.rect
-        x="30"
-        y="25"
-        width="60"
-        height="40"
-        rx="8"
+      <motion.circle
+        cx="60"
+        cy="45"
+        r="25"
         fill="#6ABF69"
         initial={{ y: -3 }}
         animate={{ y: 0 }}
@@ -61,10 +59,10 @@ export default function RobotLogo() {
         }}
       />
       {/* Body */}
-      <rect x="45" y="70" width="30" height="25" rx="4" fill="#6ABF69" />
+      <rect x="45" y="75" width="30" height="25" rx="12" fill="#6ABF69" />
       {/* Arms */}
-      <rect x="30" y="75" width="12" height="6" rx="3" fill="#6ABF69" />
-      <rect x="78" y="75" width="12" height="6" rx="3" fill="#6ABF69" />
+      <circle cx="36" cy="78" r="6" fill="#6ABF69" />
+      <circle cx="84" cy="78" r="6" fill="#6ABF69" />
     </motion.svg>
   );
 }
