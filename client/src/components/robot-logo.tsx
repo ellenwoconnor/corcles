@@ -18,8 +18,12 @@ export default function RobotLogo() {
       }}
     >
       {/* Head */}
-      <motion.path
-        d="M40 30 L80 30 L85 40 L85 60 L35 60 L35 40 L40 30"
+      <motion.rect
+        x="30"
+        y="25"
+        width="60"
+        height="40"
+        rx="8"
         fill="#6ABF69"
         initial={{ y: -3 }}
         animate={{ y: 0 }}
@@ -30,11 +34,10 @@ export default function RobotLogo() {
         }}
       />
       {/* Eyes */}
-      <motion.rect
-        x="45"
-        y="40"
-        width="8"
-        height="8"
+      <motion.circle
+        cx="48"
+        cy="45"
+        r="4"
         fill="white"
         initial={{ scale: 1 }}
         animate={{ scale: 1.2 }}
@@ -44,11 +47,10 @@ export default function RobotLogo() {
           repeatType: "reverse",
         }}
       />
-      <motion.rect
-        x="67"
-        y="40"
-        width="8"
-        height="8"
+      <motion.circle
+        cx="72"
+        cy="45"
+        r="4"
         fill="white"
         initial={{ scale: 1 }}
         animate={{ scale: 1.2 }}
@@ -59,27 +61,10 @@ export default function RobotLogo() {
         }}
       />
       {/* Body */}
-      <path
-        d="M35 65 L85 65 L90 90 L30 90 L35 65"
-        fill="#6ABF69"
-      />
-      {/* Body details */}
-      <rect x="45" y="72" width="30" height="3" rx="1" fill="white" />
-      <rect x="45" y="80" width="30" height="3" rx="1" fill="white" />
-      {/* Antenna */}
-      <motion.path
-        d="M60 20 L60 30"
-        stroke="#6ABF69"
-        strokeWidth="4"
-        strokeLinecap="round"
-        initial={{ rotateZ: -5 }}
-        animate={{ rotateZ: 5 }}
-        transition={{
-          duration: 1,
-          repeat: Infinity,
-          repeatType: "reverse",
-        }}
-      />
+      <rect x="45" y="70" width="30" height="25" rx="4" fill="#6ABF69" />
+      {/* Arms */}
+      <rect x="30" y="75" width="12" height="6" rx="3" fill="#6ABF69" />
+      <rect x="78" y="75" width="12" height="6" rx="3" fill="#6ABF69" />
     </motion.svg>
   );
 }
