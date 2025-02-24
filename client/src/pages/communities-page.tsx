@@ -249,17 +249,20 @@ export default function CommunitiesPage() {
                     </div>
                   </div>
                 </CardHeader>
-                {community.role === 'admin' && (
-                  <CardFooter>
+                <CardFooter>
                     <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
                       <DialogTrigger asChild>
                         <Button
-                          variant="secondary"
-                          className="w-full"
-                          onClick={() => setSelectedCommunity(community)}
+                          variant="outline"
+                          size="sm"
+                          className="ml-2"
+                          onClick={() => {
+                            setSelectedCommunity(community);
+                            setInviteDialogOpen(true);
+                          }}
                         >
-                          <UserPlus className="h-4 w-4 mr-2" />
-                          Invite Members
+                          <UserPlus className="h-4 w-4 mr-1" />
+                          Invite
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
@@ -302,7 +305,6 @@ export default function CommunitiesPage() {
                       </DialogContent>
                     </Dialog>
                   </CardFooter>
-                )}
               </Card>
             ))}
           </div>
