@@ -24,7 +24,7 @@ export default function RobotLogo() {
         width="50"
         height="45"
         rx="10"
-        fill="currentColor"
+        fill="#6ABF69"
         initial={{ y: -5 }}
         animate={{ y: 0 }}
         transition={{
@@ -61,10 +61,10 @@ export default function RobotLogo() {
         }}
       />
       {/* Body */}
-      <rect x="45" y="65" width="30" height="35" rx="5" fill="currentColor" />
+      <rect x="45" y="65" width="30" height="35" rx="5" fill="#6ABF69" />
       {/* Arms */}
-      <rect x="25" y="70" width="20" height="8" rx="4" fill="currentColor" />
-      <rect x="75" y="70" width="20" height="8" rx="4" fill="currentColor" />
+      <rect x="25" y="70" width="20" height="8" rx="4" fill="#6ABF69" />
+      <rect x="75" y="70" width="20" height="8" rx="4" fill="#6ABF69" />
     </motion.svg>
   );
 }
