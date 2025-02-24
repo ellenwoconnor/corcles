@@ -20,7 +20,7 @@ export default function Navbar() {
       <div className="container flex h-24 items-center px-8">
         <div className="mr-4">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <span className="text-2xl font-bold uppercase tracking-wide">C<span className="text-primary">O</span>RCLES</span>
+            <span className="text-2xl font-bold uppercase tracking-wide">C<span className="text-[#6ABF69]">O</span>RCLES</span>
             <RobotLogo />
           </Link>
         </div>
