@@ -10,6 +10,7 @@ import HomePage from "@/pages/home-page";
 import ListingPage from "@/pages/listing-page";
 import ProfilePage from "@/pages/profile-page";
 import CommunitiesPage from "@/pages/communities-page";
+import WishlistsPage from "@/pages/wishlists-page";
 
 function Router() {
   return (
@@ -18,6 +19,7 @@ function Router() {
       <ProtectedRoute path="/item/:id" component={ListingPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/communities" component={CommunitiesPage} />
+      <ProtectedRoute path="/wishlists" component={WishlistsPage} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
