@@ -1429,9 +1429,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   wss.on('connection', async (ws, req) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req as any).session?.passport?.user;
       if (!userId) {
-        logger.warn('WebSocket connection rejected - no authenticated user');
+        logger.warn('WebSocket connection rejected - no authenticated user:', {
+          session: (req as any).session
+        });
         ws.close(1008, 'Authentication required');
         return;
       }
