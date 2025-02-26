@@ -67,9 +67,9 @@ export default function PickupTimeSelector({
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8 py-6">
       <div className="space-y-2">
-        <div className="grid grid-cols-1 gap-1.5">
+        <div className="grid grid-cols-1 gap-2">
           {windows.map((window: PickupWindow, index: number) => (
             <button
               key={index}
