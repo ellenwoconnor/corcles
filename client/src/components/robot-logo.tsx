@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 
 export default function RobotLogo() {
@@ -42,10 +41,10 @@ export default function RobotLogo() {
         initial={{ scaleY: 1 }}
         animate={{ scaleY: 0.1 }}
         transition={{
-          duration: 0.15,
+          duration: 0.08,
           repeat: Infinity,
           repeatType: "reverse",
-          repeatDelay: 2.5
+          repeatDelay: 1.5
         }}
       />
       <motion.circle
@@ -56,10 +55,10 @@ export default function RobotLogo() {
         initial={{ scaleY: 1 }}
         animate={{ scaleY: 0.1 }}
         transition={{
-          duration: 0.15,
+          duration: 0.08,
           repeat: Infinity,
           repeatType: "reverse",
-          repeatDelay: 2.5
+          repeatDelay: 1.5
         }}
       />
       {/* Body */}
