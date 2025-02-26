@@ -39,12 +39,13 @@ export default function RobotLogo() {
         cy="45"
         r="4"
         fill="white"
-        initial={{ scale: 1 }}
-        animate={{ scale: 1.2 }}
+        initial={{ scaleY: 1 }}
+        animate={{ scaleY: 0.1 }}
         transition={{
-          duration: 2,
+          duration: 0.15,
           repeat: Infinity,
           repeatType: "reverse",
+          repeatDelay: 2.5
         }}
       />
       <motion.circle
@@ -52,12 +53,13 @@ export default function RobotLogo() {
         cy="45"
         r="4"
         fill="white"
-        initial={{ scale: 1 }}
-        animate={{ scale: 1.2 }}
+        initial={{ scaleY: 1 }}
+        animate={{ scaleY: 0.1 }}
         transition={{
-          duration: 2,
+          duration: 0.15,
           repeat: Infinity,
           repeatType: "reverse",
+          repeatDelay: 2.5
         }}
       />
       {/* Body */}
