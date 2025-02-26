@@ -58,12 +58,17 @@ export default function CreateWishlistDialog({
       description: "",
       urgency: "normal",
       isPrivate: false,
+      userId: user?.id,
     },
   });
 
   const createWishlist = useMutation({
     mutationFn: async (data: InsertWishlist) => {
       const res = await apiRequest("POST", "/api/wishlists", data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to create wishlist");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -85,7 +90,23 @@ export default function CreateWishlistDialog({
   });
 
   const onSubmit = (data: InsertWishlist) => {
-    createWishlist.mutate(data);
+    // Make sure we have the user ID
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create a wishlist",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Add the user ID to the form data
+    const wishlistData = {
+      ...data,
+      userId: user.id,
+    };
+
+    createWishlist.mutate(wishlistData);
   };
 
   return (
