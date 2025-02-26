@@ -224,3 +224,34 @@ export const insertCommunityInviteSchema = createInsertSchema(communityInvites).
 });
 
 export type InsertCommunityInvite = z.infer<typeof insertCommunityInviteSchema>;
+
+// Update wishlist table and types
+export const wishlists = pgTable("wishlists", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  userId: integer("user_id").notNull().references(() => users.id),
+  communityId: integer("community_id").notNull().references(() => communities.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  status: text("status").notNull().default('active'),
+  budget: integer("budget"),
+  urgency: text("urgency").default('normal'),
+  isPrivate: boolean("is_private").notNull().default(false),
+});
+
+export const insertWishlistSchema = createInsertSchema(wishlists).omit({
+  id: true,
+  createdAt: true,
+  status: true,
+}).extend({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  budget: z.number().optional(),
+  urgency: z.enum(['low', 'normal', 'high']).default('normal'),
+  userId: z.number(),
+  communityId: z.number({ required_error: "Please select a community" }),
+  isPrivate: z.boolean().default(false),
+});
+
+export type InsertWishlist = z.infer<typeof insertWishlistSchema>;
+export type Wishlist = typeof wishlists.$inferSelect;
