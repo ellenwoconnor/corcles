@@ -93,10 +93,8 @@ export default function WishlistsPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     {wishlist.title}
-                    {wishlist.isPrivate ? (
+                    {wishlist.isPrivate && (
                       <Lock className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
                     )}
                   </CardTitle>
                   <CardDescription>{wishlist.description}</CardDescription>
