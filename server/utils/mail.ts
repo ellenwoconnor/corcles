@@ -1,12 +1,11 @@
-import { MailService } from '@sendgrid/mail';
+import { Resend } from 'resend';
 import logger from '../logger';
 
-if (!process.env.SENDGRID_API_KEY) {
-  throw new Error("SENDGRID_API_KEY environment variable must be set");
+if (!process.env.RESEND_API_KEY) {
+  throw new Error("RESEND_API_KEY environment variable must be set");
 }
 
-const mailService = new MailService();
-mailService.setApiKey(process.env.SENDGRID_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 interface SendMailParams {
   to: string;
@@ -18,62 +17,24 @@ export async function sendMail({ to, subject, html }: SendMailParams): Promise<b
   try {
     logger.info('Attempting to send email:', { to, subject });
 
-    // Log partial API key to verify it's loaded (only show last 4 characters)
-    const apiKey = process.env.SENDGRID_API_KEY || '';
-    const senderEmail = process.env.SENDGRID_FROM_EMAIL || '';
-    logger.info('Environment check:', {
-      apiKeyPresent: !!apiKey,
-      apiKeyLastChars: apiKey.slice(-4),
-      senderEmail: senderEmail,
-    });
-
-    const msg = {
+    await resend.emails.send({
+      from: 'Corcles <onboarding@resend.dev>',
       to,
-      from: process.env.SENDGRID_FROM_EMAIL || 'your.verified.email@gmail.com', // Use environment variable for sender
       subject,
       html,
-      mailSettings: {
-        sandboxMode: {
-          enable: false
-        }
-      },
-      trackingSettings: {
-        clickTracking: { enable: true },
-        openTracking: { enable: true },
-        subscriptionTracking: { enable: false }
-      },
-      categories: ['corcles-community-invite']
-    };
-
-    logger.debug('Sending email with params:', {
-      to: msg.to,
-      from: msg.from,
-      subject: msg.subject
     });
 
-    await mailService.send(msg);
     logger.info('Email sent successfully', { to, subject });
     return true;
   } catch (error: unknown) {
-    // Log SendGrid specific error information
-    if (error && typeof error === 'object' && 'response' in error) {
-      const sendGridError = error as { 
-        code?: number; 
-        response?: { 
-          body?: { 
-            errors?: Array<{ message?: string; field?: string; help?: string }> 
-          } 
-        };
-        message?: string;
-      };
-
-      logger.error('SendGrid API error:', {
-        statusCode: sendGridError.code,
-        errors: sendGridError.response?.body?.errors,
-        message: sendGridError.message
+    if (error instanceof Error) {
+      logger.error('Failed to send email:', {
+        error: error.message,
+        to,
+        subject
       });
     } else {
-      logger.error('Failed to send email:', error);
+      logger.error('Failed to send email with unknown error:', error);
     }
     return false;
   }
