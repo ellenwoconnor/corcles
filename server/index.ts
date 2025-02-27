@@ -1,25 +1,64 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
-import logger, { requestLogger } from "./logger";
+import logger, { requestLogger, logStartupInfo } from "./logger";
 import { db } from "./db";
 import { sql } from 'drizzle-orm';
+import path from 'path';
+import fs from 'fs';
 
 const app = express();
+
+// Basic middleware setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
-// Add request logging middleware
 app.use(requestLogger);
 
 async function startServer() {
   try {
-    // Test database connection
-    await db.execute(sql`SELECT 1`);
-    logger.info('Database connection successful');
+    // Log detailed startup information
+    logStartupInfo();
 
+    // Validate required environment variables
+    const requiredEnvVars = ['DATABASE_URL', 'SESSION_SECRET'];
+    const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+    if (missingVars.length > 0) {
+      throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+    }
+
+    // Test database connection first
+    try {
+      await db.execute(sql`SELECT 1`);
+      logger.info('Database connection successful');
+    } catch (dbError) {
+      logger.error('Database connection failed:', {
+        error: dbError instanceof Error ? dbError.message : String(dbError),
+        stack: dbError instanceof Error ? dbError.stack : undefined
+      });
+      throw dbError;
+    }
+
+    // Verify static files in production
+    if (process.env.NODE_ENV === 'production') {
+      const publicDir = path.join(process.cwd(), 'public');
+      const indexFile = path.join(publicDir, 'index.html');
+
+      if (!fs.existsSync(publicDir) || !fs.existsSync(indexFile)) {
+        logger.error('Missing required production build files:', {
+          publicDir: fs.existsSync(publicDir),
+          indexFile: fs.existsSync(indexFile)
+        });
+        throw new Error('Production build files not found. Run build command first.');
+      }
+    }
+
+    // Register routes
+    logger.info('Registering application routes...');
     const server = await registerRoutes(app);
+    logger.info('Routes registered successfully');
 
+    // Global error handler - MUST be after routes
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
@@ -27,46 +66,82 @@ async function startServer() {
       logger.error('Server error:', { 
         status,
         message,
-        stack: err.stack
+        stack: err.stack,
+        name: err.name,
+        code: err.code
       });
 
-      res.status(status).json({ message });
+      // Don't expose internal errors in production
+      const responseMessage = process.env.NODE_ENV === 'production' 
+        ? 'Internal Server Error' 
+        : message;
+
+      res.status(status).json({ error: responseMessage });
     });
 
-    if (app.get("env") === "development") {
+    // Setup environment-specific middleware
+    if (process.env.NODE_ENV === 'development') {
+      logger.info('Setting up development environment with Vite');
       await setupVite(app, server);
     } else {
+      logger.info('Setting up production environment with static file serving');
       serveStatic(app);
     }
 
+    // Start server with proper port binding
     const PORT = Number(process.env.PORT || 5000);
-    server.listen(PORT, '0.0.0.0', () => {
-      logger.info(`Server started on port ${PORT} and bound to all interfaces`);
-    });
 
-    // Handle server startup errors
-    server.on('error', (error: any) => {
-      if (error.code === 'EADDRINUSE') {
-        logger.error(`Port ${PORT} is already in use`);
-      } else {
-        logger.error('Server startup error:', error);
-      }
-      process.exit(1);
+    await new Promise<void>((resolve, reject) => {
+      server.listen(PORT, '0.0.0.0', () => {
+        const address = server.address();
+        logger.info('Server started successfully:', {
+          port: PORT,
+          env: process.env.NODE_ENV,
+          address: typeof address === 'string' ? address : JSON.stringify(address)
+        });
+        resolve();
+      });
+
+      server.on('error', (error: any) => {
+        logger.error('Server startup error:', {
+          code: error.code,
+          message: error.message,
+          stack: error.stack
+        });
+        reject(error);
+      });
     });
 
   } catch (error) {
-    logger.error('Failed to start server:', error);
-    // Only exit for critical errors
-    if (error.code === 'EACCES' || error.code === 'EADDRINUSE') {
-      logger.error('Critical error - exiting process');
-      process.exit(1);
-    } else {
-      logger.error('Attempting to recover from error');
-    }
+    logger.error('Fatal error during server startup:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    process.exit(1);
   }
 }
 
+// Handle uncaught errors
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Rejection:', {
+    reason: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+    promise
+  });
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception:', {
+    error: error.message,
+    stack: error.stack
+  });
+  process.exit(1);
+});
+
 startServer().catch((error) => {
-  logger.error('Unhandled server startup error:', error);
+  logger.error('Server startup failed:', {
+    error: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined
+  });
   process.exit(1);
 });
