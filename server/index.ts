@@ -19,6 +19,16 @@ async function startServer() {
     // Log detailed startup information
     logStartupInfo();
 
+    // Log directory structure for debugging
+    const projectRoot = process.cwd();
+    logger.info('Project directory structure:', {
+      projectRoot,
+      hasDistDir: fs.existsSync(path.join(projectRoot, 'dist')),
+      hasPublicDir: fs.existsSync(path.join(projectRoot, 'public')),
+      hasClientDistDir: fs.existsSync(path.join(projectRoot, 'client', 'dist')),
+      nodeEnv: process.env.NODE_ENV
+    });
+
     // Validate required environment variables
     const requiredEnvVars = ['DATABASE_URL', 'SESSION_SECRET'];
     const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -37,20 +47,6 @@ async function startServer() {
         stack: dbError instanceof Error ? dbError.stack : undefined
       });
       throw dbError;
-    }
-
-    // Verify static files in production
-    if (process.env.NODE_ENV === 'production') {
-      const publicDir = path.join(process.cwd(), 'public');
-      const indexFile = path.join(publicDir, 'index.html');
-
-      if (!fs.existsSync(publicDir) || !fs.existsSync(indexFile)) {
-        logger.error('Missing required production build files:', {
-          publicDir: fs.existsSync(publicDir),
-          indexFile: fs.existsSync(indexFile)
-        });
-        throw new Error('Production build files not found. Run build command first.');
-      }
     }
 
     // Register routes
@@ -84,7 +80,50 @@ async function startServer() {
       logger.info('Setting up development environment with Vite');
       await setupVite(app, server);
     } else {
-      logger.info('Setting up production environment with static file serving');
+      logger.info('Setting up production environment');
+      // Check all possible static file locations
+      const possiblePaths = [
+        path.join(process.cwd(), 'public'),
+        path.join(process.cwd(), 'dist', 'public'),
+        path.join(process.cwd(), 'dist'),
+        path.join(process.cwd(), 'client', 'dist')
+      ];
+
+      logger.info('Checking possible static file locations:', {
+        paths: possiblePaths.map(p => ({
+          path: p,
+          exists: fs.existsSync(p),
+          hasIndex: fs.existsSync(path.join(p, 'index.html'))
+        }))
+      });
+
+      // Create symbolic link from server/public to dist/public
+      const serverPublicDir = path.join(process.cwd(), 'server', 'public');
+      const distPublicDir = path.join(process.cwd(), 'dist', 'public');
+
+      try {
+        // Remove existing symlink or directory if it exists
+        if (fs.existsSync(serverPublicDir)) {
+          fs.rmSync(serverPublicDir, { recursive: true, force: true });
+        }
+
+        // Ensure parent directory exists
+        fs.mkdirSync(path.dirname(serverPublicDir), { recursive: true });
+
+        // Create symlink from server/public to dist/public
+        fs.symlinkSync(distPublicDir, serverPublicDir, 'dir');
+        logger.info('Created symbolic link for static files:', {
+          from: distPublicDir,
+          to: serverPublicDir
+        });
+      } catch (error) {
+        logger.error('Error creating symbolic link:', {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined
+        });
+        throw error;
+      }
+
       serveStatic(app);
     }
 
