@@ -18,17 +18,43 @@ export async function sendMail({ to, subject, html }: SendMailParams): Promise<b
   try {
     logger.info('Attempting to send email:', { to, subject });
 
-    await mailService.send({
+    const msg = {
       to,
-      from: 'noreply@corcles.com', // Replace with your verified sender
+      from: process.env.SENDGRID_VERIFIED_SENDER || process.env.SENDGRID_FROM_EMAIL || 'your.verified.email@gmail.com', // Use environment variable for sender
       subject,
       html,
+    };
+
+    logger.debug('Sending email with params:', {
+      to: msg.to,
+      from: msg.from,
+      subject: msg.subject
     });
 
+    await mailService.send(msg);
     logger.info('Email sent successfully', { to, subject });
     return true;
-  } catch (error) {
-    logger.error('Failed to send email:', error);
+  } catch (error: unknown) {
+    // Log SendGrid specific error information
+    if (error && typeof error === 'object' && 'response' in error) {
+      const sendGridError = error as { 
+        code?: number; 
+        response?: { 
+          body?: { 
+            errors?: Array<{ message?: string; field?: string; help?: string }> 
+          } 
+        };
+        message?: string;
+      };
+
+      logger.error('SendGrid API error:', {
+        statusCode: sendGridError.code,
+        errors: sendGridError.response?.body?.errors,
+        message: sendGridError.message
+      });
+    } else {
+      logger.error('Failed to send email:', error);
+    }
     return false;
   }
 }

@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from "multer";
@@ -7,26 +7,17 @@ import { storage } from "./storage";
 import * as schema from "@shared/schema";
 import { ITEM_STATUS, REQUEST_STATUS } from "@shared/constants";
 import { z } from "zod";
-import { eq, and, not, or, inArray } from "drizzle-orm"; // Added inArray
+import { eq, and, not, or, inArray } from "drizzle-orm";
 import { db } from "./db";
 import logger from './logger';
 import session from 'express-session';
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 import cookieParser from "cookie-parser";
-import { promisify } from "util";
 import passport from "passport";
-import { hashPassword } from "./utils/auth";
-import {
-  insertCommunityInviteSchema,
-  insertItemSchema,
-  insertItemRequestSchema,
-  insertItemBidSchema,
-  insertMessageSchema
-} from "@shared/schema";
-import { addDays, addHours, isBefore, isAfter } from "date-fns";
-import { insertWishlistSchema } from "@shared/schema";
 import { sendMail, generateCommunityInviteEmail } from './utils/mail';
+import { promisify } from 'util';
+
 
 const PostgresSessionStore = connectPg(session);
 
@@ -42,7 +33,7 @@ const sessionMiddleware = session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Set to false for development
     httpOnly: true,
     sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
@@ -57,10 +48,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   setupAuth(app);
 
-  app.post("/api/wishlists", async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
+  // Middleware to check authentication
+  const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.isAuthenticated()) {
+      logger.warn('Unauthenticated request:', {
+        path: req.path,
+        method: req.method,
+        sessionID: req.sessionID
+      });
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    next();
+  };
 
+  app.post("/api/wishlists", requireAuth, async (req, res) => {
+    try {
       const data = {
         ...req.body,
         userId: req.user.id,
@@ -85,10 +87,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/wishlists/:id", async (req, res) => {
+  app.get("/api/wishlists/:id", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const wishlistId = parseInt(req.params.id);
       if (isNaN(wishlistId)) {
         return res.status(400).json({ error: "Invalid wishlist ID" });
@@ -99,7 +99,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Wishlist not found" });
       }
 
-      // Only return private wishlists to their owners
       if (wishlist.isPrivate && wishlist.userId !== req.user.id) {
         return res.status(403).json({ error: "Access denied" });
       }
@@ -111,10 +110,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/user/wishlists", async (req, res) => {
+  app.get("/api/user/wishlists", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const wishlists = await storage.getUserWishlists(req.user.id);
       res.json(wishlists);
     } catch (error) {
@@ -123,16 +120,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/community/:id/wishlists", async (req, res) => {
+  app.get("/api/community/:id/wishlists", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const communityId = parseInt(req.params.id);
       if (isNaN(communityId)) {
         return res.status(400).json({ error: "Invalid community ID" });
       }
 
-      // Check if user is a member of the community
       const isMember = await storage.isUserInCommunity(req.user.id, communityId);
       if (!isMember) {
         return res.status(403).json({ error: "Not a member of this community" });
@@ -146,10 +140,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/communities/wishlists", async (req, res) => {
+  app.get("/api/communities/wishlists", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const userCommunities = await storage.getUserCommunities(req.user.id);
       const communityIds = userCommunities.map(c => c.id);
 
@@ -158,7 +150,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         communityIds
       });
 
-      // Pass each community ID individually if there are any
       if (communityIds.length === 0) {
         return res.json([]);
       }
@@ -183,10 +174,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/wishlists/:id", async (req, res) => {
+  app.patch("/api/wishlists/:id", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const wishlistId = parseInt(req.params.id);
       if (isNaN(wishlistId)) {
         return res.status(400).json({ error: "Invalid wishlist ID" });
@@ -220,10 +209,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/messages/send", async (req, res) => {
+  app.post("/api/messages/send", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const { recipientId, content, requestId } = req.body;
       logger.info('Received message request:', { recipientId, requestId });
 
@@ -265,10 +252,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/messages/:userId/:requestId", async (req, res) => {
+  app.get("/api/messages/:userId/:requestId", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const userId = parseInt(req.params.userId);
       const requestId = parseInt(req.params.requestId);
 
@@ -309,10 +294,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/messages/unread-count", async (req, res) => {
+  app.get("/api/messages/unread-count", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const count = await storage.getUnreadMessageCount(req.user.id);
       res.json({ count });
     } catch (error) {
@@ -343,7 +326,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/items", async (req, res) => {
+  app.get("/api/items", requireAuth, async (req, res) => {
     try {
       const { search, communities: communityParam, freeOnly } = req.query;
       const searchTerm = typeof search === 'string' ? search : undefined;
@@ -393,10 +376,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  app.post("/api/items", async (req, res) => {
+  app.post("/api/items", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const data = {
         ...req.body,
         userId: req.user.id,
@@ -425,10 +406,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/items/:id/request", async (req, res) => {
+  app.post("/api/items/:id/request", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -476,10 +455,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/items/:id/bid", async (req, res) => {
+  app.post("/api/items/:id/bid", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -512,10 +489,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/items/:id/my-requests", async (req, res) => {
+  app.get("/api/items/:id/my-requests", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -529,9 +504,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/user/items", async (req, res) => {
+  app.get("/api/user/items", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
       const userCommunities = await storage.getUserCommunities(req.user.id);
       const userItems = await storage.getItems(
         userCommunities.map(c => c.id),
@@ -553,10 +527,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/items/:id/requests", async (req, res) => {
+  app.get("/api/items/:id/requests", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -586,10 +558,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/user/bids", async (req, res) => {
+  app.get("/api/user/bids", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const bids = await storage.getUserBids(req.user.id);
       res.json(bids);
     } catch (error) {
@@ -598,13 +568,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/user", requireAuth, (req, res) => {
     res.json(req.user);
   });
 
-  app.get("/api/community/:community/count", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/community/:community/count", requireAuth, async (req, res) => {
     try {
       const result = await db.select().from(schema.users).where(eq(schema.users.community, req.params.community));
       logger.debug('Community count query result:', {
@@ -618,10 +586,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/items/:id/draw", async (req, res) => {
+  app.post("/api/items/:id/draw", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -675,10 +641,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/items/:id/schedule", async (req, res) => {
+  app.post("/api/items/:id/schedule", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -693,7 +657,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to schedule pickup for this item" });
       }
 
-      // Get the pending request to set the recipient
       const [activeRequest] = await db
         .select()
         .from(schema.itemRequests)
@@ -767,7 +730,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       logger.debug('Validated windows:', proposedWindows);
 
-      // Update item with pickup windows and recipient
       await db
         .update(schema.items)
         .set({
@@ -777,13 +739,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.items.id, itemId));
 
-      // Update the pending request status
       await db
         .update(schema.itemRequests)
         .set({ status: REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
         .where(eq(schema.itemRequests.id, activeRequest.id));
 
-      // Reject other requests
       await db
         .update(schema.itemRequests)
         .set({ status: REQUEST_STATUS.REJECTED })
@@ -808,10 +768,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/items/:id/confirm-pickup", async (req, res) => {
+  app.post("/api/items/:id/confirm-pickup", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -884,10 +842,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/items/:id", async (req, res) => {
+  app.patch("/api/items/:id", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -929,10 +885,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/items/:id/select-pickup-time", async (req, res) =>{
+  app.post("/api/items/:id/select-pickup-time", requireAuth, async (req, res) =>{
     try {
-      if(!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -1010,10 +964,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/user/requests", async (req, res) => {
+  app.get("/api/user/requests", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const requests = await storage.getUserRequests(req.user.id);
       logger.debug('Fetching user requests:', {
         userId: req.user.id,        requestCount: requests?.length
@@ -1024,10 +976,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/apiapi/items/:id/bids", async (req, res) => {
+  app.get("/apiapi/items/:id/bids", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -1055,10 +1005,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/user/communities", async (req, res) => {
+  app.get("/api/user/communities", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const communities = await storage.getUserCommunities(req.user.id);
       logger.debug('Retrieved user communities:', {
         userId: req.user.id,
@@ -1076,10 +1024,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/communities", async (req, res) => {
+  app.post("/api/communities", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const { name, description } = req.body;
 
       if (!name) {
@@ -1106,16 +1052,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/communities/:id/invite", async (req, res) => {
+  app.post("/api/communities/:id/invite", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const communityId = parseInt(req.params.id);
       if (isNaN(communityId)) {
         return res.status(400).json({ error: "Invalid community ID" });
       }
 
-      // Verify user is a member of the community
+      logger.debug('Processing community invite:', {
+        communityId,
+        invitedEmail: req.body.invitedEmail,
+        invitedBy: req.user.id
+      });
+
       const isMember = await storage.isUserInCommunity(req.user.id, communityId);
       if (!isMember) {
         return res.status(403).json({ error: "Not a member of this community" });
@@ -1132,14 +1081,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const invite = await storage.createCommunityInvite(parseResult.data);
-
-      // Get community details for the email
       const community = await storage.getCommunity(communityId);
+
       if (!community) {
         return res.status(404).json({ error: "Community not found" });
       }
 
-      // Send welcome email
       const emailHtml = generateCommunityInviteEmail(community.name);
       const emailSent = await sendMail({
         to: parseResult.data.invitedEmail,
@@ -1152,14 +1099,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           communityId,
           invitedEmail: parseResult.data.invitedEmail
         });
-      } else {
-        logger.info('Community invite created and email sent:', {
-          communityId,
-          invitedEmail: parseResult.data.invitedEmail
-        });
+        // Still return success since the invite was created
+        return res.status(201).json({ ...invite, emailSent: false });
       }
 
-      res.status(201).json(invite);
+      logger.info('Community invite created and email sent:', {
+        communityId,
+        invitedEmail: parseResult.data.invitedEmail
+      });
+
+      res.status(201).json({ ...invite, emailSent: true });
     } catch (error) {
       logger.error('Error creating community invite:', error);
       res.status(500).json({ error: 'Failed to create community invite' });
