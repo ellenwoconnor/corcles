@@ -29,6 +29,9 @@ import { useState } from "react";
 import { z } from "zod";
 import { Loader2, Pencil } from "lucide-react";
 
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/components/ui/use-toast";
+
 interface EditListingDialogProps {
   item: Item;
   trigger?: React.ReactNode;
@@ -50,6 +53,8 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
     },
   });
 
+  const queryClient = useQueryClient();
+  
   const updateItemMutation = useMutation({
     mutationFn: async (data: z.infer<typeof insertItemSchema>) => {
       const response = await apiRequest("PATCH", `/api/items/${item.id}`, {
@@ -58,14 +63,27 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to update item");
+        throw new Error(error.error || "Failed to update item");
       }
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate relevant queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
       queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/items/${user?.community}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/items"] });
+      toast({
+        title: "Listing updated",
+        description: "Your listing has been successfully updated.",
+      });
       setOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error updating listing",
+        description: error.message || "There was a problem updating your listing.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -93,6 +111,7 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit((data) => {
+              console.log("Submitting form data:", data);
               updateItemMutation.mutate(data);
             })}
             className="space-y-4"
