@@ -7,7 +7,7 @@ import { storage } from "./storage";
 import * as schema from "@shared/schema";
 import { ITEM_STATUS, REQUEST_STATUS } from "@shared/constants";
 import { z } from "zod";
-import { eq, and, not, or } from "drizzle-orm";
+import { eq, and, not, or, inArray } from "drizzle-orm"; // Added inArray
 import { db } from "./db";
 import logger from './logger';
 import session from 'express-session';
@@ -142,6 +142,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error('Error fetching community wishlists:', error);
       res.status(500).json({ error: 'Failed to fetch wishlists' });
+    }
+  });
+
+  app.get("/api/communities/wishlists", async (req, res) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+
+      const userCommunities = await storage.getUserCommunities(req.user.id);
+      const communityIds = userCommunities.map(c => c.id);
+
+      logger.debug('Fetching wishlists for communities:', {
+        userId: req.user.id,
+        communityIds
+      });
+
+      // Pass each community ID individually if there are any
+      if (communityIds.length === 0) {
+        return res.json([]);
+      }
+
+      const wishlists = await db
+        .select()
+        .from(schema.wishlists)
+        .where(
+          and(
+            inArray(schema.wishlists.communityId, communityIds),
+            or(
+              eq(schema.wishlists.isPrivate, false),
+              eq(schema.wishlists.userId, req.user.id)
+            )
+          )
+        );
+
+      res.json(wishlists);
+    } catch (error) {
+      logger.error('Error fetching community wishlists:', error);
+      res.status(500).json({ error: 'Failed to fetch community wishlists' });
     }
   });
 

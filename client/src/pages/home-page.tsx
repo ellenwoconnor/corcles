@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useState, useEffect } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
+import CommunityWishlists from "@/components/community-wishlists";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -28,14 +29,8 @@ export default function HomePage() {
 
   useEffect(() => {
     if (user && userCommunities.length > 0) {
-      // Check if this is the first time the user has loaded their communities
       const welcomeKey = `corcles-welcome-seen-${user.id}`;
       const hasSeenWelcome = localStorage.getItem(welcomeKey);
-      if (!hasSeenWelcome) {
-        setShowWelcome(true);
-        localStorage.setItem(welcomeKey, 'true');
-      }
-
       if (!hasSeenWelcome) {
         setShowWelcome(true);
         localStorage.setItem(welcomeKey, 'true');
@@ -127,6 +122,18 @@ export default function HomePage() {
         ) : (
           <ItemGrid items={items} />
         )}
+
+        <div className="mt-16">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">Community Wishlists</h2>
+              <p className="text-muted-foreground">
+                Items your neighbors are looking for
+              </p>
+            </div>
+          </div>
+          <CommunityWishlists />
+        </div>
       </main>
     </div>
   );
