@@ -64,7 +64,7 @@ export function generateCommunityInviteEmail({ communityName, inviterName }: Inv
       </ul>
 
       <div style="margin: 30px 0; text-align: center;">
-        <a href="https://corcles.com/join" 
+        <a href="https://corcles.com/auth" 
            style="background-color: #0070f3; color: white; padding: 12px 24px; 
                   text-decoration: none; border-radius: 5px; font-weight: bold;">
           Join Your Community
