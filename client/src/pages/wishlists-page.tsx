@@ -38,7 +38,7 @@ export default function WishlistsPage() {
           </div>
           <div>
             <Button onClick={() => setDialogOpen(true)}>
-              Create Wishlist
+              Add Item
             </Button>
           </div>
         </div>
