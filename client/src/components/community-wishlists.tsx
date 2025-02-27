@@ -1,7 +1,14 @@
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { type Wishlist } from "@shared/schema";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Lock, Eye, Loader2 } from "lucide-react";
@@ -51,20 +58,11 @@ export default function CommunityWishlists() {
           <CardContent>
             <div className="flex flex-wrap gap-2">
               {wishlist.budget && (
-                <Badge variant="secondary">
-                  Budget: ${wishlist.budget}
-                </Badge>
+                <Badge variant="secondary">Budget: ${wishlist.budget}</Badge>
               )}
-              <Badge variant="secondary">
-                Priority: {wishlist.urgency}
-              </Badge>
+              <Badge variant="secondary">Priority: {wishlist.urgency}</Badge>
             </div>
           </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full">
-              View Details
-            </Button>
-          </CardFooter>
         </Card>
       ))}
     </div>

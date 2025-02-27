@@ -20,10 +20,11 @@ export default function WishlistsPage() {
   const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const { data: userWishlists = [], isLoading: isLoadingUserWishlists } = useQuery<Wishlist[]>({
-    queryKey: ["/api/user/wishlists"],
-    enabled: !!user,
-  });
+  const { data: userWishlists = [], isLoading: isLoadingUserWishlists } =
+    useQuery<Wishlist[]>({
+      queryKey: ["/api/user/wishlists"],
+      enabled: !!user,
+    });
 
   return (
     <div className="min-h-screen bg-background">
@@ -37,9 +38,7 @@ export default function WishlistsPage() {
             </p>
           </div>
           <div>
-            <Button onClick={() => setDialogOpen(true)}>
-              Add Item
-            </Button>
+            <Button onClick={() => setDialogOpen(true)}>Add Item</Button>
           </div>
         </div>
 
@@ -81,20 +80,12 @@ export default function WishlistsPage() {
                     </Badge>
                   </div>
                 </CardContent>
-                <CardFooter>
-                  <Button variant="outline" className="w-full">
-                    View Details
-                  </Button>
-                </CardFooter>
               </Card>
             ))}
           </div>
         )}
 
-        <CreateWishlistDialog
-          open={dialogOpen}
-          onOpenChange={setDialogOpen}
-        />
+        <CreateWishlistDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       </main>
     </div>
   );
