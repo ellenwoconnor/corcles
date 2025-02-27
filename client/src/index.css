@@ -1,3 +1,26 @@
+
+/* Custom Carousel Styles */
+.slick-track {
+  display: flex !important;
+  gap: 16px;
+}
+
+.slick-slide {
+  height: inherit !important;
+}
+
+.slick-slide > div {
+  height: 100%;
+}
+
+.slick-dots li button:before {
+  font-size: 10px;
+}
+
+.slick-dots {
+  bottom: -30px;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

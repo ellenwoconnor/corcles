@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { type Wishlist } from "@shared/schema";
@@ -5,16 +6,23 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Lock, Eye, Loader2, Users } from "lucide-react";
+import { Lock, Eye, Loader2, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import Slider from "react-slick";
+import { useRef, useEffect, useState } from "react";
+
+// Import Slick CSS in your component
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
 
 export default function CommunityWishlists() {
   const { user } = useAuth();
+  const sliderRef = useRef<Slider>(null);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   const { data: communityWishlists = [], isLoading } = useQuery<(Wishlist & { communityName?: string })[]>({
     queryKey: ["/api/communities/wishlists"],
@@ -26,6 +34,13 @@ export default function CommunityWishlists() {
     enabled: !!user,
   });
 
+  // Handle window resize to adjust carousel settings
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Associate community names with wishlists
   const wishlistsWithCommunityNames = communityWishlists.map(wishlist => {
     const community = communities.find(c => c.id === wishlist.communityId);
@@ -34,6 +49,39 @@ export default function CommunityWishlists() {
       communityName: community?.name || "Unknown Community"
     };
   });
+
+  // Determine slides to show based on window width
+  const getSlidesToShow = () => {
+    if (windowWidth < 640) return 1;
+    if (windowWidth < 1024) return 2;
+    return 3;
+  };
+
+  // Carousel settings
+  const settings = {
+    dots: true,
+    infinite: wishlistsWithCommunityNames.length > getSlidesToShow(),
+    speed: 500,
+    slidesToShow: getSlidesToShow(),
+    slidesToScroll: 1,
+    arrows: false,
+    responsive: [
+      {
+        breakpoint: 1024,
+        settings: {
+          slidesToShow: 2,
+          slidesToScroll: 1,
+        }
+      },
+      {
+        breakpoint: 640,
+        settings: {
+          slidesToShow: 1,
+          slidesToScroll: 1
+        }
+      }
+    ]
+  };
 
   if (isLoading) {
     return (
@@ -55,35 +103,65 @@ export default function CommunityWishlists() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {wishlistsWithCommunityNames.map((wishlist) => (
-        <Card key={wishlist.id}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {wishlist.title}
-              {wishlist.isPrivate ? (
-                <Lock className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <Eye className="h-4 w-4 text-muted-foreground" />
-              )}
-            </CardTitle>
-            <CardDescription>{wishlist.description}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2 mb-2">
-              <Badge variant="outline" className="flex items-center gap-1">
-                <Users className="h-3 w-3" /> {wishlist.communityName}
-              </Badge>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {wishlist.budget && (
-                <Badge variant="secondary">Budget: ${wishlist.budget}</Badge>
-              )}
-              <Badge variant="secondary">Priority: {wishlist.urgency}</Badge>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="relative">
+      <div className="mb-6">
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="rounded-full shadow-md"
+            onClick={() => sliderRef.current?.slickPrev()}
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+        </div>
+        
+        <div className="px-10">
+          <Slider ref={sliderRef} {...settings}>
+            {wishlistsWithCommunityNames.map((wishlist) => (
+              <div key={wishlist.id} className="px-2">
+                <Card className="h-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      {wishlist.title}
+                      {wishlist.isPrivate ? (
+                        <Lock className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </CardTitle>
+                    <CardDescription>{wishlist.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        <Users className="h-3 w-3" /> {wishlist.communityName}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {wishlist.budget && (
+                        <Badge variant="secondary">Budget: ${wishlist.budget}</Badge>
+                      )}
+                      <Badge variant="secondary">Priority: {wishlist.urgency}</Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
+          </Slider>
+        </div>
+        
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 z-10">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="rounded-full shadow-md"
+            onClick={() => sliderRef.current?.slickNext()}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
