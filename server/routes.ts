@@ -1380,6 +1380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const wss = new WebSocketServer({
     server: httpServer,
     path: '/ws',
+    host: '0.0.0.0',
     verifyClient: async (info, cb) => {
       try {
         const req = info.req;

@@ -40,8 +40,8 @@ async function startServer() {
     }
 
     const PORT = Number(process.env.PORT || 5000);
-    server.listen(PORT, () => {
-      logger.info(`Server started on port ${PORT}`);
+    server.listen(PORT, '0.0.0.0', () => {
+      logger.info(`Server started on port ${PORT} and bound to all interfaces`);
     });
 
     // Handle server startup errors
@@ -56,7 +56,13 @@ async function startServer() {
 
   } catch (error) {
     logger.error('Failed to start server:', error);
-    process.exit(1);
+    // Only exit for critical errors
+    if (error.code === 'EACCES' || error.code === 'EADDRINUSE') {
+      logger.error('Critical error - exiting process');
+      process.exit(1);
+    } else {
+      logger.error('Attempting to recover from error');
+    }
   }
 }
 
