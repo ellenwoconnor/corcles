@@ -3,7 +3,7 @@ import logger from './logger';
 
 async function testEmailSending() {
   logger.info('Starting email test...');
-  
+
   // Log partial API key to verify it's loaded (only show last 4 characters)
   const apiKey = process.env.SENDGRID_API_KEY || '';
   const senderEmail = process.env.SENDGRID_FROM_EMAIL || '';
@@ -14,7 +14,7 @@ async function testEmailSending() {
   });
 
   const testEmail = {
-    to: "test@example.com", // Replace with your test email
+    to: "mattmohun@gmail.com", // Real recipient email for testing
     subject: "Test Email from Corcles",
     html: `
       <div>

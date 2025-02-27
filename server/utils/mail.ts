@@ -18,11 +18,31 @@ export async function sendMail({ to, subject, html }: SendMailParams): Promise<b
   try {
     logger.info('Attempting to send email:', { to, subject });
 
+    // Log partial API key to verify it's loaded (only show last 4 characters)
+    const apiKey = process.env.SENDGRID_API_KEY || '';
+    const senderEmail = process.env.SENDGRID_FROM_EMAIL || '';
+    logger.info('Environment check:', {
+      apiKeyPresent: !!apiKey,
+      apiKeyLastChars: apiKey.slice(-4),
+      senderEmail: senderEmail,
+    });
+
     const msg = {
       to,
-      from: process.env.SENDGRID_VERIFIED_SENDER || process.env.SENDGRID_FROM_EMAIL || 'your.verified.email@gmail.com', // Use environment variable for sender
+      from: process.env.SENDGRID_FROM_EMAIL || 'your.verified.email@gmail.com', // Use environment variable for sender
       subject,
       html,
+      mailSettings: {
+        sandboxMode: {
+          enable: false
+        }
+      },
+      trackingSettings: {
+        clickTracking: { enable: true },
+        openTracking: { enable: true },
+        subscriptionTracking: { enable: false }
+      },
+      categories: ['corcles-community-invite']
     };
 
     logger.debug('Sending email with params:', {
