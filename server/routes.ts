@@ -26,6 +26,7 @@ import {
 } from "@shared/schema";
 import { addDays, addHours, isBefore, isAfter } from "date-fns";
 import { insertWishlistSchema } from "@shared/schema";
+import { sendMail, generateCommunityInviteEmail } from './utils/mail';
 
 const PostgresSessionStore = connectPg(session);
 
@@ -928,7 +929,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/items/:id/select-pickup-time", async (req, res) => {
+  app.post("/api/items/:id/select-pickup-time", async (req, res) =>{
     try {
       if (!req.isAuthenticated()) return res.sendStatus(401);
 
@@ -1114,66 +1115,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid community ID" });
       }
 
-      const userCommunity = await db
-        .select()
-        .from(schema.userCommunities)
-        .where(
-          and(
-            eq(schema.userCommunities.userId, req.user.id),
-            eq(schema.userCommunities.communityId, communityId)
-          )
-        )
-        .limit(1);
-
-      if (!userCommunity.length) {
-        return res.status(403).json({ error: "You must be a member of this community to invite others" });
+      // Verify user is a member of the community
+      const isMember = await storage.isUserInCommunity(req.user.id, communityId);
+      if (!isMember) {
+        return res.status(403).json({ error: "Not a member of this community" });
       }
 
       const parseResult = insertCommunityInviteSchema.safeParse({
         ...req.body,
-        invitedEmail: req.body.invitedEmail || req.body.email,
         communityId,
         invitedBy: req.user.id
       });
 
       if (!parseResult.success) {
-        logger.error('Community invite validation failed:', {
-          errors: parseResult.error.errors,
-          body: req.body,
-          communityId,
-          invitedBy: req.user.id
-        });
-        return res.status(400).json({
-          error: "Invalid invitation data",
-          details: parseResult.error.errors
-        });
+        return res.status(400).json(parseResult.error);
       }
 
-      const [existingUser] = await db
-        .select()
-        .from(schema.users)
-        .where(eq(schema.users.email, req.body.email))
-        .limit(1);
+      const invite = await storage.createCommunityInvite(parseResult.data);
 
-      if (existingUser) {
-        await db
-          .insert(schema.userCommunities)
-          .values({
-            userId: existingUser.id,
-            communityId,
-            role: 'member'
-          })
-          .onConflictDoNothing();
-
-        return res.json({ autoEnrolled: true });
+      // Get community details for the email
+      const community = await storage.getCommunity(communityId);
+      if (!community) {
+        return res.status(404).json({ error: "Community not found" });
       }
 
-      const [invite] = await db
-        .insert(schema.communityInvites)
-        .values(parseResult.data)
-        .returning();
+      // Send welcome email
+      const emailHtml = generateCommunityInviteEmail(community.name);
+      await sendMail({
+        to: parseResult.data.invitedEmail,
+        subject: `You're invited to join ${community.name} on Corcles`,
+        html: emailHtml
+      });
 
-      res.status(201).json({ ...invite, autoEnrolled: false });
+      logger.info('Community invite created and email sent:', {
+        communityId,
+        invitedEmail: parseResult.data.invitedEmail
+      });
+
+      res.status(201).json(invite);
     } catch (error) {
       logger.error('Error creating community invite:', error);
       res.status(500).json({ error: 'Failed to create community invite' });
