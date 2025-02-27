@@ -5,10 +5,12 @@ async function testEmailSending() {
   logger.info('Starting email test...');
 
   // Log partial API key to verify it's loaded (only show last 4 characters)
-  const apiKey = process.env.RESEND_API_KEY || '';
+  const apiKey = process.env.SENDGRID_API_KEY || '';
+  const senderEmail = process.env.SENDGRID_FROM_EMAIL || '';
   logger.info('Environment check:', {
     apiKeyPresent: !!apiKey,
     apiKeyLastChars: apiKey.slice(-4),
+    senderEmail: senderEmail,
   });
 
   const testEmail = {
@@ -18,7 +20,7 @@ async function testEmailSending() {
       <div>
         <h1>Test Email</h1>
         <p>This is a test email from the Corcles application.</p>
-        <p>If you receive this, the Resend integration is working correctly.</p>
+        <p>If you receive this, the SendGrid integration is working correctly.</p>
       </div>
     `
   };
