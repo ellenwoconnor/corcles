@@ -1066,7 +1066,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const isMember = await storage.isUserInCommunity(req.user.id, communityId);
       if (!isMember) {
-        return res.status(403).json({ error: "Not a member of this community" });
+        return res.status(403).json({ error: "Not authorized to invite to this community" });
       }
 
       const parseResult = insertCommunityInviteSchema.safeParse({
@@ -1098,13 +1098,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Community not found" });
       }
 
-      const emailHtml = generateCommunityInviteEmail(community.name);
+      const emailHtml = generateCommunityInviteEmail({
+        communityName: community.name,
+        inviterName: req.user.displayName
+      });
+
       let emailSent = false;
 
       try {
         emailSent = await sendMail({
           to: parseResult.data.invitedEmail,
-          subject: `You're invited to join ${community.name} on Corcles`,
+          subject: `${req.user.displayName} invited you to join ${community.name} on Corcles`,
           html: emailHtml
         });
       } catch (emailError) {

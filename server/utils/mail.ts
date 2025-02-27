@@ -40,12 +40,17 @@ export async function sendMail({ to, subject, html }: SendMailParams): Promise<b
   }
 }
 
-export function generateCommunityInviteEmail(communityName: string): string {
+interface InviteEmailParams {
+  communityName: string;
+  inviterName: string;
+}
+
+export function generateCommunityInviteEmail({ communityName, inviterName }: InviteEmailParams): string {
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
       <h1 style="color: #333;">Welcome to Corcles!</h1>
 
-      <p>You've been invited to join the "${communityName}" community on Corcles.</p>
+      <p>${inviterName} has invited you to join the "${communityName}" community on Corcles.</p>
 
       <h2>What is Corcles?</h2>
       <p>Corcles is a hyperlocal community marketplace that helps neighbors connect and share resources. Whether you're looking to give away items you no longer need, find something specific, or just meet people in your area, Corcles makes it easy and safe.</p>
@@ -58,7 +63,13 @@ export function generateCommunityInviteEmail(communityName: string): string {
         <li>Connect with your local community</li>
       </ul>
 
-      <p>Ready to get started? Click the link in your invitation to join your community!</p>
+      <div style="margin: 30px 0; text-align: center;">
+        <a href="https://corcles.com/join" 
+           style="background-color: #0070f3; color: white; padding: 12px 24px; 
+                  text-decoration: none; border-radius: 5px; font-weight: bold;">
+          Join Your Community
+        </a>
+      </div>
 
       <p style="color: #666; font-size: 0.9em;">
         If you did not expect this invitation, you can safely ignore this email.
