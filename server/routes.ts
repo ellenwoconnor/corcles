@@ -16,8 +16,7 @@ import { pool } from "./db";
 import cookieParser from "cookie-parser";
 import passport from "passport";
 import { sendMail, generateCommunityInviteEmail } from './utils/mail';
-import { promisify } from 'util';
-
+import { insertCommunityInviteSchema } from "@shared/schema";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -1071,46 +1070,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const parseResult = insertCommunityInviteSchema.safeParse({
-        ...req.body,
+        invitedEmail: req.body.invitedEmail,
         communityId,
         invitedBy: req.user.id
       });
 
       if (!parseResult.success) {
-        return res.status(400).json(parseResult.error);
+        logger.error('Community invite validation failed:', {
+          errors: parseResult.error.errors,
+          body: req.body
+        });
+        return res.status(400).json({ 
+          error: "Invalid invitation data",
+          details: parseResult.error.errors
+        });
       }
 
       const invite = await storage.createCommunityInvite(parseResult.data);
-      const community = await storage.getCommunity(communityId);
+      if (!invite) {
+        logger.error('Failed to create community invite in database');
+        return res.status(500).json({ error: "Failed to create invite" });
+      }
 
+      const community = await storage.getCommunity(communityId);
       if (!community) {
+        logger.error('Community not found after creating invite');
         return res.status(404).json({ error: "Community not found" });
       }
 
       const emailHtml = generateCommunityInviteEmail(community.name);
-      const emailSent = await sendMail({
-        to: parseResult.data.invitedEmail,
-        subject: `You're invited to join ${community.name} on Corcles`,
-        html: emailHtml
-      });
+      let emailSent = false;
+
+      try {
+        emailSent = await sendMail({
+          to: parseResult.data.invitedEmail,
+          subject: `You're invited to join ${community.name} on Corcles`,
+          html: emailHtml
+        });
+      } catch (emailError) {
+        logger.error('Failed to send invite email:', emailError);
+        // Continue execution - we'll return the invite even if email fails
+      }
 
       if (!emailSent) {
-        logger.error('Failed to send community invite email', {
+        logger.warn('Community invite created but email failed to send:', {
           communityId,
           invitedEmail: parseResult.data.invitedEmail
         });
-        // Still return success since the invite was created
-        return res.status(201).json({ ...invite, emailSent: false });
+      } else {
+        logger.info('Community invite created and email sent successfully:', {
+          communityId,
+          invitedEmail: parseResult.data.invitedEmail
+        });
       }
 
-      logger.info('Community invite created and email sent:', {
-        communityId,
-        invitedEmail: parseResult.data.invitedEmail
+      res.status(201).json({ 
+        ...invite, 
+        emailSent,
+        message: emailSent ? 
+          "Invitation created and email sent successfully" : 
+          "Invitation created but email delivery failed"
       });
-
-      res.status(201).json({ ...invite, emailSent: true });
     } catch (error) {
-      logger.error('Error creating community invite:', error);
+      logger.error('Error in community invite process:', error);
       res.status(500).json({ error: 'Failed to create community invite' });
     }
   });
