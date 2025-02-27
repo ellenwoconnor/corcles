@@ -34,7 +34,7 @@ export function WelcomeDialog({ communities }: WelcomeDialogProps) {
               <div>
                 <p>
                   You've been added to your home corcle, {homeZipCommunity.name}
-                  .
+                  . You can give and receive items in your corcles.
                 </p>
               </div>
             )}
