@@ -931,7 +931,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/items/:id/select-pickup-time", async (req, res) =>{
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
+      if(!req.isAuthenticated()) return res.sendStatus(401);
 
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
@@ -1141,16 +1141,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Send welcome email
       const emailHtml = generateCommunityInviteEmail(community.name);
-      await sendMail({
+      const emailSent = await sendMail({
         to: parseResult.data.invitedEmail,
         subject: `You're invited to join ${community.name} on Corcles`,
         html: emailHtml
       });
 
-      logger.info('Community invite created and email sent:', {
-        communityId,
-        invitedEmail: parseResult.data.invitedEmail
-      });
+      if (!emailSent) {
+        logger.error('Failed to send community invite email', {
+          communityId,
+          invitedEmail: parseResult.data.invitedEmail
+        });
+      } else {
+        logger.info('Community invite created and email sent:', {
+          communityId,
+          invitedEmail: parseResult.data.invitedEmail
+        });
+      }
 
       res.status(201).json(invite);
     } catch (error) {
