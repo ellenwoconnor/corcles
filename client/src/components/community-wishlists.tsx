@@ -173,7 +173,6 @@ export default function CommunityWishlists() {
                       {wishlist.budget && (
                         <Badge variant="secondary">Budget: ${wishlist.budget}</Badge>
                       )}
-                      <Badge variant="secondary">Priority: {wishlist.urgency}</Badge>
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Posted {formatTimeAgo(new Date(wishlist.createdAt))}
