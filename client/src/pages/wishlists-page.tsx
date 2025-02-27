@@ -6,6 +6,39 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import CreateWishlistDialog from "@/components/create-wishlist-dialog";
 import { Loader2, Lock, Eye } from "lucide-react";
+
+// Format time ago function
+function formatTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) {
+    return 'just now';
+  }
+  
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`;
+  }
+  
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) {
+    return `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`;
+  }
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) {
+    return `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`;
+  }
+  
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) {
+    return `${diffInMonths} ${diffInMonths === 1 ? 'month' : 'months'} ago`;
+  }
+  
+  const diffInYears = Math.floor(diffInMonths / 12);
+  return `${diffInYears} ${diffInYears === 1 ? 'year' : 'years'} ago`;
+}
 import {
   Card,
   CardContent,
@@ -69,7 +102,7 @@ export default function WishlistsPage() {
                   <CardDescription>{wishlist.description}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mb-2">
                     {wishlist.budget && (
                       <Badge variant="secondary">
                         Budget: ${wishlist.budget}
@@ -78,6 +111,9 @@ export default function WishlistsPage() {
                     <Badge variant="secondary">
                       Priority: {wishlist.urgency}
                     </Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Posted {formatTimeAgo(new Date(wishlist.createdAt))}
                   </div>
                 </CardContent>
               </Card>
