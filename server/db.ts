@@ -78,6 +78,18 @@ async function migrate() {
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       cancellation_info JSONB
     )`,
+    `CREATE TABLE IF NOT EXISTS wishlists (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      community_id INTEGER NOT NULL REFERENCES communities(id),
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      status TEXT NOT NULL DEFAULT 'active',
+      budget INTEGER,
+      urgency TEXT DEFAULT 'normal',
+      is_private BOOLEAN NOT NULL DEFAULT false
+    )`,
     `DO $$ 
     BEGIN
       -- Create home communities for each zip code if they don't exist

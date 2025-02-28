@@ -41,10 +41,10 @@ export default function CommunitiesPage() {
 
   const inviteForm = useForm({
     resolver: zodResolver(z.object({
-      email: z.string().email("Please enter a valid email address"),
+      invitedEmail: z.string().email("Please enter a valid email address"),
     })),
     defaultValues: {
-      email: "",
+      invitedEmail: "",
     },
   });
 
@@ -80,8 +80,8 @@ export default function CommunitiesPage() {
   });
 
   const inviteMutation = useMutation({
-    mutationFn: async ({ email, communityId }: { email: string; communityId: number }) => {
-      const response = await apiRequest("POST", `/api/communities/${communityId}/invite`, { email });
+    mutationFn: async ({ invitedEmail, communityId }: { invitedEmail: string; communityId: number }) => {
+      const response = await apiRequest("POST", `/api/communities/${communityId}/invite`, { invitedEmail });
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to send invitation');
@@ -111,9 +111,9 @@ export default function CommunitiesPage() {
     createCommunityMutation.mutate(data);
   };
 
-  const onInvite = (data: { email: string }) => {
+  const onInvite = (data: { invitedEmail: string }) => {
     if (!selectedCommunity) return;
-    inviteMutation.mutate({ email: data.email, communityId: selectedCommunity.id });
+    inviteMutation.mutate({ invitedEmail: data.invitedEmail, communityId: selectedCommunity.id });
   };
 
   if (!user) {
@@ -249,17 +249,20 @@ export default function CommunitiesPage() {
                     </div>
                   </div>
                 </CardHeader>
-                {community.role === 'admin' && (
-                  <CardFooter>
+                <CardFooter>
                     <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
                       <DialogTrigger asChild>
                         <Button
-                          variant="secondary"
-                          className="w-full"
-                          onClick={() => setSelectedCommunity(community)}
+                          variant="outline"
+                          size="sm"
+                          className="ml-2"
+                          onClick={() => {
+                            setSelectedCommunity(community);
+                            setInviteDialogOpen(true);
+                          }}
                         >
-                          <UserPlus className="h-4 w-4 mr-2" />
-                          Invite Members
+                          <UserPlus className="h-4 w-4 mr-1" />
+                          Invite
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
@@ -274,7 +277,7 @@ export default function CommunitiesPage() {
                             <div className="space-y-4 py-4">
                               <FormField
                                 control={inviteForm.control}
-                                name="email"
+                                name="invitedEmail"
                                 render={({ field }) => (
                                   <FormItem>
                                     <FormLabel>Email Address</FormLabel>
@@ -302,7 +305,6 @@ export default function CommunitiesPage() {
                       </DialogContent>
                     </Dialog>
                   </CardFooter>
-                )}
               </Card>
             ))}
           </div>

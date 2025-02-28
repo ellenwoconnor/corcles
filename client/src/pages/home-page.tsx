@@ -4,17 +4,20 @@ import { Item, type Community } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import ItemGrid from "@/components/item-grid";
 import CreateListingDialog from "@/components/create-listing-dialog";
+import { WelcomeDialog } from "@/components/welcome-dialog";
 import { Loader2, Search, Gift } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
+import CommunityWishlists from "@/components/community-wishlists";
 
 export default function HomePage() {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [showFreeOnly, setShowFreeOnly] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
 
   const { data: userCommunities = [] } = useQuery<
@@ -23,6 +26,17 @@ export default function HomePage() {
     queryKey: ["/api/user/communities"],
     enabled: !!user,
   });
+
+  useEffect(() => {
+    if (user && userCommunities.length > 0) {
+      const welcomeKey = `corcles-welcome-seen-${user.id}`;
+      const hasSeenWelcome = localStorage.getItem(welcomeKey);
+      if (!hasSeenWelcome) {
+        setShowWelcome(true);
+        localStorage.setItem(welcomeKey, 'true');
+      }
+    }
+  }, [user, userCommunities]);
 
   const communityIds = userCommunities.map((c) => c.id);
 
@@ -48,6 +62,9 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      {showWelcome && (
+        <WelcomeDialog communities={userCommunities} />
+      )}
       <main className="container py-12 px-8">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
           <div>
@@ -105,6 +122,18 @@ export default function HomePage() {
         ) : (
           <ItemGrid items={items} />
         )}
+
+        <div className="mt-16">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+            <div>
+              <h2 className="text-3xl font-bold tracking-tight">Community Wishlists</h2>
+              <p className="text-muted-foreground">
+                Items your neighbors are looking for
+              </p>
+            </div>
+          </div>
+          <CommunityWishlists />
+        </div>
       </main>
     </div>
   );
