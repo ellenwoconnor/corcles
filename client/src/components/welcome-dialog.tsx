@@ -13,9 +13,10 @@ import { Gift, FileSearch, UserPlus } from "lucide-react";
 
 interface WelcomeDialogProps {
   communities: (Community & { role: string })[];
+  onOpenChange: (open: boolean) => void;
 }
 
-export function WelcomeDialog({ communities }: WelcomeDialogProps) {
+export function WelcomeDialog({ communities, onOpenChange }: WelcomeDialogProps) {
   const [open, setOpen] = useState(true);
   const [step, setStep] = useState(1);
   const [, setLocation] = useLocation();
@@ -30,12 +31,18 @@ export function WelcomeDialog({ communities }: WelcomeDialogProps) {
       setStep(step + 1);
     } else {
       setOpen(false);
+      onOpenChange(false);
       setLocation("/home");
     }
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    onOpenChange(newOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="text-2xl">
@@ -123,6 +130,7 @@ export function WelcomeDialog({ communities }: WelcomeDialogProps) {
                   className="w-full justify-start"
                   onClick={() => {
                     setOpen(false);
+                    onOpenChange(false);
                     setLocation("/home");
                   }}
                 >
@@ -133,6 +141,7 @@ export function WelcomeDialog({ communities }: WelcomeDialogProps) {
                   className="w-full justify-start"
                   onClick={() => {
                     setOpen(false);
+                    onOpenChange(false);
                     setLocation("/wishlists");
                   }}
                 >
@@ -143,6 +152,7 @@ export function WelcomeDialog({ communities }: WelcomeDialogProps) {
                   className="w-full justify-start"
                   onClick={() => {
                     setOpen(false);
+                    onOpenChange(false);
                     setLocation("/communities");
                   }}
                 >

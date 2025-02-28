@@ -63,7 +63,10 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <Navbar />
       {showWelcome && (
-        <WelcomeDialog communities={userCommunities} />
+        <WelcomeDialog 
+          communities={userCommunities} 
+          onOpenChange={(open) => !open && setShowWelcome(false)}
+        />
       )}
       <main className="container py-12 px-8">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
