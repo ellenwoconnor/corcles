@@ -1,11 +1,10 @@
-
 import { z } from "zod";
 import { Loader2, Pencil } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { insertItemSchema, type Item } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -77,12 +76,12 @@ export function EditListingDialog({
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
       queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}`] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/items"] });
-      
+
       toast({
         title: "Listing updated",
         description: "Your listing has been successfully updated.",
       });
-      
+
       setOpen(false);
       form.reset();
     },
