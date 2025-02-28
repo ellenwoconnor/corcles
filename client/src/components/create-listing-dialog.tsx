@@ -71,8 +71,21 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
       communityId: communities.find(c => !c.isCustom)?.id,
       userId: user?.id
     },
-    mode: "onChange"
   });
+
+  const handleImageChange = (file: File | null) => {
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      form.setValue('imageFile', file);
+    } else {
+      setImagePreview(null);
+      form.setValue('imageFile', undefined as any);
+    }
+  };
 
   const createItemMutation = useMutation({
     mutationFn: async (data: FormData) => {
@@ -116,22 +129,7 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
     }
   });
 
-  const handleImageChange = (file: File | null) => {
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      form.setValue('imageFile', file);
-    } else {
-      setImagePreview(null);
-      form.setValue('imageFile', undefined as any);
-    }
-  };
-
   const onSubmit = form.handleSubmit((data) => {
-    console.log('Form submitted with data:', data);
     createItemMutation.mutate(data);
   });
 
@@ -147,13 +145,13 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
             Add details about the item you want to sell or gift
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={onSubmit} className="space-y-6">
-            <div className="space-y-4">
+        <div className="mt-4">
+          <Form {...form}>
+            <form onSubmit={onSubmit} className="space-y-4">
               <FormField
                 control={form.control}
                 name="imageFile"
-                render={({ field }) => (
+                render={() => (
                   <FormItem>
                     <FormLabel>Item Image</FormLabel>
                     <FormControl>
@@ -314,24 +312,24 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
                   )}
                 />
               )}
-            </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={createItemMutation.isPending}
-            >
-              {createItemMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                "Create Listing"
-              )}
-            </Button>
-          </form>
-        </Form>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={createItemMutation.isPending}
+              >
+                {createItemMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  "Create Listing"
+                )}
+              </Button>
+            </form>
+          </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );
