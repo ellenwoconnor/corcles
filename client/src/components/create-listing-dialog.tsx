@@ -32,7 +32,7 @@ import { insertItemSchema, type Community } from "@shared/schema";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { DollarSign, Gift, Image as ImageIcon, Loader2, X } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
@@ -126,7 +126,7 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
       form.setValue('imageFile', file);
     } else {
       setImagePreview(null);
-      form.setValue('imageFile', undefined as any); // Cast to any to avoid type error
+      form.setValue('imageFile', undefined as any);
     }
   };
 
@@ -136,20 +136,11 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
   });
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(newOpen) => {
-        if (!newOpen) {
-          form.reset();
-          setImagePreview(null);
-        }
-        setOpen(newOpen);
-      }}
-    >
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>Create Listing</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New Listing</DialogTitle>
           <DialogDescription>
@@ -157,25 +148,22 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form
-            onSubmit={onSubmit}
-            className="space-y-4"
-          >
-            <FormField
-              control={form.control}
-              name="imageFile"
-              render={({ field: { onChange, ...field } }) => (
-                <FormItem>
-                  <FormLabel>Item Image</FormLabel>
-                  <FormControl>
-                    <div className="space-y-4">
-                      <div className="flex justify-center px-6 py-10 border-2 border-dashed rounded-lg border-border">
+          <form onSubmit={onSubmit} className="space-y-6">
+            <div className="space-y-4">
+              <FormField
+                control={form.control}
+                name="imageFile"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Item Image</FormLabel>
+                    <FormControl>
+                      <div className="border-2 border-dashed rounded-lg p-4">
                         {imagePreview ? (
                           <div className="relative">
                             <img
                               src={imagePreview}
                               alt="Preview"
-                              className="max-h-[200px] rounded-lg object-cover"
+                              className="max-h-[200px] w-full rounded-lg object-cover"
                             />
                             <Button
                               type="button"
@@ -190,14 +178,15 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
                         ) : (
                           <div className="text-center">
                             <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
-                            <div className="mt-4 flex text-sm leading-6 text-muted-foreground">
+                            <div className="mt-4">
                               <label
-                                htmlFor="image-upload"
-                                className="relative cursor-pointer rounded-md bg-background font-semibold text-primary"
+                                htmlFor="file-upload"
+                                className="cursor-pointer text-sm font-semibold text-primary hover:text-primary/80"
                               >
-                                <span>Upload an image</span>
+                                Upload an image
                                 <input
-                                  id="image-upload"
+                                  id="file-upload"
+                                  name="file-upload"
                                   type="file"
                                   className="sr-only"
                                   accept="image/*"
@@ -211,125 +200,126 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
                           </div>
                         )}
                       </div>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="communityId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Community</FormLabel>
-                  <Select
-                    onValueChange={(value) => field.onChange(parseInt(value))}
-                    defaultValue={field.value?.toString()}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a community" />
-                      </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
-                      {communities.map((community) => (
-                        <SelectItem
-                          key={community.id}
-                          value={community.id.toString()}
-                        >
-                          {community.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Choose which community to list this item in
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description (optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="Describe the item's brand, dimensions, condition, or other relevant information."
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="isGift"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={(checked) => {
-                        field.onChange(checked);
-                        if (checked) form.setValue("price", undefined);
-                      }}
-                    />
-                    <FormLabel className="!mt-0">Free item</FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
-
-            {!form.watch("isGift") && (
               <FormField
                 control={form.control}
-                name="price"
+                name="communityId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Price</FormLabel>
+                    <FormLabel>Community</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      defaultValue={field.value?.toString()}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a community" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {communities.map((community) => (
+                          <SelectItem
+                            key={community.id}
+                            value={community.id.toString()}
+                          >
+                            {community.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Choose which community to list this item in
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        placeholder="Enter price in dollars (minimum $0.01)"
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description (optional)</FormLabel>
+                    <FormControl>
+                      <Textarea
                         {...field}
-                        value={field.value ?? ''}
-                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                        placeholder="Describe the item's condition, features, etc."
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            )}
+
+              <FormField
+                control={form.control}
+                name="isGift"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">Free Item</FormLabel>
+                      <FormDescription>
+                        Mark this item as free to give away
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              {!form.watch("isGift") && (
+                <FormField
+                  control={form.control}
+                  name="price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Price</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="Enter price in dollars"
+                          {...field}
+                          onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
 
             <Button
               type="submit"
               className="w-full"
-              disabled={createItemMutation.isPending || !form.formState.isValid}
+              disabled={createItemMutation.isPending}
             >
               {createItemMutation.isPending ? (
                 <>
