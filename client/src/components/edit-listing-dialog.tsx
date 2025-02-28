@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 import { Loader2, Pencil } from "lucide-react";
 import { useState } from "react";
@@ -35,28 +36,31 @@ interface EditListingDialogProps {
   trigger?: React.ReactNode;
 }
 
-export default function EditListingDialog({ item, trigger }: EditListingDialogProps) {
+export function EditListingDialog({
+  item,
+  trigger,
+}: EditListingDialogProps) {
+  const [open, setOpen] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const form = useForm<z.infer<typeof insertItemSchema>>({
-    resolver: zodResolver(insertItemSchema),
+    resolver: zodResolver(insertItemSchema.omit({ imageFile: true })),
     defaultValues: {
       title: item.title,
-      description: item.description ?? "",
-      price: item.price ?? 0,
-      isGift: item.isGift,
+      description: item.description || "",
+      price: item.price || 0,
+      isGift: !!item.isGift,
       imageUrl: item.imageUrl,
+      userId: item.userId,
       communityId: item.communityId,
-      userId: user?.id
     },
   });
 
-  const queryClient = useQueryClient();
-
   const updateItemMutation = useMutation({
     mutationFn: async (data: z.infer<typeof insertItemSchema>) => {
+      console.log("Submitting data to API:", data);
       const response = await apiRequest("PATCH", `/api/items/${item.id}`, {
         ...data,
         price: data.isGift ? null : data.price,
@@ -68,17 +72,22 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
       return response.json();
     },
     onSuccess: () => {
+      console.log("Update successful, invalidating queries");
       // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
       queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}`] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/items"] });
+      
       toast({
         title: "Listing updated",
         description: "Your listing has been successfully updated.",
       });
+      
       setOpen(false);
+      form.reset();
     },
     onError: (error) => {
+      console.error("Update failed:", error);
       toast({
         title: "Error updating listing",
         description: error.message || "There was a problem updating your listing.",
@@ -87,32 +96,31 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
     },
   });
 
+  const handleSubmit = (values: z.infer<typeof insertItemSchema>) => {
+    console.log("Form submitted with values:", values);
+    updateItemMutation.mutate(values);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button 
-            variant="secondary" 
-            size="default"
-            className="gap-2"
-          >
-            <Pencil className="h-4 w-4" />
+          <Button variant="outline" size="sm">
+            <Pencil className="mr-2 h-4 w-4" />
             Edit Listing
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit Listing</DialogTitle>
           <DialogDescription>
-            Update the details of your listing
+            Update your listing information below.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form 
-            onSubmit={form.handleSubmit((data) => {
-              updateItemMutation.mutate(data);
-            })} 
+            onSubmit={form.handleSubmit(handleSubmit)} 
             className="space-y-4"
           >
             <FormField
@@ -133,13 +141,9 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description (optional)</FormLabel>
+                  <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Describe your item"
-                      className="resize-none"
-                      {...field} 
-                    />
+                    <Textarea {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -157,7 +161,7 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
-                    <FormLabel>Free item</FormLabel>
+                    <FormLabel>Free Item</FormLabel>
                   </div>
                 </FormItem>
               )}
@@ -172,9 +176,9 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
                     <FormControl>
                       <Input
                         type="number"
+                        min={0}
                         {...field}
                         onChange={(e) => field.onChange(Number(e.target.value))}
-                        value={field.value || ""}
                       />
                     </FormControl>
                     <FormMessage />
