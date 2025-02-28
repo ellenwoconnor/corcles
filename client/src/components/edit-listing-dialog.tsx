@@ -1,4 +1,15 @@
-import { Button } from "@/components/ui/button";
+
+import { z } from "zod";
+import { Loader2, Pencil } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { insertItemSchema, type Item } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+
 import {
   Dialog,
   DialogContent,
@@ -6,31 +17,19 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "./ui/dialog";
+import { Button } from "./ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { insertItemSchema, Item } from "@shared/schema";
-import { useAuth } from "@/features/auth/hooks/use-auth";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useState } from "react";
-import { z } from "zod";
-import { Loader2, Pencil } from "lucide-react";
-
-import { useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/components/ui/use-toast";
+} from "./ui/form";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
+import { Checkbox } from "./ui/checkbox";
 
 interface EditListingDialogProps {
   item: Item;
@@ -39,17 +38,19 @@ interface EditListingDialogProps {
 
 export default function EditListingDialog({ item, trigger }: EditListingDialogProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
 
   const form = useForm<z.infer<typeof insertItemSchema>>({
     resolver: zodResolver(insertItemSchema),
     defaultValues: {
       title: item.title,
-      description: item.description,
+      description: item.description ?? "",
       price: item.price ?? 0,
       isGift: item.isGift,
       imageUrl: item.imageUrl,
-      community: item.community,
+      communityId: item.communityId,
+      userId: user?.id
     },
   });
 
@@ -137,14 +138,12 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
                   <FormLabel>Description (optional)</FormLabel>
                   <FormControl>
                     <Textarea 
+                      placeholder="Describe your item"
+                      className="resize-none"
                       {...field} 
-                      placeholder="Describe the item's brand, dimensions, condition, or other relevant information."
                     />
                   </FormControl>
                   <FormMessage />
-                  <FormDescription>
-                    Add details to help others understand your item better
-                  </FormDescription>
                 </FormItem>
               )}
             />
@@ -152,19 +151,16 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
               control={form.control}
               name="isGift"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Gift Item</FormLabel>
-                    <FormDescription>
-                      Mark this item as free to gift
-                    </FormDescription>
-                  </div>
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                   <FormControl>
-                    <Switch
+                    <Checkbox
                       checked={field.value}
                       onCheckedChange={field.onChange}
                     />
                   </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Free item</FormLabel>
+                  </div>
                 </FormItem>
               )}
             />
