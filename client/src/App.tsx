@@ -11,13 +11,11 @@ import ListingPage from "@/pages/listing-page";
 import ProfilePage from "@/pages/profile-page";
 import CommunitiesPage from "@/pages/communities-page";
 import WishlistsPage from "@/pages/wishlists-page";
-import LandingPage from "@/pages/landing-page";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={LandingPage} /> {/* Landing page as default route */}
-      <ProtectedRoute path="/home" component={HomePage} />
+      <ProtectedRoute path="/" component={HomePage} />
       <ProtectedRoute path="/item/:id" component={ListingPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/communities" component={CommunitiesPage} />

@@ -28,7 +28,7 @@ export default function HomePage() {
   });
 
   useEffect(() => {
-    if (user) {
+    if (user && userCommunities.length > 0) {
       const welcomeKey = `corcles-welcome-seen-${user.id}`;
       const hasSeenWelcome = localStorage.getItem(welcomeKey);
       if (!hasSeenWelcome) {
@@ -36,7 +36,7 @@ export default function HomePage() {
         localStorage.setItem(welcomeKey, 'true');
       }
     }
-  }, [user]);
+  }, [user, userCommunities]);
 
   const communityIds = userCommunities.map((c) => c.id);
 
@@ -63,10 +63,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <Navbar />
       {showWelcome && (
-        <WelcomeDialog 
-          communities={userCommunities} 
-          onOpenChange={(open) => !open && setShowWelcome(false)}
-        />
+        <WelcomeDialog communities={userCommunities} />
       )}
       <main className="container py-12 px-8">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
