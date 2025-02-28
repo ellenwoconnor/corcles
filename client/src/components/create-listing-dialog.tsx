@@ -30,7 +30,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertItemSchema, type Community } from "@shared/schema";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { DollarSign, Gift, Image as ImageIcon, Loader2, X } from "lucide-react";
+import { Image as ImageIcon, Loader2, X } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useState } from "react";
@@ -150,49 +150,33 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
                 <FormItem>
                   <FormLabel>Item Image</FormLabel>
                   <FormControl>
-                    <div className="border-2 border-dashed rounded-lg p-4">
-                      {imagePreview ? (
-                        <div className="relative">
-                          <img
-                            src={imagePreview}
-                            alt="Preview"
-                            className="max-h-[200px] w-full rounded-lg object-cover"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-2 right-2"
-                            onClick={() => handleImageChange(null)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="text-center">
-                          <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
-                          <div className="mt-4">
-                            <label
-                              htmlFor="file-upload"
-                              className="cursor-pointer text-sm font-semibold text-primary hover:text-primary/80"
-                            >
-                              Upload an image
-                              <input
-                                id="file-upload"
-                                type="file"
-                                className="sr-only"
-                                accept="image/*"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  handleImageChange(file || null);
-                                }}
-                              />
-                            </label>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        handleImageChange(file || null);
+                      }}
+                    />
                   </FormControl>
+                  {imagePreview && (
+                    <div className="relative mt-2">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="max-h-[200px] w-full rounded-lg object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2"
+                        onClick={() => handleImageChange(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
