@@ -28,7 +28,7 @@ export default function HomePage() {
   });
 
   useEffect(() => {
-    if (user && userCommunities.length > 0) {
+    if (user) {
       const welcomeKey = `corcles-welcome-seen-${user.id}`;
       const hasSeenWelcome = localStorage.getItem(welcomeKey);
       if (!hasSeenWelcome) {
@@ -36,7 +36,7 @@ export default function HomePage() {
         localStorage.setItem(welcomeKey, 'true');
       }
     }
-  }, [user, userCommunities]);
+  }, [user]);
 
   const communityIds = userCommunities.map((c) => c.id);
 
