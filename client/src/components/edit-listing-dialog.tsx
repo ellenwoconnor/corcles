@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Loader2, Pencil } from "lucide-react";
+import { Loader2, Pencil, Image as ImageIcon, X } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,6 +35,13 @@ interface EditListingDialogProps {
   trigger?: React.ReactNode;
 }
 
+// Create a schema that makes the image optional for editing
+const editSchema = insertItemSchema.extend({
+  imageFile: z.instanceof(File).optional(),
+});
+
+type FormData = z.infer<typeof editSchema>;
+
 export function EditListingDialog({
   item,
   trigger,
@@ -43,9 +50,10 @@ export function EditListingDialog({
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [imagePreview, setImagePreview] = useState<string | null>(item.imageUrl);
 
-  const form = useForm<z.infer<typeof insertItemSchema>>({
-    resolver: zodResolver(insertItemSchema.omit({ imageFile: true })),
+  const form = useForm<FormData>({
+    resolver: zodResolver(editSchema.omit({ imageFile: true })),
     defaultValues: {
       title: item.title,
       description: item.description || "",
@@ -54,16 +62,42 @@ export function EditListingDialog({
       imageUrl: item.imageUrl,
       userId: item.userId,
       communityId: item.communityId,
+      imageFile: undefined, // Add default value for imageFile
     },
   });
 
+  const handleImageChange = (file: File | null) => {
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      form.setValue('imageFile', file);
+    } else {
+      setImagePreview(item.imageUrl);
+      form.setValue('imageFile', undefined);
+    }
+  };
+
   const updateItemMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof insertItemSchema>) => {
-      console.log("Submitting data to API:", data);
-      const response = await apiRequest("PATCH", `/api/items/${item.id}`, {
-        ...data,
-        price: data.isGift ? null : data.price,
+    mutationFn: async (data: FormData) => {
+      const formData = new FormData();
+      formData.append('title', data.title);
+      formData.append('description', data.description || '');
+      formData.append('isGift', String(data.isGift));
+      formData.append('price', data.isGift ? '0' : String(data.price || 0));
+      formData.append('communityId', String(item.communityId));
+      formData.append('userId', String(user?.id));
+
+      if (data.imageFile) {
+        formData.append('imageFile', data.imageFile);
+      }
+
+      const response = await apiRequest("PATCH", `/api/items/${item.id}`, formData, {
+        // Don't set Content-Type header, let the browser set it with the boundary
       });
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || "Failed to update item");
@@ -71,8 +105,6 @@ export function EditListingDialog({
       return response.json();
     },
     onSuccess: () => {
-      console.log("Update successful, invalidating queries");
-      // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
       queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}`] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/items"] });
@@ -95,8 +127,8 @@ export function EditListingDialog({
     },
   });
 
-  const handleSubmit = (values: z.infer<typeof insertItemSchema>) => {
-    console.log("Form submitted with values:", values);
+  const handleSubmit = (values: FormData) => {
+    console.log('Form submitted with values:', values);
     updateItemMutation.mutate(values);
   };
 
@@ -122,6 +154,66 @@ export function EditListingDialog({
             onSubmit={form.handleSubmit(handleSubmit)} 
             className="space-y-4"
           >
+            <FormField
+              control={form.control}
+              name="imageFile"
+              render={({ field: { onChange, ...field } }) => (
+                <FormItem>
+                  <FormLabel>Item Image</FormLabel>
+                  <FormControl>
+                    <div className="space-y-4">
+                      <div className="flex justify-center px-6 py-10 border-2 border-dashed rounded-lg border-border">
+                        {imagePreview ? (
+                          <div className="relative">
+                            <img
+                              src={imagePreview}
+                              alt="Preview"
+                              className="max-h-[200px] rounded-lg object-cover"
+                            />
+                            {imagePreview !== item.imageUrl && (
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-2 right-2"
+                                onClick={() => handleImageChange(null)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
+                            <div className="mt-4 flex text-sm leading-6 text-muted-foreground">
+                              <label
+                                htmlFor="image-upload"
+                                className="relative cursor-pointer rounded-md bg-background font-semibold text-primary"
+                              >
+                                <span>Upload a new image</span>
+                                <input
+                                  id="image-upload"
+                                  type="file"
+                                  className="sr-only"
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    handleImageChange(file || null);
+                                  }}
+                                  {...field}
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="title"

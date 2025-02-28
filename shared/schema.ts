@@ -162,7 +162,7 @@ export const insertItemSchema = createInsertSchema(items).omit({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
   price: z.number().nullable().optional(),
-  imageFile: z.instanceof(File).optional(),
+  imageFile: z.instanceof(File, { message: "Please upload an image" }).refine((val) => val !== undefined, {message: "Image is required"}),
   userId: z.number(),
   communityId: z.number({ required_error: "Please select a community" }),
 }).refine((data) => {
@@ -174,6 +174,12 @@ export const insertItemSchema = createInsertSchema(items).omit({
   message: "Price must be greater than zero for non-free items",
   path: ["price"],
 });
+
+export const editItemSchema = (insertItemSchema as z.ZodEffects<z.ZodObject<any>>)
+  .innerType()
+  .extend({
+    imageFile: z.instanceof(File).optional(),
+  });
 
 export const insertItemRequestSchema = createInsertSchema(itemRequests).omit({
   id: true,
@@ -225,7 +231,6 @@ export const insertCommunityInviteSchema = createInsertSchema(communityInvites).
 
 export type InsertCommunityInvite = z.infer<typeof insertCommunityInviteSchema>;
 
-// Update wishlist table and types
 export const wishlists = pgTable("wishlists", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),

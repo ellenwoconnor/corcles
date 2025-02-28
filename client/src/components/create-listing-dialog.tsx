@@ -30,23 +30,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertItemSchema, type Community } from "@shared/schema";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { DollarSign, Gift, Loader2 } from "lucide-react";
+import { DollarSign, Gift, Image as ImageIcon, Loader2, X } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-
-const MOCK_IMAGES = [
-  "https://images.unsplash.com/photo-1737282836845-555d9214dfe4",
-  "https://images.unsplash.com/photo-1523194258983-4ef0203f0c47",
-  "https://images.unsplash.com/photo-1477921749929-1b7a5d38b68a",
-  "https://images.unsplash.com/photo-1545147508-91576a5343a2",
-  "https://images.unsplash.com/photo-1737476813012-054eb34c53a9",
-  "https://images.unsplash.com/photo-1725278484721-b20373781f43",
-  "https://images.unsplash.com/photo-1509266145091-5e3e5ef88bc1",
-  "https://images.unsplash.com/photo-1627562309156-3056abea4fe9",
-];
 
 interface CreateListingDialogProps {
   communities: (Community & { role: string; memberCount: number })[];
@@ -61,6 +50,7 @@ const formSchema = baseSchema.extend({
   communityId: z.number({
     required_error: "Please select a community",
   }),
+  imageFile: z.instanceof(File, { message: "Please upload an image" })
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -69,6 +59,7 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
   const { user } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -77,7 +68,6 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
       description: "",
       price: undefined,
       isGift: true,
-      imageUrl: MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)],
       communityId: communities.find(c => !c.isCustom)?.id,
       userId: user?.id
     },
@@ -86,18 +76,23 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
 
   const createItemMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      console.log('Submitting form data:', data);
-      const response = await apiRequest("POST", "/api/items", {
-        ...data,
-        price: data.isGift ? null : Number(data.price || 0),
-        communityId: Number(data.communityId),
-        userId: user?.id
+      const formData = new FormData();
+      formData.append('title', data.title);
+      formData.append('description', data.description || '');
+      formData.append('isGift', String(data.isGift));
+      formData.append('price', data.isGift ? '0' : String(data.price || 0));
+      formData.append('communityId', String(data.communityId));
+      formData.append('userId', String(user?.id));
+      formData.append('imageFile', data.imageFile);
+
+      const response = await apiRequest("POST", "/api/items", formData, {
+        headers: {
+          // Don't set Content-Type header, let the browser set it with the boundary
+        }
       });
 
-      console.log('API Response status:', response.status);
       if (!response.ok) {
         const error = await response.json();
-        console.error('API Error:', error);
         throw new Error(error.message || "Failed to create listing");
       }
       return response.json();
@@ -106,6 +101,7 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
       setOpen(false);
       form.reset();
+      setImagePreview(null);
       toast({
         title: "Success",
         description: "Listing created successfully",
@@ -121,12 +117,22 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
     }
   });
 
+  const handleImageChange = (file: File | null) => {
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      form.setValue('imageFile', file);
+    } else {
+      setImagePreview(null);
+      form.setValue('imageFile', undefined);
+    }
+  };
+
   const onSubmit = form.handleSubmit((data) => {
     console.log('Form submitted with data:', data);
-    console.log('Form validation state:', form.formState);
-    if (form.formState.errors) {
-      console.log('Form errors:', form.formState.errors);
-    }
     createItemMutation.mutate(data);
   });
 
@@ -136,6 +142,7 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
       onOpenChange={(newOpen) => {
         if (!newOpen) {
           form.reset();
+          setImagePreview(null);
         }
         setOpen(newOpen);
       }}
@@ -155,6 +162,64 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
             onSubmit={onSubmit}
             className="space-y-4"
           >
+            <FormField
+              control={form.control}
+              name="imageFile"
+              render={({ field: { onChange, ...field } }) => (
+                <FormItem>
+                  <FormLabel>Item Image</FormLabel>
+                  <FormControl>
+                    <div className="space-y-4">
+                      <div className="flex justify-center px-6 py-10 border-2 border-dashed rounded-lg border-border">
+                        {imagePreview ? (
+                          <div className="relative">
+                            <img
+                              src={imagePreview}
+                              alt="Preview"
+                              className="max-h-[200px] rounded-lg object-cover"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-2 right-2"
+                              onClick={() => handleImageChange(null)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
+                            <div className="mt-4 flex text-sm leading-6 text-muted-foreground">
+                              <label
+                                htmlFor="image-upload"
+                                className="relative cursor-pointer rounded-md bg-background font-semibold text-primary"
+                              >
+                                <span>Upload an image</span>
+                                <input
+                                  id="image-upload"
+                                  type="file"
+                                  className="sr-only"
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    handleImageChange(file || null);
+                                  }}
+                                  {...field}
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="communityId"
