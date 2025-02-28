@@ -8,7 +8,7 @@ import {
 import { Button } from "./ui/button";
 import { type Community } from "@shared/schema";
 import { useState } from "react";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { Gift, FileSearch, UserPlus } from "lucide-react";
 
 interface WelcomeDialogProps {
@@ -18,7 +18,7 @@ interface WelcomeDialogProps {
 export function WelcomeDialog({ communities }: WelcomeDialogProps) {
   const [open, setOpen] = useState(true);
   const [step, setStep] = useState(1);
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
 
   const homeZipCommunity = communities.find((c) => !c.isCustom);
   const invitedCommunities = communities.filter((c) => c.isCustom);
@@ -30,7 +30,7 @@ export function WelcomeDialog({ communities }: WelcomeDialogProps) {
       setStep(step + 1);
     } else {
       setOpen(false);
-      navigate("/");
+      setLocation("/home");
     }
   };
 
@@ -123,7 +123,7 @@ export function WelcomeDialog({ communities }: WelcomeDialogProps) {
                   className="w-full justify-start"
                   onClick={() => {
                     setOpen(false);
-                    navigate("/");
+                    setLocation("/home");
                   }}
                 >
                   Browse available items
@@ -133,7 +133,7 @@ export function WelcomeDialog({ communities }: WelcomeDialogProps) {
                   className="w-full justify-start"
                   onClick={() => {
                     setOpen(false);
-                    navigate("/wishlists");
+                    setLocation("/wishlists");
                   }}
                 >
                   Create a wishlist
@@ -143,7 +143,7 @@ export function WelcomeDialog({ communities }: WelcomeDialogProps) {
                   className="w-full justify-start"
                   onClick={() => {
                     setOpen(false);
-                    navigate("/communities");
+                    setLocation("/communities");
                   }}
                 >
                   Manage your communities
