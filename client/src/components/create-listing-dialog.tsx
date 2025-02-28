@@ -117,7 +117,6 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
       });
     },
     onError: (error: Error) => {
-      console.error("Failed to create listing:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to create listing",
@@ -147,7 +146,7 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
             <FormField
               control={form.control}
               name="imageFile"
-              render={({ field: { onChange, value, ...field } }) => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Item Image</FormLabel>
                   <FormControl>
@@ -180,7 +179,6 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
                               Upload an image
                               <input
                                 id="file-upload"
-                                name="file-upload"
                                 type="file"
                                 className="sr-only"
                                 accept="image/*"
@@ -188,7 +186,6 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
                                   const file = e.target.files?.[0];
                                   handleImageChange(file || null);
                                 }}
-                                {...field}
                               />
                             </label>
                           </div>
