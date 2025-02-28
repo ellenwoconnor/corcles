@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 import { Loader2, Pencil } from "lucide-react";
 import { useState } from "react";
@@ -55,7 +54,7 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
   });
 
   const queryClient = useQueryClient();
-  
+
   const updateItemMutation = useMutation({
     mutationFn: async (data: z.infer<typeof insertItemSchema>) => {
       const response = await apiRequest("PATCH", `/api/items/${item.id}`, {
@@ -110,11 +109,10 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form
+          <form 
             onSubmit={form.handleSubmit((data) => {
-              console.log("Submitting form data:", data);
               updateItemMutation.mutate(data);
-            })}
+            })} 
             className="space-y-4"
           >
             <FormField
