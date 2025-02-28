@@ -2,7 +2,7 @@ import { Item, ItemRequest } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow, format } from "date-fns";
 import { Clock, Pencil } from "lucide-react";
-import EditListingDialog from "@/components/edit-listing-dialog";
+import { EditListingDialog } from "@/components/edit-listing-dialog";
 import RequestsList from "@/components/requests-list";
 import BidsList from "@/components/bids-list";
 import PickupScheduler from "@/components/pickup-scheduler";
