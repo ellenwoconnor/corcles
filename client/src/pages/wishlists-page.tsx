@@ -1,0 +1,123 @@
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
+import { type Wishlist } from "@shared/schema";
+import Navbar from "@/components/navbar";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import CreateWishlistDialog from "@/components/create-wishlist-dialog";
+import { Loader2, Lock, Eye } from "lucide-react";
+
+// Format time ago function
+function formatTimeAgo(date: Date): string {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  
+  if (diffInSeconds < 60) {
+    return 'just now';
+  }
+  
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`;
+  }
+  
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) {
+    return `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`;
+  }
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) {
+    return `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`;
+  }
+  
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) {
+    return `${diffInMonths} ${diffInMonths === 1 ? 'month' : 'months'} ago`;
+  }
+  
+  const diffInYears = Math.floor(diffInMonths / 12);
+  return `${diffInYears} ${diffInYears === 1 ? 'year' : 'years'} ago`;
+}
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+
+export default function WishlistsPage() {
+  const { user } = useAuth();
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  const { data: userWishlists = [], isLoading: isLoadingUserWishlists } =
+    useQuery<Wishlist[]>({
+      queryKey: ["/api/user/wishlists"],
+      enabled: !!user,
+    });
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <main className="container py-12 px-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight">Wishlists</h1>
+            <p className="text-muted-foreground">
+              Post items you're looking for
+            </p>
+          </div>
+          <div>
+            <Button onClick={() => setDialogOpen(true)}>Add Item</Button>
+          </div>
+        </div>
+
+        {isLoadingUserWishlists ? (
+          <div className="flex items-center justify-center min-h-[200px]">
+            <Loader2 className="h-8 w-8 animate-spin text-border" />
+          </div>
+        ) : userWishlists.length === 0 ? (
+          <div className="text-center py-12">
+            <h2 className="text-xl font-semibold mb-2">No wishlists yet</h2>
+            <p className="text-muted-foreground">
+              Create your first wishlist to keep track of items you want
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {userWishlists.map((wishlist) => (
+              <Card key={wishlist.id}>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    {wishlist.title}
+                    {wishlist.isPrivate && (
+                      <Lock className="h-4 w-4 text-muted-foreground" />
+                    )}
+                  </CardTitle>
+                  <CardDescription>{wishlist.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {wishlist.budget && (
+                      <Badge variant="secondary">
+                        Budget: ${wishlist.budget}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Posted {formatTimeAgo(new Date(wishlist.createdAt))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        <CreateWishlistDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      </main>
+    </div>
+  );
+}

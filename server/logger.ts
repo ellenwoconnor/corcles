@@ -20,8 +20,10 @@ const consoleFormat = winston.format.combine(
   winston.format.printf(
     ({ level, message, timestamp, ...metadata }) => {
       let msg = `${timestamp} [${level}] : ${message}`;
-      if (Object.keys(metadata).length > 0) {
-        msg += JSON.stringify(metadata, null, 2);
+      if (Object.keys(metadata).length > 0 && metadata.stack) {
+        msg += `\n${metadata.stack}`;
+      } else if (Object.keys(metadata).length > 0) {
+        msg += '\n' + JSON.stringify(metadata, null, 2);
       }
       return msg;
     }
@@ -37,7 +39,7 @@ try {
 }
 
 const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
+  level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
   format: customFormat,
   transports: [
     // Write all logs with importance level of 'error' or less to 'error.log'
@@ -56,42 +58,65 @@ const logger = winston.createLogger({
     // Console transport with custom format
     new winston.transports.Console({
       format: consoleFormat,
+      level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
     }),
   ],
-  // Handle exceptions and rejections
-  exceptionHandlers: [
-    new winston.transports.File({ 
-      filename: join(logsDir, 'exceptions.log'),
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    })
-  ],
-  rejectionHandlers: [
-    new winston.transports.File({ 
-      filename: join(logsDir, 'rejections.log'),
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    })
-  ]
 });
 
 // Create request logger middleware 
 export const requestLogger = (req: any, res: any, next: any) => {
-  // Only log API requests
-  if (req.url.startsWith('/api/')) {
-    const start = Date.now();
+  // Log all requests in production, not just API requests
+  const start = Date.now();
 
-    res.on('finish', () => {
-      const duration = Date.now() - start;
-      logger.info('API Request', {
-        method: req.method,
-        url: req.url,
-        status: res.statusCode,
-        duration: `${duration}ms`
-      });
+  // Log request details
+  logger.debug('Incoming request:', {
+    method: req.method,
+    url: req.url,
+    query: req.query,
+    body: req.method !== 'GET' ? req.body : undefined,
+    headers: {
+      'user-agent': req.headers['user-agent'],
+      'content-type': req.headers['content-type'],
+      'accept': req.headers['accept']
+    },
+    env: process.env.NODE_ENV
+  });
+
+  // Log response details
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const level = res.statusCode >= 400 ? 'error' : 'info';
+
+    logger[level]('Request completed:', {
+      method: req.method,
+      url: req.url,
+      status: res.statusCode,
+      duration: `${duration}ms`,
+      contentLength: res.getHeader('content-length'),
+      authenticated: req.isAuthenticated?.() || false,
+      env: process.env.NODE_ENV
     });
-  }
+  });
+
   next();
+};
+
+// Add startup logging function
+export const logStartupInfo = () => {
+  logger.info('Application startup information:', {
+    nodeVersion: process.version,
+    nodeEnv: process.env.NODE_ENV,
+    platform: process.platform,
+    arch: process.arch,
+    cwd: process.cwd(),
+    memoryUsage: process.memoryUsage(),
+    env: {
+      port: process.env.PORT,
+      hasDatabase: !!process.env.DATABASE_URL,
+      hasResendKey: !!process.env.RESEND_API_KEY,
+      hasSessionSecret: !!process.env.SESSION_SECRET
+    }
+  });
 };
 
 export default logger;

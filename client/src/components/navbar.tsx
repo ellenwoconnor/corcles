@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Menu, User, Users } from "lucide-react";
+import { LogOut, Menu, User, Users, Gift } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export default function Navbar() {
@@ -20,8 +20,8 @@ export default function Navbar() {
       <div className="container flex h-24 items-center px-8">
         <div className="mr-4">
           <Link href="/" className="mr-6 flex items-center space-x-2">
+            <span className="text-2xl font-bold uppercase tracking-wide">C<span className="text-[#6ABF69]">O</span>RCLES</span>
             <RobotLogo />
-            <span className="text-2xl font-bold uppercase tracking-wide">CORCLES</span>
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
@@ -30,6 +30,12 @@ export default function Navbar() {
               <Button variant="ghost" className="flex items-center space-x-2">
                 <Users className="h-4 w-4" />
                 <span>Communities</span>
+              </Button>
+            </Link>
+            <Link href="/wishlists">
+              <Button variant="ghost" className="flex items-center space-x-2">
+                <Gift className="h-4 w-4" />
+                <span>Wishlists</span>
               </Button>
             </Link>
           </div>
@@ -62,6 +68,12 @@ export default function Navbar() {
                   <Link href="/communities" className="flex items-center">
                     <Users className="mr-2 h-4 w-4" />
                     <span>Communities</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/wishlists" className="flex items-center">
+                    <Gift className="mr-2 h-4 w-4" />
+                    <span>Wishlists</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => logoutMutation.mutate()}>

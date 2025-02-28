@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from "multer";
@@ -7,24 +7,16 @@ import { storage } from "./storage";
 import * as schema from "@shared/schema";
 import { ITEM_STATUS, REQUEST_STATUS } from "@shared/constants";
 import { z } from "zod";
-import { eq, and, not, or } from "drizzle-orm";
+import { eq, and, not, or, inArray } from "drizzle-orm";
 import { db } from "./db";
 import logger from './logger';
 import session from 'express-session';
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 import cookieParser from "cookie-parser";
-import { promisify } from "util";
 import passport from "passport";
-import { hashPassword } from "./utils/auth";
-import { 
-  insertCommunityInviteSchema, 
-  insertItemSchema, 
-  insertItemRequestSchema,
-  insertItemBidSchema,
-  insertMessageSchema 
-} from "@shared/schema";
-import { addDays, addHours, isBefore, isAfter } from "date-fns";
+import { sendMail, generateCommunityInviteEmail } from './utils/mail';
+import { insertCommunityInviteSchema } from "@shared/schema";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -40,7 +32,7 @@ const sessionMiddleware = session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Set to false for development
     httpOnly: true,
     sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
@@ -55,103 +47,169 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   setupAuth(app);
 
-  const httpServer = createServer(app);
-  const wss = new WebSocketServer({ 
-    server: httpServer,
-    path: '/ws',
-    verifyClient: async (info, cb) => {
-      try {
-        const req = info.req;
-
-        logger.debug('WebSocket connection attempt:', {
-          cookies: req.headers.cookie,
-          sessionID: req.headers['sec-websocket-key']
-        });
-
-        const runSessionMiddleware = promisify(sessionMiddleware);
-        await runSessionMiddleware(req as any, {} as any);
-
-        const session = (req as any).session;
-        if (!session) {
-          logger.warn('WebSocket unauthorized - no session');
-          cb(false, 401, 'No session found');
-          return;
-        }
-
-        const userId = session.passport?.user;
-        if (!userId) {
-          logger.warn('WebSocket unauthorized - no user', {
-            sessionId: session.id
-          });
-          cb(false, 401, 'Not authenticated');
-          return;
-        }
-
-        logger.info('WebSocket connection authenticated:', {
-          userId,
-          sessionId: session.id
-        });
-
-        cb(true);
-      } catch (error) {
-        logger.error('WebSocket authentication error:', error);
-        cb(false, 500, 'Server error');
-      }
+  // Middleware to check authentication
+  const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.isAuthenticated()) {
+      logger.warn('Unauthenticated request:', {
+        path: req.path,
+        method: req.method,
+        sessionID: req.sessionID
+      });
+      return res.status(401).json({ error: "Authentication required" });
     }
-  });
+    next();
+  };
 
-  const connectedClients = new Map<number, WebSocket>();
-
-  logger.info('WebSocket server initialized on path: /ws');
-
-  wss.on('connection', async (ws, req) => {
+  app.post("/api/wishlists", requireAuth, async (req, res) => {
     try {
-      const userId = req.user?.id;
-      if (!userId) {
-        logger.warn('WebSocket connection rejected - no authenticated user');
-        ws.close(1008, 'Authentication required');
-        return;
+      const data = {
+        ...req.body,
+        userId: req.user.id,
+        budget: req.body.budget ? Number(req.body.budget) : undefined,
+      };
+
+      const parseResult = insertWishlistSchema.safeParse(data);
+      if (!parseResult.success) {
+        return res.status(400).json(parseResult.error);
       }
 
-      connectedClients.set(userId, ws);
-
-      logger.info('WebSocket client connected:', { 
-        userId,
-        totalConnections: connectedClients.size
+      const wishlist = await storage.createWishlist(parseResult.data);
+      logger.info('Created new wishlist:', {
+        wishlistId: wishlist.id,
+        userId: req.user.id
       });
 
-      ws.send(JSON.stringify({
-        type: 'connection_established',
-        data: { 
-          userId,
-          timestamp: new Date().toISOString()
-        }
-      }));
-
-      ws.on('close', () => {
-        logger.info('WebSocket client disconnected:', { 
-          userId,
-          remainingConnections: connectedClients.size - 1
-        });
-        connectedClients.delete(userId);
-      });
-
-      ws.on('error', (error) => {
-        logger.error('WebSocket error:', { error, userId });
-        ws.close();
-        connectedClients.delete(userId);
-      });
-
+      res.status(201).json(wishlist);
     } catch (error) {
-      logger.error('Error during WebSocket connection setup:', error);
-      ws.close(1011, 'Internal server error');
+      logger.error('Error creating wishlist:', error);
+      res.status(500).json({ error: 'Failed to create wishlist' });
     }
   });
 
-  app.post("/api/messages/send", async (req, res) => {
+  app.get("/api/wishlists/:id", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
+      const wishlistId = parseInt(req.params.id);
+      if (isNaN(wishlistId)) {
+        return res.status(400).json({ error: "Invalid wishlist ID" });
+      }
 
+      const wishlist = await storage.getWishlist(wishlistId);
+      if (!wishlist) {
+        return res.status(404).json({ error: "Wishlist not found" });
+      }
+
+      if (wishlist.isPrivate && wishlist.userId !== req.user.id) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      res.json(wishlist);
+    } catch (error) {
+      logger.error('Error fetching wishlist:', error);
+      res.status(500).json({ error: 'Failed to fetch wishlist' });
+    }
+  });
+
+  app.get("/api/user/wishlists", requireAuth, async (req, res) => {
+    try {
+      const wishlists = await storage.getUserWishlists(req.user.id);
+      res.json(wishlists);
+    } catch (error) {
+      logger.error('Error fetching user wishlists:', error);
+      res.status(500).json({ error: 'Failed to fetch wishlists' });
+    }
+  });
+
+  app.get("/api/community/:id/wishlists", requireAuth, async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      if (isNaN(communityId)) {
+        return res.status(400).json({ error: "Invalid community ID" });
+      }
+
+      const isMember = await storage.isUserInCommunity(req.user.id, communityId);
+      if (!isMember) {
+        return res.status(403).json({ error: "Not a member of this community" });
+      }
+
+      const wishlists = await storage.getCommunityWishlists(communityId);
+      res.json(wishlists);
+    } catch (error) {
+      logger.error('Error fetching community wishlists:', error);
+      res.status(500).json({ error: 'Failed to fetch wishlists' });
+    }
+  });
+
+  app.get("/api/communities/wishlists", requireAuth, async (req, res) => {
+    try {
+      const userCommunities = await storage.getUserCommunities(req.user.id);
+      const communityIds = userCommunities.map(c => c.id);
+
+      logger.debug('Fetching wishlists for communities:', {
+        userId: req.user.id,
+        communityIds
+      });
+
+      if (communityIds.length === 0) {
+        return res.json([]);
+      }
+
+      const wishlists = await db
+        .select()
+        .from(schema.wishlists)
+        .where(
+          and(
+            inArray(schema.wishlists.communityId, communityIds),
+            or(
+              eq(schema.wishlists.isPrivate, false),
+              eq(schema.wishlists.userId, req.user.id)
+            )
+          )
+        );
+
+      res.json(wishlists);
+    } catch (error) {
+      logger.error('Error fetching community wishlists:', error);
+      res.status(500).json({ error: 'Failed to fetch community wishlists' });
+    }
+  });
+
+  app.patch("/api/wishlists/:id", requireAuth, async (req, res) => {
+    try {
+      const wishlistId = parseInt(req.params.id);
+      if (isNaN(wishlistId)) {
+        return res.status(400).json({ error: "Invalid wishlist ID" });
+      }
+
+      const updates = {
+        ...req.body,
+        budget: req.body.budget ? Number(req.body.budget) : undefined,
+      };
+
+      const partialWishlistSchema = insertWishlistSchema.partial();
+      const parseResult = partialWishlistSchema.safeParse(updates);
+      if (!parseResult.success) {
+        return res.status(400).json(parseResult.error);
+      }
+
+      const updatedWishlist = await storage.updateWishlist(
+        wishlistId,
+        req.user.id,
+        parseResult.data
+      );
+
+      if (!updatedWishlist) {
+        return res.status(404).json({ error: "Wishlist not found or unauthorized" });
+      }
+
+      res.json(updatedWishlist);
+    } catch (error) {
+      logger.error('Error updating wishlist:', error);
+      res.status(500).json({ error: 'Failed to update wishlist' });
+    }
+  });
+
+  app.post("/api/messages/send", requireAuth, async (req, res) => {
+    try {
       const { recipientId, content, requestId } = req.body;
       logger.info('Received message request:', { recipientId, requestId });
 
@@ -193,10 +251,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/messages/:userId/:requestId", async (req, res) => {
+  app.get("/api/messages/:userId/:requestId", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const userId = parseInt(req.params.userId);
       const requestId = parseInt(req.params.requestId);
 
@@ -237,10 +293,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/messages/unread-count", async (req, res) => {
+  app.get("/api/messages/unread-count", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const count = await storage.getUnreadMessageCount(req.user.id);
       res.json({ count });
     } catch (error) {
@@ -271,7 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/items", async (req, res) => {
+  app.get("/api/items", requireAuth, async (req, res) => {
     try {
       const { search, communities: communityParam, freeOnly } = req.query;
       const searchTerm = typeof search === 'string' ? search : undefined;
@@ -321,15 +375,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-
-  app.post("/api/items", async (req, res) => {
+  app.post("/api/items", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const data = {
         ...req.body,
         userId: req.user.id,
-        price: Number(req.body.price),
+        price: req.body.price ? parseFloat(req.body.price) : undefined,
         isGift: !!req.body.isGift,
         communityId: parseInt(req.body.communityId),
       };
@@ -339,6 +390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const parseResult = insertItemSchema.safeParse(data);
 
       if (!parseResult.success) {
+        logger.error('Item validation failed:', parseResult.error);
         return res.status(400).json(parseResult.error);
       }
 
@@ -354,10 +406,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/items/:id/request", async (req, res) => {
+  app.post("/api/items/:id/request", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -405,10 +455,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/items/:id/bid", async (req, res) => {
+  app.post("/api/items/:id/bid", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -441,10 +489,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/items/:id/my-requests", async (req, res) => {
+  app.get("/api/items/:id/my-requests", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -458,15 +504,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/user/items", async (req, res) => {
+  app.get("/api/user/items", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
       const userCommunities = await storage.getUserCommunities(req.user.id);
       const userItems = await storage.getItems(
         userCommunities.map(c => c.id),
         req.user.id,
         undefined,
-        true 
+        true
       );
 
       logger.debug('Fetching user items:', {
@@ -482,10 +527,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/items/:id/requests", async (req, res) => {
+  app.get("/api/items/:id/requests", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -515,10 +558,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/user/bids", async (req, res) => {
+  app.get("/api/user/bids", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const bids = await storage.getUserBids(req.user.id);
       res.json(bids);
     } catch (error) {
@@ -527,16 +568,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/user", requireAuth, (req, res) => {
     res.json(req.user);
   });
 
-  app.get("/api/community/:community/count", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
+  app.get("/api/community/:community/count", requireAuth, async (req, res) => {
     try {
       const result = await db.select().from(schema.users).where(eq(schema.users.community, req.params.community));
-      logger.debug('Community count query result:', { 
+      logger.debug('Community count query result:', {
         community: req.params.community,
         count: result.length
       });
@@ -547,10 +586,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/items/:id/draw", async (req, res) => {
+  app.post("/api/items/:id/draw", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -584,7 +621,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await db
         .update(schema.items)
-        .set({ 
+        .set({
           recipientId: winningRequest.requesterId,
           status: 'pending_pickup'
         })
@@ -604,10 +641,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/items/:id/schedule", async (req, res) => {
+  app.post("/api/items/:id/schedule", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -622,7 +657,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to schedule pickup for this item" });
       }
 
-      // Get the pending request to set the recipient
       const [activeRequest] = await db
         .select()
         .from(schema.itemRequests)
@@ -696,23 +730,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       logger.debug('Validated windows:', proposedWindows);
 
-      // Update item with pickup windows and recipient
       await db
         .update(schema.items)
-        .set({ 
+        .set({
           proposedPickupWindows: proposedWindows,
           status: ITEM_STATUS.SCHEDULING,
           recipientId: activeRequest.requesterId
         })
         .where(eq(schema.items.id, itemId));
 
-      // Update the pending request status
       await db
         .update(schema.itemRequests)
         .set({ status: REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
         .where(eq(schema.itemRequests.id, activeRequest.id));
 
-      // Reject other requests
       await db
         .update(schema.itemRequests)
         .set({ status: REQUEST_STATUS.REJECTED })
@@ -723,7 +754,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           )
         );
 
-      logger.info('Updated item with pickup windows and recipient:', { 
+      logger.info('Updated item with pickup windows and recipient:', {
         itemId,
         recipientId: activeRequest.requesterId,
         windowsCount: proposedWindows.length,
@@ -737,10 +768,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/items/:id/confirm-pickup", async (req, res) => {
+  app.post("/api/items/:id/confirm-pickup", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -773,16 +802,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await db
         .update(schema.itemRequests)
-        .set({ 
-          status: confirmed 
+        .set({
+          status: confirmed
             ? REQUEST_STATUS.ACCEPTED
-            : REQUEST_STATUS.PENDING 
+            : REQUEST_STATUS.PENDING
         })
         .where(eq(schema.itemRequests.id, request.id));
 
       await db
         .update(schema.itemRequests)
-        .set({ 
+        .set({
           status: REQUEST_STATUS.PENDING
         })
         .where(
@@ -799,7 +828,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .where(eq(schema.items.id, itemId));
       }
 
-      logger.debug('Updated pickup confirmation:', { 
+      logger.debug('Updated pickup confirmation:', {
         itemId,
         requestId: request.id,
         confirmed,
@@ -813,10 +842,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/items/:id", async (req, res) => {
+  app.patch("/api/items/:id", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -858,10 +885,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/items/:id/select-pickup-time", async (req, res) => {
+  app.post("/api/items/:id/select-pickup-time", requireAuth, async (req, res) =>{
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -892,8 +917,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       logger.debug('Selected pickup window:', {
-        windowIndex,
-        pickupStart,
+        windowIndex,        pickupStart,
         pickupEnd,
         originalStart: selectedWindow.pickupStart,
         originalEnd: selectedWindow.pickupEnd
@@ -901,17 +925,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await db
         .update(schema.items)
-        .set({ 
+        .set({
           pickupStart: pickupStart,
           pickupEnd: pickupEnd,
           status: ITEM_STATUS.SCHEDULED,
-          recipientId: req.user.id 
+          recipientId: req.user.id
         })
         .where(eq(schema.items.id, itemId));
 
       await db
         .update(schema.itemRequests)
-        .set({ 
+        .set({
           status: 'accepted'
         })
         .where(
@@ -923,7 +947,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await db
         .update(schema.itemRequests)
-        .set({ 
+        .set({
           status: 'rejected'
         })
         .where(
@@ -940,10 +964,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/user/requests", async (req, res) => {
+  app.get("/api/user/requests", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const requests = await storage.getUserRequests(req.user.id);
       logger.debug('Fetching user requests:', {
         userId: req.user.id,        requestCount: requests?.length
@@ -954,10 +976,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/apiapi/items/:id/bids", async (req, res) => {
+  app.get("/apiapi/items/:id/bids", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
@@ -985,12 +1005,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/user/communities", async (req, res) => {
+  app.get("/api/user/communities", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const communities = await storage.getUserCommunities(req.user.id);
-      logger.debug('Retrieved user communities:', { 
+      logger.debug('Retrieved user communities:', {
         userId: req.user.id,
         communities: communities.map(c => ({
           id: c.id,
@@ -1006,10 +1024,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/communities", async (req, res) => {
+  app.post("/api/communities", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const { name, description } = req.body;
 
       if (!name) {
@@ -1036,68 +1052,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/communities/:id/invite", async (req, res) => {
+  app.post("/api/communities/:id/invite", requireAuth, async (req, res) => {
     try {
-      if (!req.isAuthenticated()) return res.sendStatus(401);
-
       const communityId = parseInt(req.params.id);
       if (isNaN(communityId)) {
         return res.status(400).json({ error: "Invalid community ID" });
       }
 
-      const userCommunity = await db
-        .select()
-        .from(schema.userCommunities)
-        .where(
-          and(
-            eq(schema.userCommunities.userId, req.user.id),
-            eq(schema.userCommunities.communityId, communityId),
-            eq(schema.userCommunities.role, 'admin')
-          )
-        )
-        .limit(1);
+      logger.debug('Processing community invite:', {
+        communityId,
+        invitedEmail: req.body.invitedEmail,
+        invitedBy: req.user.id
+      });
 
-      if (!userCommunity.length) {
+      const isMember = await storage.isUserInCommunity(req.user.id, communityId);
+      if (!isMember) {
         return res.status(403).json({ error: "Not authorized to invite to this community" });
       }
 
       const parseResult = insertCommunityInviteSchema.safeParse({
-        ...req.body,
+        invitedEmail: req.body.invitedEmail,
         communityId,
         invitedBy: req.user.id
       });
 
       if (!parseResult.success) {
-        return res.status(400).json(parseResult.error);
+        logger.error('Community invite validation failed:', {
+          errors: parseResult.error.errors,
+          body: req.body
+        });
+        return res.status(400).json({ 
+          error: "Invalid invitation data",
+          details: parseResult.error.errors
+        });
       }
 
-      const [existingUser] = await db
-        .select()
-        .from(schema.users)
-        .where(eq(schema.users.email, req.body.email))
-        .limit(1);
-
-      if (existingUser) {
-        await db
-          .insert(schema.userCommunities)
-          .values({
-            userId: existingUser.id,
-            communityId,
-            role: 'member'
-          })
-          .onConflictDoNothing();
-
-        return res.json({ autoEnrolled: true });
+      const invite = await storage.createCommunityInvite(parseResult.data);
+      if (!invite) {
+        logger.error('Failed to create community invite in database');
+        return res.status(500).json({ error: "Failed to create invite" });
       }
 
-      const [invite] = await db
-        .insert(schema.communityInvites)
-        .values(parseResult.data)
-        .returning();
+      const community = await storage.getCommunity(communityId);
+      if (!community) {
+        logger.error('Community not found after creating invite');
+        return res.status(404).json({ error: "Community not found" });
+      }
 
-      res.status(201).json({ ...invite, autoEnrolled: false });
+      const emailHtml = generateCommunityInviteEmail({
+        communityName: community.name,
+        inviterName: req.user.displayName
+      });
+
+      let emailSent = false;
+
+      try {
+        emailSent = await sendMail({
+          to: parseResult.data.invitedEmail,
+          subject: `${req.user.displayName} invited you to join ${community.name} on Corcles`,
+          html: emailHtml
+        });
+      } catch (emailError) {
+        logger.error('Failed to send invite email:', emailError);
+        // Continue execution - we'll return the invite even if email fails
+      }
+
+      if (!emailSent) {
+        logger.warn('Community invite created but email failed to send:', {
+          communityId,
+          invitedEmail: parseResult.data.invitedEmail
+        });
+      } else {
+        logger.info('Community invite created and email sent successfully:', {
+          communityId,
+          invitedEmail: parseResult.data.invitedEmail
+        });
+      }
+
+      res.status(201).json({ 
+        ...invite, 
+        emailSent,
+        message: emailSent ? 
+          "Invitation created and email sent successfully" : 
+          "Invitation created but email delivery failed"
+      });
     } catch (error) {
-      logger.error('Error creating community invite:', error);
+      logger.error('Error in community invite process:', error);
       res.status(500).json({ error: 'Failed to create community invite' });
     }
   });
@@ -1118,9 +1158,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const email = parseResult.data.email.toLowerCase();
-      logger.debug('Checking for existing user/email', { 
+      logger.debug('Checking for existing user/email', {
         username: parseResult.data.username,
-        email 
+        email
       });
 
       const [existingUser, existingEmail] = await Promise.all([
@@ -1296,10 +1336,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           zipCode: parseResult.data.zipCode
         });
 
-        return { 
-          user, 
+        return {
+          user,
           enrolledCommunities: processedInvites.length + 1,
-          processedInvites 
+          processedInvites
         };
       });
 
@@ -1334,6 +1374,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: req.body?.username
       });
       next(error);
+    }
+  });
+
+  const httpServer = createServer(app);
+  const wss = new WebSocketServer({
+    server: httpServer,
+    path: '/ws',
+    host: '0.0.0.0',
+    verifyClient: async (info, cb) => {
+      try {
+        const req = info.req;
+
+        logger.debug('WebSocket connection attempt:', {
+          cookies: req.headers.cookie,
+          sessionID: req.headers['sec-websocket-key']
+        });
+
+        const runSessionMiddleware = promisify(sessionMiddleware);
+        await runSessionMiddleware(req as any, {} as any);
+
+        const session = (req as any).session;
+        if (!session) {
+          logger.warn('WebSocket unauthorized - no session');
+          cb(false, 401, 'No session found');
+          return;
+        }
+
+        const userId = session.passport?.user;
+        if (!userId) {
+          logger.warn('WebSocket unauthorized - no user', {
+            sessionId: session.id
+          });
+          cb(false, 401, 'Not authenticated');
+          return;
+        }
+
+        logger.info('WebSocket connection authenticated:', {
+          userId,
+          sessionId: session.id
+        });
+
+        cb(true);
+      } catch (error) {
+        logger.error('WebSocket authentication error:', error);
+        cb(false, 500, 'Server error');
+      }
+    }
+  });
+
+  const connectedClients = new Map<number, WebSocket>();
+
+  logger.info('WebSocket server initialized on path: /ws');
+
+  wss.on('connection', async (ws, req) => {
+    try {
+      const userId = (req as any).session?.passport?.user;
+      if (!userId) {
+        logger.warn('WebSocket connection rejected - no authenticated user:', {
+          session: (req as any).session
+        });
+        ws.close(1008, 'Authentication required');
+        return;
+      }
+
+      connectedClients.set(userId, ws);
+
+      logger.info('WebSocket client connected:', {
+        userId,
+        totalConnections: connectedClients.size
+      });
+
+      ws.send(JSON.stringify({
+        type: 'connection_established',
+        data: {
+          userId,
+          timestamp: new Date().toISOString()
+        }
+      }));
+
+      ws.on('close', () => {
+        logger.info('WebSocket client disconnected:', {
+          userId,
+          remainingConnections: connectedClients.size - 1
+        });
+        connectedClients.delete(userId);
+      });
+
+      ws.on('error', (error) => {
+        logger.error('WebSocket error:', { error, userId });
+        ws.close();
+        connectedClients.delete(userId);
+      });
+
+    } catch (error) {
+      logger.error('Error during WebSocket connection setup:', error);
+      ws.close(1011, 'Internal server error');
     }
   });
 

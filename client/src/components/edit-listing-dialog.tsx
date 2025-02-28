@@ -1,4 +1,14 @@
-import { Button } from "@/components/ui/button";
+import { z } from "zod";
+import { Loader2, Pencil } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { insertItemSchema, type Item } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
+
 import {
   Dialog,
   DialogContent,
@@ -6,95 +16,110 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "./ui/dialog";
+import { Button } from "./ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { insertItemSchema, Item } from "@shared/schema";
-import { useAuth } from "@/features/auth/hooks/use-auth";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useState } from "react";
-import { z } from "zod";
-import { Loader2, Pencil } from "lucide-react";
+} from "./ui/form";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
+import { Checkbox } from "./ui/checkbox";
 
 interface EditListingDialogProps {
   item: Item;
   trigger?: React.ReactNode;
 }
 
-export default function EditListingDialog({ item, trigger }: EditListingDialogProps) {
-  const { user } = useAuth();
+export function EditListingDialog({
+  item,
+  trigger,
+}: EditListingDialogProps) {
   const [open, setOpen] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const form = useForm<z.infer<typeof insertItemSchema>>({
-    resolver: zodResolver(insertItemSchema),
+    resolver: zodResolver(insertItemSchema.omit({ imageFile: true })),
     defaultValues: {
       title: item.title,
-      description: item.description,
-      price: item.price ?? 0,
-      isGift: item.isGift,
+      description: item.description || "",
+      price: item.price || 0,
+      isGift: !!item.isGift,
       imageUrl: item.imageUrl,
-      community: item.community,
+      userId: item.userId,
+      communityId: item.communityId,
     },
   });
 
   const updateItemMutation = useMutation({
     mutationFn: async (data: z.infer<typeof insertItemSchema>) => {
+      console.log("Submitting data to API:", data);
       const response = await apiRequest("PATCH", `/api/items/${item.id}`, {
         ...data,
         price: data.isGift ? null : data.price,
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || "Failed to update item");
+        throw new Error(error.error || "Failed to update item");
       }
       return response.json();
     },
     onSuccess: () => {
+      console.log("Update successful, invalidating queries");
+      // Invalidate relevant queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
       queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/items/${user?.community}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/items"] });
+
+      toast({
+        title: "Listing updated",
+        description: "Your listing has been successfully updated.",
+      });
+
       setOpen(false);
+      form.reset();
+    },
+    onError: (error) => {
+      console.error("Update failed:", error);
+      toast({
+        title: "Error updating listing",
+        description: error.message || "There was a problem updating your listing.",
+        variant: "destructive",
+      });
     },
   });
+
+  const handleSubmit = (values: z.infer<typeof insertItemSchema>) => {
+    console.log("Form submitted with values:", values);
+    updateItemMutation.mutate(values);
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button 
-            variant="secondary" 
-            size="default"
-            className="gap-2"
-          >
-            <Pencil className="h-4 w-4" />
+          <Button variant="outline" size="sm">
+            <Pencil className="mr-2 h-4 w-4" />
             Edit Listing
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Edit Listing</DialogTitle>
           <DialogDescription>
-            Update the details of your listing
+            Update your listing information below.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit((data) => {
-              updateItemMutation.mutate(data);
-            })}
+          <form 
+            onSubmit={form.handleSubmit(handleSubmit)} 
             className="space-y-4"
           >
             <FormField
@@ -115,17 +140,11 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description (optional)</FormLabel>
+                  <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      {...field} 
-                      placeholder="Describe the item's brand, dimensions, condition, or other relevant information."
-                    />
+                    <Textarea {...field} />
                   </FormControl>
                   <FormMessage />
-                  <FormDescription>
-                    Add details to help others understand your item better
-                  </FormDescription>
                 </FormItem>
               )}
             />
@@ -133,19 +152,16 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
               control={form.control}
               name="isGift"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
-                    <FormLabel className="text-base">Gift Item</FormLabel>
-                    <FormDescription>
-                      Mark this item as free to gift
-                    </FormDescription>
-                  </div>
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                   <FormControl>
-                    <Switch
+                    <Checkbox
                       checked={field.value}
                       onCheckedChange={field.onChange}
                     />
                   </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Free Item</FormLabel>
+                  </div>
                 </FormItem>
               )}
             />
@@ -159,9 +175,9 @@ export default function EditListingDialog({ item, trigger }: EditListingDialogPr
                     <FormControl>
                       <Input
                         type="number"
+                        min={0}
                         {...field}
                         onChange={(e) => field.onChange(Number(e.target.value))}
-                        value={field.value || ""}
                       />
                     </FormControl>
                     <FormMessage />

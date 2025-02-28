@@ -26,6 +26,9 @@ import {
   type InsertCommunityInvite,
   ITEM_STATUS,
   REQUEST_STATUS,
+  wishlists,
+  type Wishlist,
+  type InsertWishlist,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, sql, ilike, or, notInArray, inArray } from "drizzle-orm";
@@ -92,6 +95,13 @@ export interface IStorage {
   rejectCommunityInvite(inviteId: number): Promise<CommunityInvite>;
   isUserInCommunity(userId: number, communityId: number): Promise<boolean>;
   getUserRole(userId: number, communityId: number): Promise<string | undefined>;
+
+  // Wishlist methods
+  createWishlist(wishlist: InsertWishlist): Promise<Wishlist>;
+  getWishlist(id: number): Promise<Wishlist | undefined>;
+  getUserWishlists(userId: number): Promise<Wishlist[]>;
+  getCommunityWishlists(communityId: number): Promise<Wishlist[]>;
+  updateWishlist(id: number, userId: number, updates: Partial<InsertWishlist>): Promise<Wishlist | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1052,6 +1062,99 @@ export class DatabaseStorage implements IStorage {
         userId,
         communityId
       });
+      throw error;
+    }
+  }
+  async createWishlist(wishlist: InsertWishlist): Promise<Wishlist> {
+    try {
+      const [newWishlist] = await db.insert(wishlists).values(wishlist).returning();
+      logger.debug('Created new wishlist:', { wishlistId: newWishlist.id, wishlist: newWishlist });
+      return newWishlist;
+    } catch (error) {
+      logger.error('Error creating wishlist:', { error, wishlist });
+      throw error;
+    }
+  }
+
+  async getWishlist(id: number): Promise<Wishlist | undefined> {
+    try {
+      const [wishlist] = await db
+        .select()
+        .from(wishlists)
+        .where(eq(wishlists.id, id));
+      logger.debug('Retrieved wishlist:', { wishlistId: id, wishlist });
+      return wishlist;
+    } catch (error) {
+      logger.error('Error getting wishlist:', { error, wishlistId: id });
+      throw error;
+    }
+  }
+
+  async getUserWishlists(userId: number): Promise<Wishlist[]> {
+    try {
+      const userWishlists = await db
+        .select()
+        .from(wishlists)
+        .where(eq(wishlists.userId, userId))
+        .orderBy(desc(wishlists.createdAt));
+
+      logger.debug('Retrieved user wishlists:', { userId, count: userWishlists.length });
+      return userWishlists;
+    } catch (error) {
+      logger.error('Error getting user wishlists:', { error, userId });
+      throw error;
+    }
+  }
+
+  async getCommunityWishlists(communityId: number): Promise<Wishlist[]> {
+    try {
+      const communityWishlists = await db
+        .select()
+        .from(wishlists)
+        .where(
+          and(
+            eq(wishlists.communityId, communityId),
+            eq(wishlists.isPrivate, false)
+          )
+        )
+        .orderBy(desc(wishlists.createdAt));
+
+      logger.debug('Retrieved community wishlists:', { 
+        communityId, 
+        count: communityWishlists.length 
+      });
+      return communityWishlists;
+    } catch (error) {
+      logger.error('Error getting community wishlists:', { error, communityId });
+      throw error;
+    }
+  }
+
+  async updateWishlist(
+    id: number, 
+    userId: number, 
+    updates: Partial<InsertWishlist>
+  ): Promise<Wishlist | undefined> {
+    try {
+      const [updatedWishlist] = await db
+        .update(wishlists)
+        .set(updates)
+        .where(
+          and(
+            eq(wishlists.id, id),
+            eq(wishlists.userId, userId)
+          )
+        )
+        .returning();
+
+      logger.debug('Updated wishlist:', { 
+        wishlistId: id, 
+        updates, 
+        updatedWishlist 
+      });
+      return updatedWishlist;
+    } catch (error) {
+      logger.error('Error updating wishlist:', { error, wishlistId: id, updates });
       throw error;
     }
   }
