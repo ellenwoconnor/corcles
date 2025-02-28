@@ -85,10 +85,9 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
       formData.append('userId', String(user?.id));
       formData.append('imageFile', data.imageFile);
 
-      const response = await apiRequest("POST", "/api/items", formData, {
-        headers: {
-          // Don't set Content-Type header, let the browser set it with the boundary
-        }
+      const response = await fetch('/api/items', {
+        method: 'POST',
+        body: formData,
       });
 
       if (!response.ok) {
@@ -127,7 +126,7 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
       form.setValue('imageFile', file);
     } else {
       setImagePreview(null);
-      form.setValue('imageFile', undefined);
+      form.setValue('imageFile', undefined as any); // Cast to any to avoid type error
     }
   };
 
@@ -206,7 +205,6 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
                                     const file = e.target.files?.[0];
                                     handleImageChange(file || null);
                                   }}
-                                  {...field}
                                 />
                               </label>
                             </div>
