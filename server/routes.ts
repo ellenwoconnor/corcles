@@ -380,7 +380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const data = {
         ...req.body,
         userId: req.user.id,
-        price: Number(req.body.price),
+        price: req.body.price ? parseFloat(req.body.price) : undefined,
         isGift: !!req.body.isGift,
         communityId: parseInt(req.body.communityId),
       };
@@ -390,6 +390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const parseResult = insertItemSchema.safeParse(data);
 
       if (!parseResult.success) {
+        logger.error('Item validation failed:', parseResult.error);
         return res.status(400).json(parseResult.error);
       }
 
