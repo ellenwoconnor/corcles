@@ -42,12 +42,11 @@ interface CreateListingDialogProps {
 }
 
 // Create a schema that extends the insert schema with additional fields
-const formSchema = z.object({
-  ...insertItemSchema.shape, 
+const formSchema = insertItemSchema._def.schema.extend({
   communityId: z.number({
     required_error: "Please select a community",
   }),
-  imageFile: z.instanceof(File, { message: "Please upload an image" }).optional()
+  imageFile: z.instanceof(File, { message: "Please upload an image" })
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -89,12 +88,6 @@ export default function CreateListingDialog({
 
   const createItemMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      // Debug logging
-      console.log('Form data before submission:', {
-        ...data,
-        imageFile: data.imageFile ? 'File present' : 'No file'
-      });
-
       const formData = new FormData();
       formData.append('title', data.title);
       formData.append('description', data.description || '');
@@ -102,9 +95,7 @@ export default function CreateListingDialog({
       formData.append('price', data.isGift ? '0' : String(data.price || 0));
       formData.append('communityId', String(data.communityId));
       formData.append('userId', String(user?.id));
-      if (data.imageFile) {
-        formData.append('imageFile', data.imageFile);
-      }
+      formData.append('imageFile', data.imageFile);
 
       const response = await fetch('/api/items', {
         method: 'POST',
@@ -128,7 +119,6 @@ export default function CreateListingDialog({
       });
     },
     onError: (error: Error) => {
-      console.error('Create listing error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to create listing",
@@ -138,11 +128,6 @@ export default function CreateListingDialog({
   });
 
   const onSubmit = form.handleSubmit((data) => {
-    // Debug logging
-    console.log('Form data on submit:', {
-      ...data,
-      imageFile: data.imageFile ? 'File present' : 'No file'
-    });
     createItemMutation.mutate(data);
   });
 
@@ -151,7 +136,7 @@ export default function CreateListingDialog({
       <DialogTrigger asChild>
         <Button>Create Listing</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New Listing</DialogTitle>
           <DialogDescription>
@@ -163,12 +148,12 @@ export default function CreateListingDialog({
             <FormField
               control={form.control}
               name="imageFile"
-              render={({ field: { onChange, value, ...field } }) => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Item Image</FormLabel>
                   <FormControl>
                     <div className="space-y-4">
-                      <div className="flex justify-center px-6 py-10 border-2 border-dashed rounded-lg border-border hover:border-primary/50 transition-colors">
+                      <div className="flex justify-center px-6 py-10 border-2 border-dashed rounded-lg border-border">
                         {imagePreview ? (
                           <div className="relative">
                             <img
@@ -189,25 +174,23 @@ export default function CreateListingDialog({
                         ) : (
                           <div className="text-center">
                             <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
-                            <div className="mt-4 flex flex-col items-center text-sm leading-6 text-muted-foreground">
+                            <div className="mt-4 flex text-sm leading-6 text-muted-foreground">
                               <label
                                 htmlFor="image-upload"
-                                className="relative cursor-pointer rounded-md bg-background px-3 py-2 font-semibold text-primary hover:text-primary/80 transition-colors"
+                                className="relative cursor-pointer rounded-md bg-background font-semibold text-primary"
                               >
                                 <span>Upload an image</span>
                                 <input
                                   id="image-upload"
                                   type="file"
-                                  className="hidden"
+                                  className="sr-only"
                                   accept="image/*"
                                   onChange={(e) => {
                                     const file = e.target.files?.[0];
                                     handleImageChange(file || null);
                                   }}
-                                  {...field}
                                 />
                               </label>
-                              <p className="text-xs mt-2">JPEG, PNG or GIF (max. 5MB)</p>
                             </div>
                           </div>
                         )}

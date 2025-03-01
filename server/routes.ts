@@ -2,8 +2,6 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import multer from "multer";
-import path from "path";
-import fs from "fs";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import * as schema from "@shared/schema";
@@ -26,7 +24,6 @@ import cookieParser from "cookie-parser";
 import passport from "passport";
 import { sendMail, generateCommunityInviteEmail } from './utils/mail';
 import { insertCommunityInviteSchema } from "@shared/schema";
-import express from 'express';
 
 const PostgresSessionStore = connectPg(session);
 
@@ -46,37 +43,6 @@ const sessionMiddleware = session({
     httpOnly: true,
     sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-});
-
-// Configure multer for handling file uploads
-const storageMulter = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = path.join(process.cwd(), 'uploads');
-    // Create uploads directory if it doesn't exist
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ 
-  storage: storageMulter,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Invalid file type. Only JPEG, PNG and GIF are allowed.'));
-    }
   }
 });
 
@@ -100,8 +66,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     next();
   };
-
-  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   app.post("/api/wishlists", requireAuth, async (req, res) => {
     try {
@@ -436,15 +400,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  app.post("/api/items", requireAuth, upload.single('imageFile'), async (req, res) => {
+  app.post("/api/items", requireAuth, async (req, res) => {
     try {
       const data = {
         ...req.body,
-        userId: req.user?.id,
+        userId: req.user.id,
         price: req.body.price ? parseFloat(req.body.price) : undefined,
-        isGift: req.body.isGift === 'true',
+        isGift: !!req.body.isGift,
         communityId: parseInt(req.body.communityId),
-        imageUrl: req.file ? `/uploads/${req.file.filename}` : undefined
       };
 
       logger.debug('Creating item with data:', data);
@@ -453,10 +416,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!parseResult.success) {
         logger.error('Item validation failed:', parseResult.error);
-        // Delete uploaded file if validation fails
-        if (req.file) {
-          fs.unlinkSync(req.file.path);
-        }
         return res.status(400).json(parseResult.error);
       }
 
@@ -467,10 +426,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         createdAt: new Date(item.createdAt).toISOString()
       });
     } catch (error) {
-      // Delete uploaded file if item creation fails
-      if (req.file) {
-        fs.unlinkSync(req.file.path);
-      }
       logger.error('Error creating item:', error);
       res.status(500).json({ error: 'Failed to create item' });
     }
@@ -916,7 +871,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
-        return res.status(400).json({ error: ""Invalid item ID" });
+        return res.status(400).json({ error: "Invalid item ID" });
       }
 
       const item = await storage.getItem(itemId);
@@ -966,7 +921,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (typeof windowIndex !== 'number') {
         return res.status(400).json({ error: "Window index is required" });
-      }
+}
 
       const item = await storage.getItem(itemId);
       if (!item) {
