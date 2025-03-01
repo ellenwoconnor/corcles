@@ -18,19 +18,9 @@ export default function HomePage() {
   const [search, setSearch] = useState("");
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
-  const debouncedSearch = useDebounce(search, 300);
 
-  // Log state changes to localStorage for persistence
-  useEffect(() => {
-    const timestamp = new Date().toISOString();
-    const logEntry = {
-      timestamp,
-      search,
-      debouncedSearch
-    };
-    localStorage.setItem('searchLog', JSON.stringify(logEntry));
-    console.log('Search State Updated:', logEntry);
-  }, [search, debouncedSearch]);
+  // Remove debounce temporarily to test basic search
+  // const debouncedSearch = useDebounce(search, 300);
 
   const { data: userCommunities = [] } = useQuery<
     (Community & { role: string; memberCount: number })[]
@@ -42,15 +32,15 @@ export default function HomePage() {
   const communityIds = userCommunities.map((c) => c.id);
 
   const { data: items = [], isLoading } = useQuery<Item[]>({
-    queryKey: ["/api/items", communityIds, debouncedSearch, showFreeOnly],
+    queryKey: ["/api/items", communityIds, search, showFreeOnly],
     queryFn: async () => {
       if (communityIds.length === 0) return [];
 
       const params = new URLSearchParams();
       params.append('communities', communityIds.join(','));
 
-      if (debouncedSearch) {
-        params.append('search', debouncedSearch);
+      if (search) {
+        params.append('search', search);
       }
 
       if (showFreeOnly) {
@@ -65,17 +55,6 @@ export default function HomePage() {
     },
     enabled: communityIds.length > 0
   });
-
-  useEffect(() => {
-    if (user && userCommunities.length > 0) {
-      const welcomeKey = `corcles-welcome-seen-${user.id}`;
-      const hasSeenWelcome = localStorage.getItem(welcomeKey);
-      if (!hasSeenWelcome) {
-        setShowWelcome(true);
-        localStorage.setItem(welcomeKey, 'true');
-      }
-    }
-  }, [user, userCommunities]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -99,14 +78,11 @@ export default function HomePage() {
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search items..."
+              type="text"
               value={search}
               onChange={(e) => {
-                const newValue = e.target.value;
-                console.log('Search input changing to:', newValue);
-                // Force a log to localStorage for debugging
-                localStorage.setItem('lastSearchInput', newValue);
-                localStorage.setItem('searchTimestamp', new Date().toISOString());
-                setSearch(newValue);
+                console.log("Search changed:", e.target.value);
+                setSearch(e.target.value);
               }}
               className="pl-10"
             />
