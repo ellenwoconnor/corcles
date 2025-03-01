@@ -30,7 +30,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertItemSchema, type Community } from "@shared/schema";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { Loader2 } from "lucide-react";
+import { Loader2, Image as ImageIcon, X } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useState } from "react";
@@ -41,14 +41,13 @@ interface CreateListingDialogProps {
   communities: (Community & { role: string; memberCount: number })[];
 }
 
-const formSchema = (insertItemSchema as z.ZodEffects<z.ZodObject<any>>)
-  .innerType()
-  .extend({
-    communityId: z.number({
-      required_error: "Please select a community",
-    }),
-    imageFile: z.instanceof(File, { message: "Please upload an image" })
-  });
+// Create a schema that extends the insert schema with additional fields
+const formSchema = insertItemSchema._def.schema.extend({
+  communityId: z.number({
+    required_error: "Please select a community",
+  }),
+  imageFile: z.instanceof(File, { message: "Please upload an image" })
+});
 
 type FormData = z.infer<typeof formSchema>;
 
@@ -58,6 +57,7 @@ export default function CreateListingDialog({
   const { user } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -67,9 +67,24 @@ export default function CreateListingDialog({
       price: undefined,
       isGift: true,
       communityId: communities.find(c => !c.isCustom)?.id,
-      userId: user?.id
+      userId: user?.id,
+      imageFile: undefined
     },
   });
+
+  const handleImageChange = (file: File | null) => {
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      form.setValue('imageFile', file);
+    } else {
+      setImagePreview(null);
+      form.setValue('imageFile', undefined);
+    }
+  };
 
   const createItemMutation = useMutation({
     mutationFn: async (data: FormData) => {
@@ -97,6 +112,7 @@ export default function CreateListingDialog({
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
       setOpen(false);
       form.reset();
+      setImagePreview(null);
       toast({
         title: "Success",
         description: "Listing created successfully",
@@ -124,7 +140,7 @@ export default function CreateListingDialog({
         <DialogHeader>
           <DialogTitle>Create New Listing</DialogTitle>
           <DialogDescription>
-            Add details about the item you want to sell or gift
+            Add details about the item you want to share or sell
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -136,16 +152,50 @@ export default function CreateListingDialog({
                 <FormItem>
                   <FormLabel>Item Image</FormLabel>
                   <FormControl>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          field.onChange(file);
-                        }
-                      }}
-                    />
+                    <div className="space-y-4">
+                      <div className="flex justify-center px-6 py-10 border-2 border-dashed rounded-lg border-border">
+                        {imagePreview ? (
+                          <div className="relative">
+                            <img
+                              src={imagePreview}
+                              alt="Preview"
+                              className="max-h-[200px] rounded-lg object-cover"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-2 right-2"
+                              onClick={() => handleImageChange(null)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
+                            <div className="mt-4 flex text-sm leading-6 text-muted-foreground">
+                              <label
+                                htmlFor="image-upload"
+                                className="relative cursor-pointer rounded-md bg-background font-semibold text-primary"
+                              >
+                                <span>Upload an image</span>
+                                <input
+                                  id="image-upload"
+                                  type="file"
+                                  className="sr-only"
+                                  accept="image/*"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    handleImageChange(file || null);
+                                  }}
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -205,7 +255,7 @@ export default function CreateListingDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description (optional)</FormLabel>
+                  <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
