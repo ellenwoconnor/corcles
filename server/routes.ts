@@ -334,11 +334,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       logger.info('Received search request:', {
         rawQuery: req.url,
         searchParam: search,
+        searchParamType: typeof search,
         communityParam,
-        searchTerm: searchTerm ? `"${searchTerm}"` : 'undefined',
-        searchType: typeof search,
+        searchTerm: searchTerm ? `"${searchTerm}"` : '(empty)',
         freeOnly: freeOnly === 'true' ? true : false
       });
+      
+      // Explicitly log search attempts
+      if (search !== undefined) {
+        logger.info('Search term detected in request', {
+          search,
+          searchTerm,
+          emptySearch: search === ''
+        });
+      }
 
       let communities: number[] = [];
       if (typeof communityParam === 'string') {

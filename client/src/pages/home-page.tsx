@@ -23,7 +23,8 @@ export default function HomePage() {
   // Force refetch when search terms change
   useEffect(() => {
     console.log('Search term changed to:', debouncedSearch);
-  }, [debouncedSearch]);
+    refetch(); // Explicitly trigger a refetch when search changes
+  }, [debouncedSearch, refetch]);
 
   const { data: userCommunities = [] } = useQuery<
     (Community & { role: string; memberCount: number })[]
@@ -57,10 +58,9 @@ export default function HomePage() {
       const urlParams = new URLSearchParams();
       urlParams.append('communities', communities.join(','));
 
-      if (search && search.trim()) {
-        urlParams.append('search', search.trim());
-        console.log('Added search param:', search.trim());
-      }
+      // Always include the search parameter (even if empty) for debugging
+      urlParams.append('search', search ? search.trim() : '');
+      console.log('Added search param:', search ? search.trim() : '(empty)');
 
       if (freeOnly) {
         urlParams.append('freeOnly', 'true');
