@@ -143,7 +143,9 @@ export default function CreateListingDialog({
             Add details about the item you want to share or sell
           </DialogDescription>
         </DialogHeader>
-        <p>does it show</p>
+        <div className="mb-4 p-2 bg-yellow-100 rounded-md text-black font-medium">
+          <p>does it show</p>
+        </div>
         <Form {...form}>
           <form onSubmit={onSubmit} className="space-y-4">
             <FormField
