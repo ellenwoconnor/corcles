@@ -8,7 +8,7 @@ import * as schema from "@shared/schema";
 import { ITEM_STATUS, REQUEST_STATUS } from "@shared/constants";
 import { z } from "zod";
 import { eq, and, not, or, inArray } from "drizzle-orm";
-import { insertItemBidSchema } from "@shared/schema";
+import { insertItemBidSchema, insertItemRequestSchema } from "@shared/schema";
 import { db } from "./db";
 import logger from './logger';
 import session from 'express-session';
