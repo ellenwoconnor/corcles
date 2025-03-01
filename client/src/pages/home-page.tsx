@@ -29,12 +29,6 @@ export default function HomePage() {
 
   const communityIds = userCommunities.map((c) => c.id);
 
-  // Verify search state changes
-  useEffect(() => {
-    console.log('Search changed:', search);
-    console.log('Debounced search:', debouncedSearch);
-  }, [search, debouncedSearch]);
-
   const { data: items = [], isLoading } = useQuery<Item[]>({
     queryKey: ["/api/items", communityIds, debouncedSearch, showFreeOnly],
     queryFn: async () => {
@@ -43,8 +37,8 @@ export default function HomePage() {
       const params = new URLSearchParams();
       params.append('communities', communityIds.join(','));
 
-      if (debouncedSearch.trim()) {
-        params.append('search', debouncedSearch.trim());
+      if (debouncedSearch) {
+        params.append('search', debouncedSearch);
       }
 
       if (showFreeOnly) {
