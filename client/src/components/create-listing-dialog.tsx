@@ -102,9 +102,10 @@ export default function CreateListingDialog({
       setIsLoading(true);
       console.log("Submitting form data:", data);
       
-      const response = await apiRequest("/api/items", {
-        method: "POST",
-        body: JSON.stringify(data),
+      const response = await apiRequest("POST", "/api/items", JSON.stringify(data), {
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
 
       setOpen(false);
