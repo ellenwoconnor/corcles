@@ -11,13 +11,16 @@ import React, { useState } from "react";
 import CommunityWishlists from "@/components/community-wishlists";
 
 export default function HomePage() {
+  // Debug log at component mount/render
+  console.log('HomePage component rendering');
+
   const { user } = useAuth();
   const [searchValue, setSearchValue] = useState("");
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
 
-  // Debug log every render
-  console.log("HomePage render - searchValue:", searchValue);
+  // Debug log after state initialization
+  console.log('Current state values:', { searchValue, showFreeOnly });
 
   const { data: userCommunities = [] } = useQuery<
     (Community & { role: string; memberCount: number })[]
@@ -78,8 +81,9 @@ export default function HomePage() {
             type="text"
             value={searchValue}
             onChange={(e) => {
-              console.log("Input change event:", e.target.value);
-              setSearchValue(e.target.value);
+              const newValue = e.target.value;
+              console.log("Input change event:", newValue);
+              setSearchValue(newValue);
             }}
             placeholder="Search items..."
             className="w-full p-2 border rounded"
