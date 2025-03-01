@@ -20,19 +20,24 @@ interface OwnerListingViewProps {
   currentUserId: number;
 }
 
+interface PickupWindow {
+  pickupStart: string;
+  pickupEnd: string;
+}
+
 const SECTION_CLASS = "border-t border-border pt-4 space-y-4";
 const TIME_DISPLAY_CLASS = "p-3 bg-secondary rounded-lg border border-border";
 
-export default function OwnerListingView({ 
-  item, 
-  requests, 
-  bids, 
-  currentUserId 
+export default function OwnerListingView({
+  item,
+  requests,
+  bids,
+  currentUserId
 }: OwnerListingViewProps) {
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  const activeRequest = requests.find(r => 
+  const activeRequest = requests.find(r =>
     ["pending", "accepted", "awaiting_pickup_confirmation", "scheduled"].includes(r.status)
   );
 
@@ -137,7 +142,7 @@ export default function OwnerListingView({
               <div className="mb-4">
                 <h4 className="text-sm font-medium mb-2">Proposed Pickup Times</h4>
                 <div className="space-y-2">
-                  {item.proposedPickupWindows.map((window, index) => (
+                  {(item.proposedPickupWindows as PickupWindow[]).map((window, index) => (
                     <div key={index} className={TIME_DISPLAY_CLASS}>
                       <div className="flex items-center gap-2">
                         <Clock className="w-3.5 h-3.5" />
@@ -168,7 +173,7 @@ export default function OwnerListingView({
         {item.isGift && showMessageAndCancel && (
           <div className={SECTION_CLASS}>
             <div className="flex items-center gap-4">
-              <CancelButton 
+              <CancelButton
                 itemId={item.id}
                 requestId={activeRequest.id}
                 variant="outline"
