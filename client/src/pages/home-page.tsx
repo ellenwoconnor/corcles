@@ -9,7 +9,7 @@ import { Loader2, Search, Gift } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import CommunityWishlists from "@/components/community-wishlists";
 
@@ -29,60 +29,31 @@ export default function HomePage() {
 
   const communityIds = userCommunities.map((c) => c.id);
 
-  const { data: items = [], isLoading, refetch } = useQuery<Item[]>({
-    queryKey: ["/api/items", { communities: communityIds, search: debouncedSearch, freeOnly: showFreeOnly }],
-    refetchOnWindowFocus: false,
-    refetchInterval: 0,
-    staleTime: 0,
-    queryFn: async ({ queryKey }) => {
-      const [_, params] = queryKey;
-      const { communities, search, freeOnly } = params as { communities: number[], search: string, freeOnly: boolean };
+  const { data: items = [], isLoading } = useQuery<Item[]>({
+    queryKey: ["/api/items", { search: debouncedSearch, freeOnly: showFreeOnly }],
+    queryFn: async () => {
+      if (communityIds.length === 0) return [];
 
-      if (communities.length === 0) return [];
+      const params = new URLSearchParams();
+      params.append('communities', communityIds.join(','));
 
-      const urlParams = new URLSearchParams();
-      urlParams.append('communities', communities.join(','));
-
-      // Always include the search parameter with proper null/undefined handling
-      console.log(`Search value before adding to params: "${search}"`);
-      if (search !== null && search !== undefined) {
-        urlParams.append('search', search);
-      } else {
-        urlParams.append('search', '');
+      // Only add search param if there's actually a search term
+      if (debouncedSearch && debouncedSearch.trim()) {
+        params.append('search', debouncedSearch.trim());
       }
 
-      if (freeOnly) {
-        urlParams.append('freeOnly', 'true');
+      if (showFreeOnly) {
+        params.append('freeOnly', 'true');
       }
 
-      const url = `/api/items?${urlParams.toString()}`;
-      console.log('Fetching items with URL:', url);
-
-      const response = await fetch(url);
+      const response = await fetch(`/api/items?${params}`);
       if (!response.ok) {
         throw new Error('Failed to fetch items');
       }
-
       return response.json();
     },
-    enabled: communityIds.length > 0,
-    refetchOnMount: true,
+    enabled: communityIds.length > 0
   });
-
-  // Force refetch when search terms change
-  useEffect(() => {
-    console.log('Search term changed to:', debouncedSearch);
-
-    // Log to verify search term is properly captured
-    console.log('Search query will use term:', typeof debouncedSearch, debouncedSearch);
-
-    // Add a small delay to ensure the query key is updated before refetching
-    const timer = setTimeout(() => {
-      console.log('Triggering refetch for search:', debouncedSearch);
-      refetch();
-    }, 50);
-    return () => clearTimeout(timer);
-  }, [debouncedSearch, refetch]);
 
   useEffect(() => {
     if (user && userCommunities.length > 0) {
