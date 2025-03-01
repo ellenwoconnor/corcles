@@ -41,48 +41,36 @@ export default function HomePage() {
   const communityIds = userCommunities.map((c) => c.id);
 
   const { data: items = [], isLoading } = useQuery<Item[]>({
-    queryKey: ["/api/items", communityIds, debouncedSearch, showFreeOnly],
-    queryFn: async () => {
-      if (communityIds.length === 0) return [];
+    queryKey: ["/api/items", { communities: communityIds, search: debouncedSearch, freeOnly: showFreeOnly }],
+    queryFn: async ({ queryKey }) => {
+      const [_, params] = queryKey;
+      const { communities, search, freeOnly } = params as { communities: number[], search: string, freeOnly: boolean };
 
-      const params = new URLSearchParams();
+      if (communities.length === 0) return [];
 
-      // Add community IDs
-      params.append('communities', communityIds.join(','));
+      const searchParams = new URLSearchParams();
+      searchParams.append('communities', communities.join(','));
 
-      // Add search term if present
-      if (debouncedSearch.trim()) {
-        params.append('search', debouncedSearch.trim());
+      if (search?.trim()) {
+        searchParams.append('search', search.trim());
       }
 
-      // Add free only filter
-      if (showFreeOnly) {
-        params.append('freeOnly', 'true');
+      if (freeOnly) {
+        searchParams.append('freeOnly', 'true');
       }
 
-      console.log('Fetching items with params:', Object.fromEntries(params.entries()));
-
-      const response = await fetch(`/api/items?${params}`);
-
+      const response = await fetch(`/api/items?${searchParams}`);
       if (!response.ok) {
         throw new Error('Failed to fetch items');
       }
 
-      const data = await response.json();
-      console.log('Received items:', data.length);
-      return data;
+      return response.json();
     },
     enabled: communityIds.length > 0,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
-
-  // Log state changes
-  useEffect(() => {
-    console.log('Search/filter state changed:', {
-      search: debouncedSearch,
-      showFreeOnly,
-      itemsCount: items.length
-    });
-  }, [debouncedSearch, showFreeOnly, items]);
 
   return (
     <div className="min-h-screen bg-background">
