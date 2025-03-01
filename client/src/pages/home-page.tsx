@@ -42,24 +42,29 @@ export default function HomePage() {
 
   const { data: items = [], isLoading } = useQuery<Item[]>({
     queryKey: ["/api/items", { communities: communityIds, search: debouncedSearch, freeOnly: showFreeOnly }],
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
     queryFn: async ({ queryKey }) => {
       const [_, params] = queryKey;
       const { communities, search, freeOnly } = params as { communities: number[], search: string, freeOnly: boolean };
 
       if (communities.length === 0) return [];
 
-      const searchParams = new URLSearchParams();
-      searchParams.append('communities', communities.join(','));
+      const params = new URLSearchParams();
+      params.append('communities', communities.join(','));
 
       if (search?.trim()) {
-        searchParams.append('search', search.trim());
+        params.append('search', search.trim());
       }
 
       if (freeOnly) {
-        searchParams.append('freeOnly', 'true');
+        params.append('freeOnly', 'true');
       }
 
-      const response = await fetch(`/api/items?${searchParams}`);
+      console.log('Fetching items with params:', params.toString());
+      
+      const response = await fetch(`/api/items?${params.toString()}`);
       if (!response.ok) {
         throw new Error('Failed to fetch items');
       }
