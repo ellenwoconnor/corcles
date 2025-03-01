@@ -8,7 +8,13 @@ import * as schema from "@shared/schema";
 import { ITEM_STATUS, REQUEST_STATUS } from "@shared/constants";
 import { z } from "zod";
 import { eq, and, not, or, inArray } from "drizzle-orm";
-import { insertItemBidSchema, insertItemRequestSchema } from "@shared/schema";
+import { 
+  insertItemBidSchema, 
+  insertItemRequestSchema,
+  insertItemSchema,
+  insertMessageSchema,
+  insertWishlistSchema 
+} from "@shared/schema";
 import { db } from "./db";
 import logger from './logger';
 import session from 'express-session';
@@ -915,7 +921,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (typeof windowIndex !== 'number') {
         return res.status(400).json({ error: "Window index is required" });
-      }
+}
 
       const item = await storage.getItem(itemId);
       if (!item) {
