@@ -78,8 +78,6 @@ export default function CreateListingDialog({
 
   const onSubmit = async (data: FormData) => {
     console.log("Form submitted with data:", data);
-    console.log("Form validation state:", form.formState);
-    console.log("Form errors:", form.formState.errors);
     
     if (!user) {
       toast({
@@ -100,13 +98,30 @@ export default function CreateListingDialog({
 
     try {
       setIsLoading(true);
-      console.log("Submitting form data:", data);
       
-      const response = await apiRequest("POST", "/api/items", JSON.stringify(data), {
+      // Make sure we have the required fields and proper types
+      const itemData = {
+        title: data.title || "",
+        description: data.description || "",
+        isGift: Boolean(data.isGift),
+        price: data.isGift ? 0 : (data.price || 0),
+        imageUrl: data.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4",
+        userId: user.id,
+        communityId: Number(data.communityId)
+      };
+      
+      console.log("Submitting item data:", itemData);
+      
+      const response = await apiRequest("POST", "/api/items", itemData, {
         headers: {
           'Content-Type': 'application/json'
         }
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create listing");
+      }
 
       setOpen(false);
       form.reset();
@@ -117,11 +132,11 @@ export default function CreateListingDialog({
       // Invalidate queries to refresh the item list
       queryClient.invalidateQueries(["/api/items"]);
     } catch (error) {
-      console.log("Failed to create listing:", error);
+      console.error("Failed to create listing:", error);
       toast({
         variant: "destructive",
         title: "Failed to create listing",
-        description: "There was an error creating your listing. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error creating your listing. Please try again.",
       });
     } finally {
       setIsLoading(false);
