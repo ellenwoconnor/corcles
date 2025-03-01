@@ -331,6 +331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { search, communities: communityParam, freeOnly } = req.query;
       const searchTerm = typeof search === 'string' ? search.trim() : undefined;
 
+      // Always log search information for debugging
       logger.info('Received search request:', {
         rawQuery: req.url,
         searchParam: search,
@@ -340,14 +341,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         freeOnly: freeOnly === 'true' ? true : false
       });
       
-      // Explicitly log search attempts
-      if (search !== undefined) {
-        logger.info('Search term detected in request', {
-          search,
-          searchTerm,
-          emptySearch: search === ''
-        });
-      }
+      // Always log search attempts - even if empty
+      logger.info('Search term detected in request', {
+        search: search !== undefined ? search : 'undefined',
+        searchTerm: searchTerm || 'empty',
+        emptySearch: !searchTerm || search === '',
+        searchIncluded: req.url.includes('search=')
+      });
 
       let communities: number[] = [];
       if (typeof communityParam === 'string') {
