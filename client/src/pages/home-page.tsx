@@ -19,21 +19,6 @@ export default function HomePage() {
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
-  
-  // Force refetch when search terms change
-  useEffect(() => {
-    console.log('Search term changed to:', debouncedSearch);
-    
-    // Log to verify search term is properly captured
-    console.log('Search query will use term:', typeof debouncedSearch, debouncedSearch);
-    
-    // Add a small delay to ensure the query key is updated before refetching
-    const timer = setTimeout(() => {
-      console.log('Triggering refetch for search:', debouncedSearch);
-      refetch();
-    }, 50);
-    return () => clearTimeout(timer);
-  }, [debouncedSearch, refetch]);
 
   const { data: userCommunities = [] } = useQuery<
     (Community & { role: string; memberCount: number })[]
@@ -42,21 +27,10 @@ export default function HomePage() {
     enabled: !!user,
   });
 
-  useEffect(() => {
-    if (user && userCommunities.length > 0) {
-      const welcomeKey = `corcles-welcome-seen-${user.id}`;
-      const hasSeenWelcome = localStorage.getItem(welcomeKey);
-      if (!hasSeenWelcome) {
-        setShowWelcome(true);
-        localStorage.setItem(welcomeKey, 'true');
-      }
-    }
-  }, [user, userCommunities]);
-
   const communityIds = userCommunities.map((c) => c.id);
 
   const { data: items = [], isLoading, refetch } = useQuery<Item[]>({
-    queryKey: ["/api/items", { communities: communityIds, search: debouncedSearch || '', freeOnly: showFreeOnly }],
+    queryKey: ["/api/items", { communities: communityIds, search: debouncedSearch, freeOnly: showFreeOnly }],
     refetchOnWindowFocus: false,
     refetchInterval: 0,
     staleTime: 0,
@@ -83,7 +57,7 @@ export default function HomePage() {
 
       const url = `/api/items?${urlParams.toString()}`;
       console.log('Fetching items with URL:', url);
-      
+
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch items');
@@ -94,6 +68,32 @@ export default function HomePage() {
     enabled: communityIds.length > 0,
     refetchOnMount: true,
   });
+
+  // Force refetch when search terms change
+  useEffect(() => {
+    console.log('Search term changed to:', debouncedSearch);
+
+    // Log to verify search term is properly captured
+    console.log('Search query will use term:', typeof debouncedSearch, debouncedSearch);
+
+    // Add a small delay to ensure the query key is updated before refetching
+    const timer = setTimeout(() => {
+      console.log('Triggering refetch for search:', debouncedSearch);
+      refetch();
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [debouncedSearch, refetch]);
+
+  useEffect(() => {
+    if (user && userCommunities.length > 0) {
+      const welcomeKey = `corcles-welcome-seen-${user.id}`;
+      const hasSeenWelcome = localStorage.getItem(welcomeKey);
+      if (!hasSeenWelcome) {
+        setShowWelcome(true);
+        localStorage.setItem(welcomeKey, 'true');
+      }
+    }
+  }, [user, userCommunities]);
 
   return (
     <div className="min-h-screen bg-background">
