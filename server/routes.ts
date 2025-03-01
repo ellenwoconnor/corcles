@@ -412,7 +412,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       logger.debug('Creating item with data:', data);
 
-      const parseResult = insertItemSchema.safeParse(data);
+      // Use a modified schema for API requests that doesn't require imageFile
+      const apiItemSchema = z.object({
+        ...insertItemSchema.shape,
+        imageFile: z.any().optional(), // Make imageFile optional for API requests
+        title: z.string().min(1, "Title is required"),
+        description: z.string().optional(),
+        price: z.number().nullable().optional(),
+        isGift: z.boolean(),
+        imageUrl: z.string(),
+        userId: z.number(),
+        communityId: z.number({ required_error: "Please select a community" }),
+      }).refine((data) => {
+        if (!data.isGift && (!data.price || data.price < 0.01)) {
+          return false;
+        }
+        return true;
+      }, {
+        message: "Price must be greater than zero for non-free items",
+        path: ["price"],
+      });
+      
+      const parseResult = apiItemSchema.safeParse(data);
 
       if (!parseResult.success) {
         logger.error('Item validation failed:', parseResult.error);
