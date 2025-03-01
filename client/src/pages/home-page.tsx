@@ -6,8 +6,6 @@ import ItemGrid from "@/components/item-grid";
 import CreateListingDialog from "@/components/create-listing-dialog";
 import { WelcomeDialog } from "@/components/welcome-dialog";
 import { Loader2, Search, Gift } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import React, { useState } from "react";
 import CommunityWishlists from "@/components/community-wishlists";
@@ -18,7 +16,8 @@ export default function HomePage() {
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
 
-  console.log("Current search value:", searchValue); // Debug log
+  // Debug log every render
+  console.log("HomePage render - searchValue:", searchValue);
 
   const { data: userCommunities = [] } = useQuery<
     (Community & { role: string; memberCount: number })[]
@@ -34,7 +33,7 @@ export default function HomePage() {
     queryFn: async () => {
       if (communityIds.length === 0) return [];
 
-      console.log("Making API request with search:", searchValue); // Debug log
+      console.log("Making API request with search:", searchValue);
 
       const params = new URLSearchParams();
       params.append('communities', communityIds.join(','));
@@ -56,11 +55,6 @@ export default function HomePage() {
     enabled: communityIds.length > 0
   });
 
-  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
-    console.log("Search input event:", e.target.value); // Debug log
-    setSearchValue(e.target.value);
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -79,22 +73,24 @@ export default function HomePage() {
         </div>
 
         <div className="space-y-4 mb-8">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search items..."
-              type="text"
-              value={searchValue}
-              onChange={handleSearchChange}
-              className="pl-10"
-            />
-          </div>
+          {/* Basic input for testing */}
+          <input
+            type="text"
+            value={searchValue}
+            onChange={(e) => {
+              console.log("Input change event:", e.target.value);
+              setSearchValue(e.target.value);
+            }}
+            placeholder="Search items..."
+            className="w-full p-2 border rounded"
+          />
 
           <div className="flex items-center space-x-2">
-            <Switch
+            <input
+              type="checkbox"
               id="free-only"
               checked={showFreeOnly}
-              onCheckedChange={setShowFreeOnly}
+              onChange={(e) => setShowFreeOnly(e.target.checked)}
             />
             <Label htmlFor="free-only" className="flex items-center gap-2">
               <Gift className="h-4 w-4" />
