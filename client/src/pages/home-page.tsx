@@ -41,29 +41,48 @@ export default function HomePage() {
   const communityIds = userCommunities.map((c) => c.id);
 
   const { data: items = [], isLoading } = useQuery<Item[]>({
-    queryKey: ["/api/items", { communityIds, search: debouncedSearch, freeOnly: showFreeOnly }],
+    queryKey: ["/api/items", communityIds, debouncedSearch, showFreeOnly],
     queryFn: async () => {
       if (communityIds.length === 0) return [];
 
       const params = new URLSearchParams();
+
+      // Add community IDs
       params.append('communities', communityIds.join(','));
 
+      // Add search term if present
       if (debouncedSearch.trim()) {
         params.append('search', debouncedSearch.trim());
       }
 
+      // Add free only filter
       if (showFreeOnly) {
         params.append('freeOnly', 'true');
       }
 
+      console.log('Fetching items with params:', Object.fromEntries(params.entries()));
+
       const response = await fetch(`/api/items?${params}`);
+
       if (!response.ok) {
         throw new Error('Failed to fetch items');
       }
-      return response.json();
+
+      const data = await response.json();
+      console.log('Received items:', data.length);
+      return data;
     },
     enabled: communityIds.length > 0,
   });
+
+  // Log state changes
+  useEffect(() => {
+    console.log('Search/filter state changed:', {
+      search: debouncedSearch,
+      showFreeOnly,
+      itemsCount: items.length
+    });
+  }, [debouncedSearch, showFreeOnly, items]);
 
   return (
     <div className="min-h-screen bg-background">
