@@ -13,9 +13,6 @@ import CommunitiesPage from "@/pages/communities-page";
 import WishlistsPage from "@/pages/wishlists-page";
 
 function Router() {
-  // Add visible alert to verify React is working
-  alert("React Router is mounting");
-
   return (
     <Switch>
       <ProtectedRoute path="/" component={HomePage} />
@@ -30,9 +27,6 @@ function Router() {
 }
 
 function App() {
-  // Add visible alert to verify React is mounting
-  alert("React App is mounting");
-
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
