@@ -9,7 +9,7 @@ import { Loader2, Search, Gift } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import CommunityWishlists from "@/components/community-wishlists";
 
@@ -29,16 +29,21 @@ export default function HomePage() {
 
   const communityIds = userCommunities.map((c) => c.id);
 
+  // Verify search state changes
+  useEffect(() => {
+    console.log('Search changed:', search);
+    console.log('Debounced search:', debouncedSearch);
+  }, [search, debouncedSearch]);
+
   const { data: items = [], isLoading } = useQuery<Item[]>({
-    queryKey: ["/api/items", { search: debouncedSearch, freeOnly: showFreeOnly }],
+    queryKey: ["/api/items", communityIds, debouncedSearch, showFreeOnly],
     queryFn: async () => {
       if (communityIds.length === 0) return [];
 
       const params = new URLSearchParams();
       params.append('communities', communityIds.join(','));
 
-      // Only add search param if there's actually a search term
-      if (debouncedSearch && debouncedSearch.trim()) {
+      if (debouncedSearch.trim()) {
         params.append('search', debouncedSearch.trim());
       }
 
