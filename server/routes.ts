@@ -333,8 +333,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       logger.debug('Raw query parameters:', {
         communityParam,
-        search: searchTerm,
-        freeOnly,
+        search: searchTerm ? `"${searchTerm}"` : 'undefined',
+        searchType: typeof search,
+        freeOnly: freeOnly === 'true' ? true : false,
         type: typeof communityParam
       });
 

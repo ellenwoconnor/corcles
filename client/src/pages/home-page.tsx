@@ -47,19 +47,19 @@ export default function HomePage() {
 
       const params = new URLSearchParams();
       params.append('communities', communityIds.join(','));
-      
+
       // Ensure search term is included when not empty
       if (debouncedSearch && debouncedSearch.trim() !== '') {
         params.append('search', debouncedSearch);
       }
-      
+
       // Add free only filter when enabled
       if (showFreeOnly) {
         params.append('freeOnly', 'true');
       }
 
       console.log('Fetching items with params:', params.toString());
-      
+
       const response = await fetch(`/api/items?${params.toString()}`);
       if (!response.ok) {
         throw new Error('Failed to fetch items');
@@ -68,6 +68,22 @@ export default function HomePage() {
     },
     enabled: communityIds.length > 0,
   });
+
+  useEffect(() => {
+    const hasVisitedBefore = localStorage.getItem("hasVisitedBefore");
+    if (!hasVisitedBefore && userCommunities.length > 0) {
+      setShowWelcome(true);
+      localStorage.setItem("hasVisitedBefore", "true");
+    }
+  }, [userCommunities]);
+
+  // Debug log when search parameters change
+  useEffect(() => {
+    console.log('Search parameters changed:', {
+      debouncedSearch,
+      showFreeOnly
+    });
+  }, [debouncedSearch, showFreeOnly]);
 
   return (
     <div className="min-h-screen bg-background">
