@@ -46,7 +46,7 @@ const formSchema = insertItemSchema._def.schema.extend({
   communityId: z.number({
     required_error: "Please select a community",
   }),
-  imageFile: z.instanceof(File, { message: "Please upload an image" })
+  imageFile: z.instanceof(File, { message: "Please upload an image" }),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -66,9 +66,9 @@ export default function CreateListingDialog({
       description: "",
       price: undefined,
       isGift: true,
-      communityId: communities.find(c => !c.isCustom)?.id,
+      communityId: communities.find((c) => !c.isCustom)?.id,
       userId: user?.id,
-      imageFile: undefined
+      imageFile: undefined,
     },
   });
 
@@ -79,26 +79,26 @@ export default function CreateListingDialog({
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
-      form.setValue('imageFile', file);
+      form.setValue("imageFile", file);
     } else {
       setImagePreview(null);
-      form.setValue('imageFile', undefined);
+      form.setValue("imageFile", undefined);
     }
   };
 
   const createItemMutation = useMutation({
     mutationFn: async (data: FormData) => {
       const formData = new FormData();
-      formData.append('title', data.title);
-      formData.append('description', data.description || '');
-      formData.append('isGift', String(data.isGift));
-      formData.append('price', data.isGift ? '0' : String(data.price || 0));
-      formData.append('communityId', String(data.communityId));
-      formData.append('userId', String(user?.id));
-      formData.append('imageFile', data.imageFile);
+      formData.append("title", data.title);
+      formData.append("description", data.description || "");
+      formData.append("isGift", String(data.isGift));
+      formData.append("price", data.isGift ? "0" : String(data.price || 0));
+      formData.append("communityId", String(data.communityId));
+      formData.append("userId", String(user?.id));
+      formData.append("imageFile", data.imageFile);
 
-      const response = await fetch('/api/items', {
-        method: 'POST',
+      const response = await fetch("/api/items", {
+        method: "POST",
         body: formData,
       });
 
@@ -143,6 +143,7 @@ export default function CreateListingDialog({
             Add details about the item you want to share or sell
           </DialogDescription>
         </DialogHeader>
+        <p>does it show</p>
         <Form {...form}>
           <form onSubmit={onSubmit} className="space-y-4">
             <FormField
@@ -302,7 +303,13 @@ export default function CreateListingDialog({
                         step="0.01"
                         placeholder="Enter price in dollars"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value === ""
+                              ? undefined
+                              : Number(e.target.value),
+                          )
+                        }
                       />
                     </FormControl>
                     <FormMessage />
