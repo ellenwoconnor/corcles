@@ -47,9 +47,19 @@ export default function HomePage() {
 
       const params = new URLSearchParams();
       params.append('communities', communityIds.join(','));
-      if (debouncedSearch) params.append('search', debouncedSearch);
-      if (showFreeOnly) params.append('freeOnly', 'true');
+      
+      // Ensure search term is included when not empty
+      if (debouncedSearch && debouncedSearch.trim() !== '') {
+        params.append('search', debouncedSearch);
+      }
+      
+      // Add free only filter when enabled
+      if (showFreeOnly) {
+        params.append('freeOnly', 'true');
+      }
 
+      console.log('Fetching items with params:', params.toString());
+      
       const response = await fetch(`/api/items?${params.toString()}`);
       if (!response.ok) {
         throw new Error('Failed to fetch items');

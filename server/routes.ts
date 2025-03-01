@@ -329,11 +329,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/items", requireAuth, async (req, res) => {
     try {
       const { search, communities: communityParam, freeOnly } = req.query;
-      const searchTerm = typeof search === 'string' ? search : undefined;
+      const searchTerm = typeof search === 'string' ? search.trim() : undefined;
 
       logger.debug('Raw query parameters:', {
         communityParam,
-        search,
+        search: searchTerm,
         freeOnly,
         type: typeof communityParam
       });
@@ -352,6 +352,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "At least one valid community ID is required" });
       }
 
+      // Log search term for debugging
+      if (searchTerm) {
+        logger.info('Searching items with term:', { searchTerm });
+      }
+
       const items = await storage.getItems(
         communities,
         req.user?.id,
@@ -362,6 +367,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       logger.debug('Items fetched:', {
         communities,
+        searchTerm: searchTerm || 'none',
+        freeOnly: freeOnly === 'true',
         itemCount: items.length
       });
 
