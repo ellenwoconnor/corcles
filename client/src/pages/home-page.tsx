@@ -8,11 +8,17 @@ import { WelcomeDialog } from "@/components/welcome-dialog";
 import { Loader2, Search, Gift } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import React, { useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import CommunityWishlists from "@/components/community-wishlists";
 
+// Add 'use client' directive for Next.js strict mode
+'use client';
+
 export default function HomePage() {
-  // Debug log at component mount/render
-  console.log('HomePage component rendering');
+  // Basic console.log to verify component mounting
+  if (process.env.NODE_ENV === 'development') {
+    console.log('HomePage component mounting');
+  }
 
   const { user } = useAuth();
   const [searchValue, setSearchValue] = useState("");
@@ -20,7 +26,9 @@ export default function HomePage() {
   const [showWelcome, setShowWelcome] = useState(false);
 
   // Debug log after state initialization
-  console.log('Current state values:', { searchValue, showFreeOnly });
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Current state values:', { searchValue, showFreeOnly });
+  }
 
   const { data: userCommunities = [] } = useQuery<
     (Community & { role: string; memberCount: number })[]
@@ -36,7 +44,9 @@ export default function HomePage() {
     queryFn: async () => {
       if (communityIds.length === 0) return [];
 
-      console.log("Making API request with search:", searchValue);
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Making API request with search:", searchValue);
+      }
 
       const params = new URLSearchParams();
       params.append('communities', communityIds.join(','));
@@ -82,7 +92,9 @@ export default function HomePage() {
             value={searchValue}
             onChange={(e) => {
               const newValue = e.target.value;
-              console.log("Input change event:", newValue);
+              if (process.env.NODE_ENV === 'development') {
+                console.log("Search input change:", newValue);  // Debug log
+              }
               setSearchValue(newValue);
             }}
             placeholder="Search items..."

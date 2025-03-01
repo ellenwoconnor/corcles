@@ -13,6 +13,9 @@ import CommunitiesPage from "@/pages/communities-page";
 import WishlistsPage from "@/pages/wishlists-page";
 
 function Router() {
+  // Add debug log
+  console.log('Router component rendering');
+
   return (
     <Switch>
       <ProtectedRoute path="/" component={HomePage} />
@@ -27,6 +30,9 @@ function Router() {
 }
 
 function App() {
+  // Add debug log
+  console.log('App component mounting');
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
