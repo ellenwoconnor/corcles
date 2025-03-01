@@ -23,6 +23,10 @@ export default function HomePage() {
   // Force refetch when search terms change
   useEffect(() => {
     console.log('Search term changed to:', debouncedSearch);
+    
+    // Log to verify search term is properly captured
+    console.log('Search query will use term:', typeof debouncedSearch, debouncedSearch);
+    
     // Add a small delay to ensure the query key is updated before refetching
     const timer = setTimeout(() => {
       console.log('Triggering refetch for search:', debouncedSearch);
@@ -52,8 +56,8 @@ export default function HomePage() {
   const communityIds = userCommunities.map((c) => c.id);
 
   const { data: items = [], isLoading, refetch } = useQuery<Item[]>({
-    queryKey: ["/api/items", { communities: communityIds, search: debouncedSearch, freeOnly: showFreeOnly }],
-    refetchOnWindowFocus: true,
+    queryKey: ["/api/items", { communities: communityIds, search: debouncedSearch || '', freeOnly: showFreeOnly }],
+    refetchOnWindowFocus: false,
     refetchInterval: 0,
     staleTime: 0,
     queryFn: async ({ queryKey }) => {
@@ -65,9 +69,13 @@ export default function HomePage() {
       const urlParams = new URLSearchParams();
       urlParams.append('communities', communities.join(','));
 
-      // Always include the search parameter
+      // Always include the search parameter with proper null/undefined handling
       console.log(`Search value before adding to params: "${search}"`);
-      urlParams.append('search', search || '');
+      if (search !== null && search !== undefined) {
+        urlParams.append('search', search);
+      } else {
+        urlParams.append('search', '');
+      }
 
       if (freeOnly) {
         urlParams.append('freeOnly', 'true');
