@@ -20,6 +20,12 @@ export default function HomePage() {
   const [showWelcome, setShowWelcome] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
 
+  // Log search state changes
+  useEffect(() => {
+    console.log('Raw search value:', search);
+    console.log('Debounced search value:', debouncedSearch);
+  }, [search, debouncedSearch]);
+
   const { data: userCommunities = [] } = useQuery<
     (Community & { role: string; memberCount: number })[]
   >({
@@ -68,9 +74,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      {showWelcome && (
-        <WelcomeDialog communities={userCommunities} />
-      )}
+      {showWelcome && <WelcomeDialog communities={userCommunities} />}
       <main className="container py-12 px-8">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
           <div>
@@ -90,7 +94,10 @@ export default function HomePage() {
             <Input
               placeholder="Search items..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                console.log('Search input changed to:', e.target.value);
+                setSearch(e.target.value);
+              }}
               className="pl-10"
             />
           </div>
@@ -132,7 +139,9 @@ export default function HomePage() {
         <div className="mt-16">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
             <div>
-              <h2 className="text-3xl font-bold tracking-tight">Community Wishlists</h2>
+              <h2 className="text-3xl font-bold tracking-tight">
+                Community Wishlists
+              </h2>
               <p className="text-muted-foreground">
                 Items your neighbors are looking for
               </p>
