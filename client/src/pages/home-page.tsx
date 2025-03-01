@@ -20,10 +20,16 @@ export default function HomePage() {
   const [showWelcome, setShowWelcome] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
 
-  // Log search state changes
+  // Log state changes to localStorage for persistence
   useEffect(() => {
-    console.log('Raw search value:', search);
-    console.log('Debounced search value:', debouncedSearch);
+    const timestamp = new Date().toISOString();
+    const logEntry = {
+      timestamp,
+      search,
+      debouncedSearch
+    };
+    localStorage.setItem('searchLog', JSON.stringify(logEntry));
+    console.log('Search State Updated:', logEntry);
   }, [search, debouncedSearch]);
 
   const { data: userCommunities = [] } = useQuery<
@@ -95,8 +101,12 @@ export default function HomePage() {
               placeholder="Search items..."
               value={search}
               onChange={(e) => {
-                console.log('Search input changed to:', e.target.value);
-                setSearch(e.target.value);
+                const newValue = e.target.value;
+                console.log('Search input changing to:', newValue);
+                // Force a log to localStorage for debugging
+                localStorage.setItem('lastSearchInput', newValue);
+                localStorage.setItem('searchTimestamp', new Date().toISOString());
+                setSearch(newValue);
               }}
               className="pl-10"
             />
