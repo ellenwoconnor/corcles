@@ -30,7 +30,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertItemSchema, type Community } from "@shared/schema";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { Image as ImageIcon, Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useState } from "react";
@@ -47,7 +47,7 @@ const formSchema = (insertItemSchema as z.ZodEffects<z.ZodObject<any>>)
     communityId: z.number({
       required_error: "Please select a community",
     }),
-    imageFile: z.instanceof(File, { message: "Please upload an image" }),
+    imageFile: z.instanceof(File, { message: "Please upload an image" })
   });
 
 type FormData = z.infer<typeof formSchema>;
@@ -58,7 +58,6 @@ export default function CreateListingDialog({
   const { user } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -67,38 +66,24 @@ export default function CreateListingDialog({
       description: "",
       price: undefined,
       isGift: true,
-      communityId: communities.find((c) => !c.isCustom)?.id,
-      userId: user?.id,
+      communityId: communities.find(c => !c.isCustom)?.id,
+      userId: user?.id
     },
   });
-
-  const handleImageChange = (file: File | null) => {
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-      form.setValue("imageFile", file);
-    } else {
-      setImagePreview(null);
-      form.setValue("imageFile", undefined as any);
-    }
-  };
 
   const createItemMutation = useMutation({
     mutationFn: async (data: FormData) => {
       const formData = new FormData();
-      formData.append("title", data.title);
-      formData.append("description", data.description || "");
-      formData.append("isGift", String(data.isGift));
-      formData.append("price", data.isGift ? "0" : String(data.price || 0));
-      formData.append("communityId", String(data.communityId));
-      formData.append("userId", String(user?.id));
-      formData.append("imageFile", data.imageFile);
+      formData.append('title', data.title);
+      formData.append('description', data.description || '');
+      formData.append('isGift', String(data.isGift));
+      formData.append('price', data.isGift ? '0' : String(data.price || 0));
+      formData.append('communityId', String(data.communityId));
+      formData.append('userId', String(user?.id));
+      formData.append('imageFile', data.imageFile);
 
-      const response = await fetch("/api/items", {
-        method: "POST",
+      const response = await fetch('/api/items', {
+        method: 'POST',
         body: formData,
       });
 
@@ -112,7 +97,6 @@ export default function CreateListingDialog({
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
       setOpen(false);
       form.reset();
-      setImagePreview(null);
       toast({
         title: "Success",
         description: "Listing created successfully",
@@ -157,19 +141,12 @@ export default function CreateListingDialog({
                       accept="image/*"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
-                        handleImageChange(file || null);
+                        if (file) {
+                          field.onChange(file);
+                        }
                       }}
                     />
                   </FormControl>
-                  {imagePreview && (
-                    <div className="mt-2">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="h-[200px] w-full rounded-lg object-cover"
-                      />
-                    </div>
-                  )}
                   <FormMessage />
                 </FormItem>
               )}
@@ -275,13 +252,7 @@ export default function CreateListingDialog({
                         step="0.01"
                         placeholder="Enter price in dollars"
                         {...field}
-                        onChange={(e) =>
-                          field.onChange(
-                            e.target.value === ""
-                              ? undefined
-                              : Number(e.target.value),
-                          )
-                        }
+                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />
