@@ -47,12 +47,14 @@ const formSchema = (insertItemSchema as z.ZodEffects<z.ZodObject<any>>)
     communityId: z.number({
       required_error: "Please select a community",
     }),
-    imageFile: z.instanceof(File, { message: "Please upload an image" })
+    imageFile: z.instanceof(File, { message: "Please upload an image" }),
   });
 
 type FormData = z.infer<typeof formSchema>;
 
-export default function CreateListingDialog({ communities }: CreateListingDialogProps) {
+export default function CreateListingDialog({
+  communities,
+}: CreateListingDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -65,8 +67,8 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
       description: "",
       price: undefined,
       isGift: true,
-      communityId: communities.find(c => !c.isCustom)?.id,
-      userId: user?.id
+      communityId: communities.find((c) => !c.isCustom)?.id,
+      userId: user?.id,
     },
   });
 
@@ -77,26 +79,26 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
         setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
-      form.setValue('imageFile', file);
+      form.setValue("imageFile", file);
     } else {
       setImagePreview(null);
-      form.setValue('imageFile', undefined as any);
+      form.setValue("imageFile", undefined as any);
     }
   };
 
   const createItemMutation = useMutation({
     mutationFn: async (data: FormData) => {
       const formData = new FormData();
-      formData.append('title', data.title);
-      formData.append('description', data.description || '');
-      formData.append('isGift', String(data.isGift));
-      formData.append('price', data.isGift ? '0' : String(data.price || 0));
-      formData.append('communityId', String(data.communityId));
-      formData.append('userId', String(user?.id));
-      formData.append('imageFile', data.imageFile);
+      formData.append("title", data.title);
+      formData.append("description", data.description || "");
+      formData.append("isGift", String(data.isGift));
+      formData.append("price", data.isGift ? "0" : String(data.price || 0));
+      formData.append("communityId", String(data.communityId));
+      formData.append("userId", String(user?.id));
+      formData.append("imageFile", data.imageFile);
 
-      const response = await fetch('/api/items', {
-        method: 'POST',
+      const response = await fetch("/api/items", {
+        method: "POST",
         body: formData,
       });
 
@@ -122,7 +124,7 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
         description: error.message || "Failed to create listing",
         variant: "destructive",
       });
-    }
+    },
   });
 
   const onSubmit = form.handleSubmit((data) => {
@@ -160,21 +162,12 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
                     />
                   </FormControl>
                   {imagePreview && (
-                    <div className="relative mt-2">
+                    <div className="mt-2">
                       <img
                         src={imagePreview}
                         alt="Preview"
-                        className="max-h-[200px] w-full rounded-lg object-cover"
+                        className="h-[200px] w-full rounded-lg object-cover"
                       />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2"
-                        onClick={() => handleImageChange(null)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
                     </div>
                   )}
                   <FormMessage />
@@ -282,7 +275,13 @@ export default function CreateListingDialog({ communities }: CreateListingDialog
                         step="0.01"
                         placeholder="Enter price in dollars"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value === ""
+                              ? undefined
+                              : Number(e.target.value),
+                          )
+                        }
                       />
                     </FormControl>
                     <FormMessage />
