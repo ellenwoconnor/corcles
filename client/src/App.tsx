@@ -13,8 +13,8 @@ import CommunitiesPage from "@/pages/communities-page";
 import WishlistsPage from "@/pages/wishlists-page";
 
 function Router() {
-  // Add debug log
-  console.log('Router component rendering');
+  // Add visible alert to verify React is working
+  alert("React Router is mounting");
 
   return (
     <Switch>
@@ -30,8 +30,8 @@ function Router() {
 }
 
 function App() {
-  // Add debug log
-  console.log('App component mounting');
+  // Add visible alert to verify React is mounting
+  alert("React App is mounting");
 
   return (
     <QueryClientProvider client={queryClient}>
