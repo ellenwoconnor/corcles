@@ -19,6 +19,11 @@ export default function HomePage() {
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const debouncedSearch = useDebounce(search, 300);
+  
+  // Force refetch when search terms change
+  useEffect(() => {
+    console.log('Search term changed to:', debouncedSearch);
+  }, [debouncedSearch]);
 
   const { data: userCommunities = [] } = useQuery<
     (Community & { role: string; memberCount: number })[]
@@ -40,31 +45,31 @@ export default function HomePage() {
 
   const communityIds = userCommunities.map((c) => c.id);
 
-  const { data: items = [], isLoading } = useQuery<Item[]>({
+  const { data: items = [], isLoading, refetch } = useQuery<Item[]>({
     queryKey: ["/api/items", { communities: communityIds, search: debouncedSearch, freeOnly: showFreeOnly }],
-    staleTime: 0,
     refetchOnWindowFocus: true,
-    refetchOnMount: true,
     queryFn: async ({ queryKey }) => {
       const [_, params] = queryKey;
       const { communities, search, freeOnly } = params as { communities: number[], search: string, freeOnly: boolean };
 
       if (communities.length === 0) return [];
 
-      const params = new URLSearchParams();
-      params.append('communities', communities.join(','));
+      const urlParams = new URLSearchParams();
+      urlParams.append('communities', communities.join(','));
 
-      if (search?.trim()) {
-        params.append('search', search.trim());
+      if (search && search.trim()) {
+        urlParams.append('search', search.trim());
+        console.log('Added search param:', search.trim());
       }
 
       if (freeOnly) {
-        params.append('freeOnly', 'true');
+        urlParams.append('freeOnly', 'true');
       }
 
-      console.log('Fetching items with params:', params.toString());
+      const url = `/api/items?${urlParams.toString()}`;
+      console.log('Fetching items with URL:', url);
       
-      const response = await fetch(`/api/items?${params.toString()}`);
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error('Failed to fetch items');
       }

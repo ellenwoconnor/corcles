@@ -331,12 +331,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { search, communities: communityParam, freeOnly } = req.query;
       const searchTerm = typeof search === 'string' ? search.trim() : undefined;
 
-      logger.debug('Raw query parameters:', {
+      logger.info('Received search request:', {
+        rawQuery: req.url,
+        searchParam: search,
         communityParam,
-        search: searchTerm ? `"${searchTerm}"` : 'undefined',
+        searchTerm: searchTerm ? `"${searchTerm}"` : 'undefined',
         searchType: typeof search,
-        freeOnly: freeOnly === 'true' ? true : false,
-        type: typeof communityParam
+        freeOnly: freeOnly === 'true' ? true : false
       });
 
       let communities: number[] = [];
