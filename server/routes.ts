@@ -977,7 +977,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/apiapi/items/:id/bids", requireAuth, async (req, res) => {
+  app.get("/api/items/:id/bids", requireAuth, async (req, res) => {
     try {
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {

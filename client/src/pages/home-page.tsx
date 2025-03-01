@@ -41,7 +41,7 @@ export default function HomePage() {
   const communityIds = userCommunities.map((c) => c.id);
 
   const { data: items = [], isLoading } = useQuery<Item[]>({
-    queryKey: ["/api/items"],
+    queryKey: ["/api/items", communityIds, debouncedSearch, showFreeOnly],
     queryFn: async () => {
       if (communityIds.length === 0) return [];
 
