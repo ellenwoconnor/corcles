@@ -17,6 +17,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { X, Image as ImageIcon } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -63,6 +64,8 @@ export default function CreateListingDialog({
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("https://images.unsplash.com/photo-1737282836845-555d9214dfe4");
   const queryClient = useQueryClient();
 
   const form = useForm<FormData>({
@@ -77,6 +80,20 @@ export default function CreateListingDialog({
   });
 
   const isGift = form.watch("isGift");
+  
+  const handleImageChange = (file: File | null) => {
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      setImageFile(file);
+    } else {
+      setImagePreview("https://images.unsplash.com/photo-1737282836845-555d9214dfe4");
+      setImageFile(null);
+    }
+  };
 
   const onSubmit = async (data: FormData) => {
     console.log("Form submitted with data:", data);
@@ -124,17 +141,23 @@ export default function CreateListingDialog({
         return;
       }
 
-      // Since we can't upload a real file in this dialog, set a default image
-      // In a real app, you would handle file uploads properly
-      const response = await apiRequest("POST", "/api/items", {
-        ...itemData,
-        // This is a workaround since we can't actually upload files in this dialog
-        // The server would need to be modified to not require imageFile for this to work
-        title: itemData.title.trim(),
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('title', itemData.title.trim());
+      formData.append('description', itemData.description || '');
+      formData.append('isGift', String(itemData.isGift));
+      formData.append('price', itemData.isGift ? '0' : String(itemData.price || 0));
+      formData.append('imageUrl', itemData.imageUrl);
+      formData.append('userId', String(user.id));
+      formData.append('communityId', String(itemData.communityId));
+      
+      // Add the image file if available
+      if (imageFile) {
+        formData.append('imageFile', imageFile);
+      }
+
+      const response = await apiRequest("POST", "/api/items", formData, {
+        // Don't set Content-Type header, let browser set it with boundary
       });
       
       if (!response.ok) {
@@ -244,6 +267,58 @@ export default function CreateListingDialog({
                 </FormItem>
               )}
             />
+            
+            <FormItem>
+              <FormLabel>Item Image</FormLabel>
+              <FormControl>
+                <div className="space-y-4">
+                  <div className="flex justify-center px-6 py-10 border-2 border-dashed rounded-lg border-border">
+                    {imagePreview ? (
+                      <div className="relative">
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="max-h-[200px] rounded-lg object-cover"
+                        />
+                        {imagePreview !== "https://images.unsplash.com/photo-1737282836845-555d9214dfe4" && (
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute top-2 right-2"
+                            onClick={() => handleImageChange(null)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
+                        <div className="mt-4 flex text-sm leading-6 text-muted-foreground">
+                          <label
+                            htmlFor="create-image-upload"
+                            className="relative cursor-pointer rounded-md bg-background font-semibold text-primary"
+                          >
+                            <span>Upload an image</span>
+                            <input
+                              id="create-image-upload"
+                              type="file"
+                              className="sr-only"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                handleImageChange(file || null);
+                              }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </FormControl>
+            </FormItem>
             <FormField
               control={form.control}
               name="isGift"
