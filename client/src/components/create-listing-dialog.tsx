@@ -138,14 +138,11 @@ export default function CreateListingDialog({
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create New Listing</DialogTitle>
+          <DialogTitle>Create New Listingsff</DialogTitle>
           <DialogDescription>
             Add details about the item you want to share or sell
           </DialogDescription>
         </DialogHeader>
-        <div className="mb-4 p-2 bg-yellow-100 rounded-md text-black font-medium">
-          <p>does it show</p>
-        </div>
         <Form {...form}>
           <form onSubmit={onSubmit} className="space-y-4">
             <FormField
