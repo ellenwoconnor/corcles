@@ -98,6 +98,9 @@ export default function CreateListingDialog({
   const onSubmit = async (data: FormData) => {
     console.log("Form submitted with data:", data);
     
+    // Log entire form state for debugging
+    console.log("Form values:", form.getValues());
+    
     if (!user) {
       toast({
         variant: "destructive",
@@ -118,26 +121,34 @@ export default function CreateListingDialog({
     try {
       setIsLoading(true);
       
+      // Get values directly from form to ensure we have latest data
+      const formValues = form.getValues();
+      
       // Make sure we have the required fields and proper types
       const itemData = {
-        title: data.title || "",
-        description: data.description || "",
-        isGift: Boolean(data.isGift),
-        price: data.isGift ? 0 : (data.price || 0),
-        imageUrl: data.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4",
+        title: formValues.title || "",
+        description: formValues.description || "",
+        isGift: Boolean(formValues.isGift),
+        price: formValues.isGift ? 0 : (formValues.price || 0),
+        imageUrl: formValues.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4",
         userId: user.id,
-        communityId: Number(data.communityId)
+        communityId: Number(formValues.communityId)
       };
       
       console.log("Submitting item data:", itemData);
       
-      // Add title validation
-      if (!itemData.title.trim()) {
+      // Force title validation before submission
+      if (!itemData.title || !itemData.title.trim()) {
+        form.setError("title", {
+          type: "manual",
+          message: "Title is required",
+        });
         toast({
           variant: "destructive",
           title: "Validation error",
           description: "Title is required",
         });
+        setIsLoading(false);
         return;
       }
 
