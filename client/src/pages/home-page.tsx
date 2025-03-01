@@ -9,18 +9,16 @@ import { Loader2, Search, Gift } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import React, { useState, useEffect } from "react";
-import { useDebounce } from "@/hooks/use-debounce";
+import React, { useState } from "react";
 import CommunityWishlists from "@/components/community-wishlists";
 
 export default function HomePage() {
   const { user } = useAuth();
-  const [search, setSearch] = useState("");
+  const [searchValue, setSearchValue] = useState("");
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
 
-  // Remove debounce temporarily to test basic search
-  // const debouncedSearch = useDebounce(search, 300);
+  console.log("Current search value:", searchValue); // Debug log
 
   const { data: userCommunities = [] } = useQuery<
     (Community & { role: string; memberCount: number })[]
@@ -32,15 +30,17 @@ export default function HomePage() {
   const communityIds = userCommunities.map((c) => c.id);
 
   const { data: items = [], isLoading } = useQuery<Item[]>({
-    queryKey: ["/api/items", communityIds, search, showFreeOnly],
+    queryKey: ["/api/items", communityIds, searchValue, showFreeOnly],
     queryFn: async () => {
       if (communityIds.length === 0) return [];
+
+      console.log("Making API request with search:", searchValue); // Debug log
 
       const params = new URLSearchParams();
       params.append('communities', communityIds.join(','));
 
-      if (search) {
-        params.append('search', search);
+      if (searchValue.trim()) {
+        params.append('search', searchValue.trim());
       }
 
       if (showFreeOnly) {
@@ -55,6 +55,11 @@ export default function HomePage() {
     },
     enabled: communityIds.length > 0
   });
+
+  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
+    console.log("Search input event:", e.target.value); // Debug log
+    setSearchValue(e.target.value);
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -79,11 +84,8 @@ export default function HomePage() {
             <Input
               placeholder="Search items..."
               type="text"
-              value={search}
-              onChange={(e) => {
-                console.log("Search changed:", e.target.value);
-                setSearch(e.target.value);
-              }}
+              value={searchValue}
+              onChange={handleSearchChange}
               className="pl-10"
             />
           </div>
@@ -109,7 +111,7 @@ export default function HomePage() {
           <div className="text-center py-12">
             <h2 className="text-xl font-semibold mb-2">No items found</h2>
             <p className="text-muted-foreground">
-              {search
+              {searchValue
                 ? "Try adjusting your search terms"
                 : showFreeOnly
                   ? "No free items available in your communities yet"
