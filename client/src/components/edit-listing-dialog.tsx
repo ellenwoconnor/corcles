@@ -36,7 +36,8 @@ interface EditListingDialogProps {
 }
 
 // Create a schema that makes the image optional for editing
-const editSchema = insertItemSchema.extend({
+const editSchema = z.object({
+  ...insertItemSchema.shape,
   imageFile: z.instanceof(File).optional(),
 });
 
