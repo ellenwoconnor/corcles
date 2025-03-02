@@ -1,4 +1,4 @@
-import { S3Client } from '@aws-sdk/client-s3';
+import { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import multer from 'multer';
 import multerS3 from 'multer-s3';
@@ -85,8 +85,7 @@ export const uploadToDigitalOcean = multer({
   },
 });
 
-
-export async function uploadToDigitalOcean(file: Express.Multer.File) {
+export async function uploadFileToDigitalOcean(file: Express.Multer.File) {
   if (!isS3Configured() || !s3Client) {
     logger.error('S3 not configured for upload');
     throw new Error('S3 not properly configured');
@@ -147,38 +146,16 @@ export async function uploadToDigitalOcean(file: Express.Multer.File) {
   }
 }
 
-// Simple function to validate that S3 is properly configured
-export const isS3Configured = () => {
-    const configured = Boolean(
-        process.env.DO_SPACES_KEY &&
-        process.env.DO_SPACES_SECRET &&
-        process.env.DO_SPACES_ENDPOINT &&
-        process.env.DO_SPACES_BUCKET
-    );
-    
-    if (configured) {
-        try {
-            new URL(process.env.DO_SPACES_ENDPOINT);
-        } catch (error) {
-            logger.error('Invalid S3 endpoint URL:', {
-                endpoint: process.env.DO_SPACES_ENDPOINT,
-                error: error.message
-            });
-            return false;
-        }
-    }
-    return configured;
-};
-
 // Function to test S3 connection
 export const testS3Connection = async () => {
   try {
     if (!isS3Configured()) {
+      const missingVars = ['DO_SPACES_KEY', 'DO_SPACES_SECRET', 'DO_SPACES_ENDPOINT', 'DO_SPACES_BUCKET']
+        .filter(varName => !process.env[varName]);
       return { success: false, message: `Missing configuration: ${missingVars.join(', ')}` };
     }
 
     // List buckets is a simple operation to test connectivity
-    const { ListBucketsCommand } = await import('@aws-sdk/client-s3');
     await s3Client.send(new ListBucketsCommand({}));
 
     return { success: true, message: 'Successfully connected to Digital Ocean Spaces' };

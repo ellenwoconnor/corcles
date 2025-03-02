@@ -1,11 +1,10 @@
-
 import { testS3Connection } from './storage-do';
 import logger from './logger';
 
 async function runTest() {
   try {
     logger.info('Testing connection to Digital Ocean Spaces...');
-    
+
     // Check environment variables
     const requiredEnvVars = [
       'DO_SPACES_KEY',
@@ -13,9 +12,9 @@ async function runTest() {
       'DO_SPACES_BUCKET',
       'DO_SPACES_ENDPOINT'
     ];
-    
+
     const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
-    
+
     if (missingVars.length > 0) {
       logger.warn(`Missing environment variables: ${missingVars.join(', ')}`);
       logger.warn('Make sure these are set in your .env file or Replit Secrets');
@@ -24,10 +23,10 @@ async function runTest() {
       logger.info(`Endpoint: ${process.env.DO_SPACES_ENDPOINT}`);
       logger.info(`Bucket: ${process.env.DO_SPACES_BUCKET}`);
     }
-    
+
     // Test the connection
     const result = await testS3Connection();
-    
+
     if (result.success) {
       logger.info('✅ Connection to Digital Ocean Spaces successful!');
       logger.info(result.message);

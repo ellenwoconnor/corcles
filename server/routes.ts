@@ -24,7 +24,7 @@ import cookieParser from "cookie-parser";
 import passport from "passport";
 import { sendMail, generateCommunityInviteEmail } from './utils/mail';
 import { insertCommunityInviteSchema } from "@shared/schema";
-import { uploadToDigitalOcean, isS3Configured } from './storage-do';
+import { uploadToDigitalOcean, isS3Configured, uploadFileToDigitalOcean } from './storage-do';
 
 const PostgresSessionStore = connectPg(session);
 
