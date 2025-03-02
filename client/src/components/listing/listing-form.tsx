@@ -66,8 +66,6 @@ export function ListingForm({
     },
   });
 
-  const isGift = form.watch("isGift");
-
   const handleImageChange = (file: File | null) => {
     if (file) {
       const reader = new FileReader();
@@ -76,16 +74,15 @@ export function ListingForm({
       };
       reader.readAsDataURL(file);
       setImageFile(file);
+      form.setValue('imageUrl', ''); // Clear the imageUrl when we have a file
     } else {
       setImagePreview(defaultValues?.imageUrl || PLACEHOLDER_IMAGE);
       setImageFile(null);
+      form.setValue('imageUrl', PLACEHOLDER_IMAGE); // Reset to placeholder when no file
     }
   };
 
   const handleSubmit = async (data: any) => {
-    console.log("Form submitted with data:", data);
-    console.log("Form values:", form.getValues());
-
     // Get the current form values
     const formValues = form.getValues();
 
@@ -101,6 +98,8 @@ export function ListingForm({
     // Extract the actual uploaded image file if it exists
     await onSubmit(formValues, imageFile);
   };
+
+  const isGift = form.watch("isGift");
 
   return (
     <Form {...form}>

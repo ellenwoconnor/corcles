@@ -66,6 +66,7 @@ export default function CreateListingDialog({
       formData.append('price', data.isGift ? '0' : String(data.price || 0));
       formData.append('userId', String(user.id));
       formData.append('communityId', String(data.communityId));
+      formData.append('imageUrl', data.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4");
 
       // Only append imageFile if one was provided
       if (imageFile) {

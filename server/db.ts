@@ -4,7 +4,9 @@ import ws from "ws";
 import * as schema from "@shared/schema";
 import logger from './logger';
 
+// Configure WebSocket for Neon database
 neonConfig.webSocketConstructor = ws;
+logger.debug('Configured WebSocket constructor for Neon database');
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -12,11 +14,20 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Initialize database connection pool
+export const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL,
+  connectionTimeoutMillis: 5000, // 5 second timeout
+  max: 20 // Maximum number of clients to create
+});
+
+// Initialize Drizzle ORM
 export const db = drizzle({ client: pool, schema });
+logger.debug('Initialized Drizzle with database connection');
 
 // Run initial migration
 async function migrate() {
+  logger.info('Starting database migration');
   const migrations = [
     `CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -131,7 +142,7 @@ async function migrate() {
   for (const migration of migrations) {
     try {
       await pool.query(migration);
-      logger.info('Successfully executed migration:', { migration: migration });
+      logger.info('Successfully executed migration:', { migration });
     } catch (error) {
       logger.error('Error executing migration:', { error, migration });
       throw error;
@@ -140,4 +151,12 @@ async function migrate() {
 }
 
 // Run migrations on startup
-migrate().catch(console.error);
+migrate().catch(error => {
+  logger.error('Failed to run migrations:', error);
+  process.exit(1);
+});
+
+// Handle pool errors
+pool.on('error', (err) => {
+  logger.error('Unexpected error on idle client:', err);
+});

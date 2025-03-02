@@ -49,6 +49,7 @@ export function EditListingDialog({
       formData.append('price', data.formData.isGift ? '0' : String(data.formData.price || 0));
       formData.append('communityId', String(item.communityId));
       formData.append('userId', String(user?.id));
+      formData.append('imageUrl', data.formData.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4");
 
       if (data.imageFile) {
         formData.append('imageFile', data.imageFile);

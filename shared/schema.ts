@@ -162,9 +162,9 @@ export const insertItemSchema = createInsertSchema(items).omit({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
   price: z.number().nullable().optional(),
-  imageFile: z.instanceof(File, { message: "Please upload an image" }).refine((val) => val !== undefined, {message: "Image is required"}),
   userId: z.number(),
   communityId: z.number({ required_error: "Please select a community" }),
+  imageUrl: z.string().optional(),
 }).refine((data) => {
   if (!data.isGift && (!data.price || data.price < 0.01)) {
     return false;
