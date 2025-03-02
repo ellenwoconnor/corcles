@@ -400,11 +400,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // Setup multer for file uploads
-  const upload = multer({ 
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
-  });
+  // Import the S3 upload middleware
+  import { uploadMiddleware, uploadBufferToS3 } from './utils/s3';
+
+  // Setup multer for file uploads - use memory storage as fallback if S3 config is missing
+  const upload = process.env.DO_SPACES_KEY && process.env.DO_SPACES_SECRET
+    ? uploadMiddleware
+    : multer({ 
+        storage: multer.memoryStorage(),
+        limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+      });
 
   app.post("/api/items", requireAuth, upload.single('imageFile'), async (req, res) => {
     try {
@@ -417,21 +422,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Handle file upload if present
       if (req.file) {
         try {
-          // Generate a unique filename
-          const timestamp = Date.now();
-          const filename = `${timestamp}-${req.file.originalname.replace(/\s+/g, '-')}`;
-          
-          // Convert buffer to base64 for demo purposes
-          // In a production app, you would save this to cloud storage
-          const base64Image = req.file.buffer.toString('base64');
-          
-          // Create a data URL that can be used in img src
-          imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
+          if (process.env.DO_SPACES_KEY && process.env.DO_SPACES_SECRET) {
+            // If using S3 middleware, file location will be in req.file.location
+            if ('location' in req.file) {
+              imageUrl = req.file.location;
+              logger.debug('Image uploaded to S3:', { url: imageUrl });
+            } 
+            // For cases when using memory storage but we have S3 credentials
+            else if (req.file.buffer) {
+              imageUrl = await uploadBufferToS3(
+                req.file.buffer,
+                req.file.originalname,
+                req.file.mimetype
+              );
+              logger.debug('Image uploaded to S3 from buffer:', { url: imageUrl });
+            }
+          } else {
+            // Fallback to base64 encoding if S3 credentials are not provided
+            logger.debug('S3 credentials not found, using base64 encoding');
+            const base64Image = req.file.buffer.toString('base64');
+            imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
+          }
           
           logger.debug('Processed image upload:', {
             originalName: req.file.originalname,
             size: req.file.size,
-            mimeType: req.file.mimetype
+            mimeType: req.file.mimetype,
+            storage: process.env.DO_SPACES_KEY ? 'S3' : 'base64'
           });
         } catch (uploadError) {
           logger.error('Error processing uploaded image:', uploadError);
@@ -926,7 +943,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/items/:id", requireAuth, async (req, res) => {
+  app.patch("/api/items/:id", requireAuth, upload.single('imageFile'), async (req, res) => {
     try {
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
@@ -942,6 +959,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to edit this item" });
       }
 
+      // Handle file upload if present
+      let imageUrl = req.body.imageUrl;
+      if (req.file) {
+        try {
+          if (process.env.DO_SPACES_KEY && process.env.DO_SPACES_SECRET) {
+            // If using S3 middleware, file location will be in req.file.location
+            if ('location' in req.file) {
+              imageUrl = req.file.location;
+              logger.debug('Image uploaded to S3:', { url: imageUrl });
+            } 
+            // For cases when using memory storage but we have S3 credentials
+            else if (req.file.buffer) {
+              imageUrl = await uploadBufferToS3(
+                req.file.buffer,
+                req.file.originalname,
+                req.file.mimetype
+              );
+              logger.debug('Image uploaded to S3 from buffer:', { url: imageUrl });
+            }
+          } else {
+            // Fallback to base64 encoding if S3 credentials are not provided
+            logger.debug('S3 credentials not found, using base64 encoding');
+            const base64Image = req.file.buffer.toString('base64');
+            imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
+          }
+          
+          logger.debug('Processed image upload:', {
+            originalName: req.file.originalname,
+            size: req.file.size,
+            mimeType: req.file.mimetype,
+            storage: process.env.DO_SPACES_KEY ? 'S3' : 'base64'
+          });
+        } catch (uploadError) {
+          logger.error('Error processing uploaded image:', uploadError);
+          // Continue with existing image URL if upload fails
+        }
+      }
+
       const partialItemSchema = z.object({
         title: z.string().optional(),
         description: z.string().optional(),
@@ -950,10 +1005,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         imageUrl: z.string().optional(),
         community: z.string().optional()
       });
+      
       const data = {
         ...req.body,
         price: req.body.price ? Number(req.body.price) : undefined,
-        isGift: typeof req.body.isGift === 'boolean' ? req.body.isGift : undefined
+        isGift: typeof req.body.isGift === 'boolean' ? req.body.isGift : undefined,
+        imageUrl: imageUrl
       };
 
       const parseResult = partialItemSchema.safeParse(data);
