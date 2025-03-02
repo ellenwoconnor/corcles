@@ -8,6 +8,13 @@ import * as schema from "@shared/schema";
 import { ITEM_STATUS, REQUEST_STATUS } from "@shared/constants";
 import { z } from "zod";
 import { eq, and, not, or, inArray } from "drizzle-orm";
+import { 
+  insertItemBidSchema, 
+  insertItemRequestSchema,
+  insertItemSchema,
+  insertMessageSchema,
+  insertWishlistSchema 
+} from "@shared/schema";
 import { db } from "./db";
 import logger from './logger';
 import session from 'express-session';
@@ -17,6 +24,7 @@ import cookieParser from "cookie-parser";
 import passport from "passport";
 import { sendMail, generateCommunityInviteEmail } from './utils/mail';
 import { insertCommunityInviteSchema } from "@shared/schema";
+import { uploadToDigitalOcean, isS3Configured } from './storage-do';
 
 const PostgresSessionStore = connectPg(session);
 
@@ -328,13 +336,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/items", requireAuth, async (req, res) => {
     try {
       const { search, communities: communityParam, freeOnly } = req.query;
-      const searchTerm = typeof search === 'string' ? search : undefined;
+      const searchTerm = typeof search === 'string' ? search.trim() : undefined;
 
-      logger.debug('Raw query parameters:', {
+      // Always log search information for debugging
+      logger.info('Received search request:', {
+        rawQuery: req.url,
+        searchParam: search,
+        searchParamType: typeof search,
         communityParam,
-        search,
-        freeOnly,
-        type: typeof communityParam
+        searchTerm: searchTerm ? `"${searchTerm}"` : '(empty)',
+        freeOnly: freeOnly === 'true' ? true : false
+      });
+
+      // Always log search attempts - even if empty
+      logger.info('Search term detected in request', {
+        search: search !== undefined ? search : 'undefined',
+        searchTerm: searchTerm || 'empty',
+        emptySearch: !searchTerm || search === '',
+        searchIncluded: req.url.includes('search=')
       });
 
       let communities: number[] = [];
@@ -351,6 +370,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "At least one valid community ID is required" });
       }
 
+      // Log search term for debugging
+      if (searchTerm) {
+        logger.info('Searching items with term:', { searchTerm });
+      }
+
       const items = await storage.getItems(
         communities,
         req.user?.id,
@@ -361,6 +385,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       logger.debug('Items fetched:', {
         communities,
+        searchTerm: searchTerm || 'none',
+        freeOnly: freeOnly === 'true',
         itemCount: items.length
       });
 
@@ -375,19 +401,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  app.post("/api/items", requireAuth, async (req, res) => {
+  // Set up multer for handling file uploads - either to memory or Digital Ocean
+  const memoryUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB file size limit
+    },
+  });
+
+  // Determine which upload middleware to use based on configuration
+  const upload = isS3Configured() ? uploadToDigitalOcean : memoryUpload;
+
+  // Log which storage option is being used
+  logger.info(`Using ${isS3Configured() ? 'Digital Ocean Spaces' : 'memory storage'} for file uploads`);
+
+  app.post("/api/items", requireAuth, upload.single('imageFile'), async (req, res) => {
     try {
+      // Log received form data for debugging
+      logger.debug('Received form data:', req.body);
+      logger.debug('Received file:', req.file);
+
+      let imageUrl = req.body.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4";
+
+      // Handle file upload if present
+      if (req.file) {
+        try {
+          // If the file has a location property, it was uploaded to S3
+          if (req.file.location) {
+            // This is from multer-s3 - the file was uploaded to cloud storage
+            imageUrl = req.file.location;
+            logger.info('Image uploaded to cloud storage:', {
+              url: imageUrl,
+              originalName: req.file.originalname,
+              size: req.file.size
+            });
+          } else {
+            // Fallback to base64 encoding for development
+            // Generate a unique filename
+            const timestamp = Date.now();
+            const filename = `${timestamp}-${req.file.originalname.replace(/\s+/g, '-')}`;
+
+            // Convert buffer to base64 for demo purposes
+            const base64Image = req.file.buffer.toString('base64');
+
+            // Create a data URL that can be used in img src
+            imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
+
+            logger.debug('Processed image upload using base64 fallback:', {
+              originalName: req.file.originalname,
+              size: req.file.size,
+              mimeType: req.file.mimetype
+            });
+          }
+        } catch (uploadError) {
+          logger.error('Error processing uploaded image:', uploadError);
+          // Continue with default image if upload fails
+        }
+      }
+
+      // Parse form data values and convert types appropriately
       const data = {
-        ...req.body,
-        userId: req.user.id,
+        title: req.body.title?.trim(),
+        description: req.body.description || '',
+        isGift: req.body.isGift === 'true',
         price: req.body.price ? parseFloat(req.body.price) : undefined,
-        isGift: !!req.body.isGift,
+        userId: req.user?.id,
         communityId: parseInt(req.body.communityId),
+        imageUrl: imageUrl
       };
 
       logger.debug('Creating item with data:', data);
 
-      const parseResult = insertItemSchema.safeParse(data);
+      // Use a modified schema for API requests that doesn't require imageFile
+      const apiItemSchema = z.object({
+        title: z.string().min(1, "Title is required"),
+        description: z.string().optional(),
+        price: z.number().nullable().optional(),
+        isGift: z.boolean(),
+        imageUrl: z.string(),
+        userId: z.number(),
+        communityId: z.number({ required_error: "Please select a community" }),
+      }).refine((data) => {
+        if (!data.isGift && (!data.price || data.price < 0.01)) {
+          return false;
+        }
+        return true;
+      }, {
+        message: "Price must be greater than zero for non-free items",
+        path: ["price"],
+      });
+
+      const parseResult = apiItemSchema.safeParse(data);
 
       if (!parseResult.success) {
         logger.error('Item validation failed:', parseResult.error);
@@ -842,7 +946,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/items/:id", requireAuth, async (req, res) => {
+  app.patch("/api/items/:id", requireAuth, upload.single('imageFile'), async (req, res) => {
     try {
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
@@ -858,6 +962,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to edit this item" });
       }
 
+      // Handle file upload if present
+      let imageUrl = req.body.imageUrl;
+      if (req.file) {
+        try {
+          // If the file has a location property, it was uploaded to S3
+          if (req.file.location) {
+            // This is from multer-s3 - the file was uploaded to cloud storage
+            imageUrl = req.file.location;
+            logger.info('Image uploaded to cloud storage:', { url: imageUrl, originalName: req.file.originalname, size: req.file.size });
+          } else {
+            // Fallback to base64 encoding for development
+            // Generate a unique filename
+            const timestamp = Date.now();
+            const filename = `${timestamp}-${req.file.originalname.replace(/\s+/g, '-')}`;
+
+            // Convert buffer to base64 for demo purposes
+            const base64Image = req.file.buffer.toString('base64');
+
+            // Create a data URL that can be used in img src
+            imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
+
+            logger.debug('Processed image upload using base64 fallback:', {
+              originalName: req.file.originalname,
+              size: req.file.size,
+              mimeType: req.file.mimetype
+            });
+          }
+        } catch (uploadError) {
+          logger.error('Error processing uploaded image:', uploadError);
+          // Continue with existing image URL if upload fails
+        }
+      }
+
       const partialItemSchema = z.object({
         title: z.string().optional(),
         description: z.string().optional(),
@@ -866,10 +1003,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         imageUrl: z.string().optional(),
         community: z.string().optional()
       });
+
       const data = {
         ...req.body,
         price: req.body.price ? Number(req.body.price) : undefined,
-        isGift: typeof req.body.isGift === 'boolean' ? req.body.isGift : undefined
+        isGift: typeof req.body.isGift === 'boolean' ? req.body.isGift : undefined,
+        imageUrl: imageUrl
       };
 
       const parseResult = partialItemSchema.safeParse(data);
@@ -976,7 +1115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/apiapi/items/:id/bids", requireAuth, async (req, res) => {
+  app.get("/api/items/:id/bids", requireAuth, async (req, res) => {
     try {
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {

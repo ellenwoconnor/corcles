@@ -1,3 +1,9 @@
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { insertItemSchema } from "@shared/schema";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -7,278 +13,162 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { insertItemSchema, type Community } from "@shared/schema";
-import { useAuth } from "@/features/auth/hooks/use-auth";
-import { DollarSign, Gift, Loader2 } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useState } from "react";
-import { z } from "zod";
-import { useToast } from "@/hooks/use-toast";
-
-const MOCK_IMAGES = [
-  "https://images.unsplash.com/photo-1737282836845-555d9214dfe4",
-  "https://images.unsplash.com/photo-1523194258983-4ef0203f0c47",
-  "https://images.unsplash.com/photo-1477921749929-1b7a5d38b68a",
-  "https://images.unsplash.com/photo-1545147508-91576a5343a2",
-  "https://images.unsplash.com/photo-1737476813012-054eb34c53a9",
-  "https://images.unsplash.com/photo-1725278484721-b20373781f43",
-  "https://images.unsplash.com/photo-1509266145091-5e3e5ef88bc1",
-  "https://images.unsplash.com/photo-1627562309156-3056abea4fe9",
-];
+import { apiRequest } from "@/lib/queryClient";
+import { ListingForm } from "./listing/listing-form";
 
 interface CreateListingDialogProps {
-  communities: (Community & { role: string; memberCount: number })[];
+  communities: Array<{
+    id: number;
+    name: string;
+    role: string;
+    memberCount: number;
+  }>;
 }
 
-// Get the underlying schema from the ZodEffects wrapper
-const baseSchema = insertItemSchema instanceof z.ZodEffects
-  ? insertItemSchema._def.schema
-  : insertItemSchema;
-
-const formSchema = baseSchema.extend({
+// Create a schema for the form by combining insertItemSchema fields with additional ones
+const formSchema = z.object({
+  ...insertItemSchema._def.schema.shape, // Access the underlying schema shape
   communityId: z.number({
     required_error: "Please select a community",
   }),
+  imageFile: z.any().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
-export default function CreateListingDialog({ communities }: CreateListingDialogProps) {
+export default function CreateListingDialog({
+  communities,
+}: CreateListingDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
 
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      price: undefined,
-      isGift: true,
-      imageUrl: MOCK_IMAGES[Math.floor(Math.random() * MOCK_IMAGES.length)],
-      communityId: communities.find(c => !c.isCustom)?.id,
-      userId: user?.id
-    },
-    mode: "onChange"
-  });
-
-  const createItemMutation = useMutation({
-    mutationFn: async (data: FormData) => {
-      console.log('Submitting form data:', data);
-      const response = await apiRequest("POST", "/api/items", {
-        ...data,
-        price: data.isGift ? null : Number(data.price || 0),
-        communityId: Number(data.communityId),
-        userId: user?.id
-      });
-
-      console.log('API Response status:', response.status);
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('API Error:', error);
-        throw new Error(error.message || "Failed to create listing");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
-      setOpen(false);
-      form.reset();
+  const handleSubmit = async (data: FormData, imageFile: File | null) => {
+    if (!user) {
       toast({
-        title: "Success",
-        description: "Listing created successfully",
+        variant: "destructive",
+        title: "Authentication required",
+        description: "You must be logged in to create a listing.",
       });
-    },
-    onError: (error: Error) => {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      // Create FormData for the request
+      const formData = new FormData();
+
+      // Validate required fields before submission
+      if (!data.title) {
+        throw new Error("Title is required");
+      }
+
+      if (!data.communityId) {
+        throw new Error("Community selection is required");
+      }
+
+      // Debug the form data
+      console.log("Form data received:", data);
+
+      // Log complete form data before creating FormData
+      console.log("Complete form data before sending:", {
+        title: data.title,
+        description: data.description,
+        isGift: data.isGift,
+        price: data.price,
+        userId: user.id,
+        communityId: data.communityId,
+        imageUrl: data.imageUrl,
+        hasImageFile: !!imageFile
+      });
+      
+      formData.append("title", data.title.trim());
+      formData.append("description", data.description || "");
+      formData.append("isGift", String(data.isGift));
+      formData.append("price", data.isGift ? "0" : String(data.price || 0));
+      formData.append("userId", String(user.id));
+      // Ensure communityId is a valid number before converting to string
+      if (data.communityId === undefined || isNaN(data.communityId)) {
+        throw new Error("Community selection is required");
+      }
+      
+      formData.append("communityId", String(data.communityId));
+      console.log("Adding communityId to FormData:", data.communityId, typeof data.communityId);
+      formData.append(
+        "imageUrl",
+        data.imageUrl ||
+          "https://images.unsplash.com/photo-1737282836845-555d9214dfe4",
+      );
+
+      // Only append imageFile if one was provided
+      if (imageFile) {
+        formData.append("imageFile", imageFile);
+      }
+
+      // Log FormData entries for debugging
+      console.log("FormData entries:");
+      for (const pair of formData.entries()) {
+        console.log(`${pair[0]}: ${pair[1]}`);
+      }
+      
+      console.log("Submitting form data:", {
+        title: data.title,
+        isGift: data.isGift,
+        communityId: data.communityId,
+      });
+
+      const response = await apiRequest("POST", "/api/items", formData);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create listing");
+      }
+
+      setOpen(false);
+      toast({
+        title: "Success!",
+        description: "Your listing has been created.",
+      });
+
+      // Invalidate queries to refresh the listings
+      await queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/user/items"] });
+    } catch (error) {
       console.error("Failed to create listing:", error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to create listing",
         variant: "destructive",
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to create listing",
       });
+    } finally {
+      setIsLoading(false);
     }
-  });
-
-  const onSubmit = form.handleSubmit((data) => {
-    console.log('Form submitted with data:', data);
-    console.log('Form validation state:', form.formState);
-    if (form.formState.errors) {
-      console.log('Form errors:', form.formState.errors);
-    }
-    createItemMutation.mutate(data);
-  });
+  };
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(newOpen) => {
-        if (!newOpen) {
-          form.reset();
-        }
-        setOpen(newOpen);
-      }}
-    >
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>Create Listing</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[425px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Listing</DialogTitle>
           <DialogDescription>
-            Add details about the item you want to sell or gift
+            Add details about the item you want to share or sell
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form
-            onSubmit={onSubmit}
-            className="space-y-4"
-          >
-            <FormField
-              control={form.control}
-              name="communityId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Community</FormLabel>
-                  <Select
-                    onValueChange={(value) => field.onChange(parseInt(value))}
-                    defaultValue={field.value?.toString()}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a community" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {communities.map((community) => (
-                        <SelectItem
-                          key={community.id}
-                          value={community.id.toString()}
-                        >
-                          {community.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormDescription>
-                    Choose which community to list this item in
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description (optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="Describe the item's brand, dimensions, condition, or other relevant information."
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="isGift"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={(checked) => {
-                        field.onChange(checked);
-                        if (checked) form.setValue("price", undefined);
-                      }}
-                    />
-                    <FormLabel className="!mt-0">Free item</FormLabel>
-                  </div>
-                </FormItem>
-              )}
-            />
-
-            {!form.watch("isGift") && (
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Price</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        placeholder="Enter price in dollars (minimum $0.01)"
-                        {...field}
-                        value={field.value ?? ''}
-                        onChange={(e) => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={createItemMutation.isPending || !form.formState.isValid}
-            >
-              {createItemMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                "Create Listing"
-              )}
-            </Button>
-          </form>
-        </Form>
+        <ListingForm
+          mode="create"
+          communities={communities}
+          onSubmit={handleSubmit}
+          isLoading={isLoading}
+          schema={formSchema}
+          buttonText="Create Listing"
+        />
       </DialogContent>
     </Dialog>
   );

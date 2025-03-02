@@ -306,20 +306,7 @@ export class DatabaseStorage implements IStorage {
       // First select all fields from items table directly
       const query = db
         .select({
-          id: items.id,
-          title: items.title,
-          description: items.description,
-          price: items.price,
-          isGift: items.isGift,
-          imageUrl: items.imageUrl,
-          userId: items.userId,
-          communityId: items.communityId,
-          status: items.status,
-          createdAt: items.createdAt,
-          recipientId: items.recipientId,
-          pickupStart: items.pickupStart,
-          pickupEnd: items.pickupEnd,
-          proposedPickupWindows: items.proposedPickupWindows,
+          ...items,
           userDisplayName: sql<string>`(
             SELECT username FROM ${users} WHERE ${users.id} = ${items.userId}
           )`.as("userDisplayName"),
@@ -366,23 +353,18 @@ export class DatabaseStorage implements IStorage {
       });
 
       // Transform dates and handle null values
-      const transformedItems = results.map(item => ({
+      return results.map(item => ({
         ...item,
         proposedPickupWindows: item.proposedPickupWindows
-          ? (item.proposedPickupWindows as unknown as PickupWindow[])
+          ? (item.proposedPickupWindows as PickupWindow[])
           : undefined,
         pickupStart: item.pickupStart ? new Date(item.pickupStart).toISOString() : null,
         pickupEnd: item.pickupEnd ? new Date(item.pickupEnd).toISOString() : null,
         createdAt: new Date(item.createdAt).toISOString(),
-        userDisplayName: item.userDisplayName || "Anonymous"
+        userDisplayName: item.userDisplayName || "Anonymous",
+        userHasFavorited: item.userHasFavorited || false
       }));
 
-      logger.debug('Transformed items:', {
-        count: transformedItems.length,
-        sample: transformedItems.slice(0, 2)
-      });
-
-      return transformedItems;
     } catch (error) {
       logger.error('Error retrieving items:', { error, communities, search });
       throw error;
@@ -407,30 +389,18 @@ export class DatabaseStorage implements IStorage {
 
       if (!item) return undefined;
 
-      const processedItem = {
+      return {
         ...item,
         proposedPickupWindows: item.proposedPickupWindows
-          ? (item.proposedPickupWindows as unknown as PickupWindow[])
+          ? (item.proposedPickupWindows as PickupWindow[])
           : undefined,
         pickupStart: item.pickupStart ? new Date(item.pickupStart).toISOString() : null,
-        pickupEnd: item.pickupEnd ? new Date(item.pickupEnd).toISOString() : null
+        pickupEnd: item.pickupEnd ? new Date(item.pickupEnd).toISOString() : null,
+        createdAt: new Date(item.createdAt).toISOString(),
+        userDisplayName: item.userDisplayName || "Anonymous",
+        userHasFavorited: item.userHasFavorited || false
       };
 
-      logger.debug("getItem query result:", {
-        id,
-        userId,
-        found: !!processedItem,
-        item: {
-          id: processedItem.id,
-          title: processedItem.title,
-          status: processedItem.status,
-          pickupStart: processedItem.pickupStart,
-          pickupEnd: processedItem.pickupEnd,
-          proposedPickupWindows: processedItem.proposedPickupWindows
-        }
-      });
-
-      return processedItem as (Item & { userHasFavorited: boolean });
     } catch (error) {
       logger.error('Error retrieving item:', { error, id });
       throw error;
