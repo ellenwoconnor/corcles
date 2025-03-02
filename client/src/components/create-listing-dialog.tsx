@@ -152,24 +152,29 @@ export default function CreateListingDialog({
         return;
       }
 
-      // Create FormData for file upload
-      const formData = new FormData();
-      formData.append('title', itemData.title.trim());
-      formData.append('description', itemData.description || '');
-      formData.append('isGift', String(itemData.isGift));
-      formData.append('price', itemData.isGift ? '0' : String(itemData.price || 0));
-      formData.append('imageUrl', itemData.imageUrl);
-      formData.append('userId', String(user.id));
-      formData.append('communityId', String(itemData.communityId));
-      
-      // Add the image file if available
+      // Check if we're using a FormData approach (with file) or JSON approach
       if (imageFile) {
+        // Create FormData for file upload
+        const formData = new FormData();
+        formData.append('title', itemData.title.trim());
+        formData.append('description', itemData.description || '');
+        formData.append('isGift', String(itemData.isGift));
+        formData.append('price', itemData.isGift ? '0' : String(itemData.price || 0));
+        formData.append('imageUrl', itemData.imageUrl);
+        formData.append('userId', String(user.id));
+        formData.append('communityId', String(itemData.communityId));
         formData.append('imageFile', imageFile);
-      }
 
-      const response = await apiRequest("POST", "/api/items", formData, {
-        // Don't set Content-Type header, let browser set it with boundary
-      });
+        const response = await apiRequest("POST", "/api/items", formData, {
+          // Don't set Content-Type header, let browser set it with boundary
+        });
+      } else {
+        // Use JSON when no file is being uploaded
+        const response = await apiRequest("POST", "/api/items", itemData, {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -183,6 +188,7 @@ export default function CreateListingDialog({
         }
         
         throw new Error(errorMessage);
+      }
       }
 
       setOpen(false);
