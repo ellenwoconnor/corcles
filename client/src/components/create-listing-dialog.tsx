@@ -46,7 +46,6 @@ export default function CreateListingDialog({
   const queryClient = useQueryClient();
 
   const handleSubmit = async (data: FormData, imageFile: File | null) => {
-    console.log(">??", formData);
     if (!user) {
       toast({
         variant: "destructive",
