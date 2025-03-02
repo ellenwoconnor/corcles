@@ -68,8 +68,18 @@ export function ListingForm({
   });
 
   const watchIsGift = form.watch('isGift');
+  
+  // Debug form values on changes
+  form.watch((value, { name, type }) => {
+    if (type === "change") {
+      console.log(`Form field '${name}' changed:`, value);
+    }
+    return value;
+  });
 
   const handleSubmit = (data: any) => {
+    console.log("ListingForm handleSubmit - data:", data);
+    console.log("ListingForm handleSubmit - imageFile:", imageFile ? imageFile.name : "none");
     onSubmit(data, imageFile);
   };
 

@@ -73,6 +73,18 @@ export default function CreateListingDialog({
       // Debug the form data
       console.log("Form data received:", data);
 
+      // Log complete form data before creating FormData
+      console.log("Complete form data before sending:", {
+        title: data.title,
+        description: data.description,
+        isGift: data.isGift,
+        price: data.price,
+        userId: user.id,
+        communityId: data.communityId,
+        imageUrl: data.imageUrl,
+        hasImageFile: !!imageFile
+      });
+      
       formData.append("title", data.title.trim());
       formData.append("description", data.description || "");
       formData.append("isGift", String(data.isGift));
@@ -90,6 +102,12 @@ export default function CreateListingDialog({
         formData.append("imageFile", imageFile);
       }
 
+      // Log FormData entries for debugging
+      console.log("FormData entries:");
+      for (const pair of formData.entries()) {
+        console.log(`${pair[0]}: ${pair[1]}`);
+      }
+      
       console.log("Submitting form data:", {
         title: data.title,
         isGift: data.isGift,
