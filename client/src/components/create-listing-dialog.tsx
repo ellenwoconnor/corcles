@@ -80,9 +80,9 @@ export default function CreateListingDialog({
       console.log("Submitting item data:", itemData);
 
       // Force title validation before submission
-      if (!itemData.title || !itemData.title.trim()) {
+      if (!itemData.title || !itemData.title.trim() === '') {
         toast({
-          variant: "destructive",
+          variant: "destructive", 
           title: "Validation error",
           description: "Title is required",
         });
