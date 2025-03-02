@@ -400,8 +400,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  app.post("/api/items", requireAuth, async (req, res) => {
+  // Setup multer for file uploads
+  const upload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+  });
+
+  app.post("/api/items", requireAuth, upload.single('imageFile'), async (req, res) => {
     try {
+      // Log received form data for debugging
+      logger.debug('Received form data:', req.body);
+      
       // Parse form data values and convert types appropriately
       const data = {
         title: req.body.title?.trim(),

@@ -80,6 +80,8 @@ export function ListingForm({
   const handleSubmit = (data: any) => {
     console.log("ListingForm handleSubmit - data:", data);
     console.log("ListingForm handleSubmit - imageFile:", imageFile ? imageFile.name : "none");
+    console.log("ListingForm handleSubmit - communityId:", data.communityId, typeof data.communityId);
+    console.log("ListingForm handleSubmit - form validation state:", form.formState.isValid);
     onSubmit(data, imageFile);
   };
 

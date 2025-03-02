@@ -90,7 +90,13 @@ export default function CreateListingDialog({
       formData.append("isGift", String(data.isGift));
       formData.append("price", data.isGift ? "0" : String(data.price || 0));
       formData.append("userId", String(user.id));
+      // Ensure communityId is a valid number before converting to string
+      if (data.communityId === undefined || isNaN(data.communityId)) {
+        throw new Error("Community selection is required");
+      }
+      
       formData.append("communityId", String(data.communityId));
+      console.log("Adding communityId to FormData:", data.communityId, typeof data.communityId);
       formData.append(
         "imageUrl",
         data.imageUrl ||
