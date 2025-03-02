@@ -22,7 +22,7 @@ if (missingVars.length > 0) {
 
 // Initialize the S3 client for Digital Ocean Spaces
 const s3Client = new S3Client({
-  endpoint: process.env.DO_SPACES_ENDPOINT,
+  endpoint: `https://${process.env.DO_SPACES_NAME}.sfo2.digitaloceanspaces.com`,
   region: 'us-east-1', // DigitalOcean Spaces default region
   credentials: {
     accessKeyId: process.env.DO_SPACES_KEY || '',
