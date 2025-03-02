@@ -402,20 +402,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/items", requireAuth, async (req, res) => {
     try {
+      // Parse form data values and convert types appropriately
       const data = {
-        ...req.body,
-        userId: req.user.id,
+        title: req.body.title?.trim(),
+        description: req.body.description || '',
+        isGift: req.body.isGift === 'true',
         price: req.body.price ? parseFloat(req.body.price) : undefined,
-        isGift: !!req.body.isGift,
+        userId: req.user?.id,
         communityId: parseInt(req.body.communityId),
+        imageUrl: req.body.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4"
       };
 
       logger.debug('Creating item with data:', data);
 
       // Use a modified schema for API requests that doesn't require imageFile
       const apiItemSchema = z.object({
-        ...insertItemSchema.shape,
-        imageFile: z.any().optional(), // Make imageFile optional for API requests
         title: z.string().min(1, "Title is required"),
         description: z.string().optional(),
         price: z.number().nullable().optional(),
@@ -432,7 +433,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Price must be greater than zero for non-free items",
         path: ["price"],
       });
-      
+
       const parseResult = apiItemSchema.safeParse(data);
 
       if (!parseResult.success) {
@@ -942,7 +943,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (typeof windowIndex !== 'number') {
         return res.status(400).json({ error: "Window index is required" });
-}
+      }
 
       const item = await storage.getItem(itemId);
       if (!item) {
