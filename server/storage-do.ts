@@ -9,8 +9,7 @@ import logger from './logger';
 const requiredEnvVars = [
   'DO_SPACES_KEY',
   'DO_SPACES_SECRET',
-  'DO_SPACES_ENDPOINT',
-  'DO_SPACES_BUCKET'
+  'DO_SPACES_NAME'
 ];
 
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -22,7 +21,7 @@ if (missingVars.length > 0) {
 
 // Initialize the S3 client for Digital Ocean Spaces
 const s3Client = new S3Client({
-  endpoint: `https://${process.env.DO_SPACES_NAME}.sfo2.digitaloceanspaces.com`,
+  endpoint: 'https://sfo2.digitaloceanspaces.com',
   region: 'us-east-1', // DigitalOcean Spaces default region
   credentials: {
     accessKeyId: process.env.DO_SPACES_KEY || '',
@@ -34,7 +33,7 @@ const s3Client = new S3Client({
 export const uploadToDigitalOcean = multer({
   storage: multerS3({
     s3: s3Client,
-    bucket: process.env.DO_SPACES_BUCKET || '',
+    bucket: process.env.DO_SPACES_NAME || '',
     acl: 'public-read',
     key: (req, file, cb) => {
       // Generate a unique filename using UUID
