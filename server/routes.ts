@@ -24,6 +24,7 @@ import cookieParser from "cookie-parser";
 import passport from "passport";
 import { sendMail, generateCommunityInviteEmail } from './utils/mail';
 import { insertCommunityInviteSchema } from "@shared/schema";
+import { uploadToDigitalOcean, isS3Configured } from './storage-do';
 
 const PostgresSessionStore = connectPg(session);
 
@@ -346,7 +347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         searchTerm: searchTerm ? `"${searchTerm}"` : '(empty)',
         freeOnly: freeOnly === 'true' ? true : false
       });
-      
+
       // Always log search attempts - even if empty
       logger.info('Search term detected in request', {
         search: search !== undefined ? search : 'undefined',
@@ -400,62 +401,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
 
-  // Import the S3 upload middleware
-  import { uploadMiddleware, uploadBufferToS3 } from './utils/s3';
+  // Set up multer for handling file uploads - either to memory or Digital Ocean
+  const memoryUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB file size limit
+    },
+  });
 
-  // Setup multer for file uploads - use memory storage as fallback if S3 config is missing
-  const upload = process.env.DO_SPACES_KEY && process.env.DO_SPACES_SECRET
-    ? uploadMiddleware
-    : multer({ 
-        storage: multer.memoryStorage(),
-        limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
-      });
+  // Determine which upload middleware to use based on configuration
+  const upload = isS3Configured() ? uploadToDigitalOcean : memoryUpload;
+
+  // Log which storage option is being used
+  logger.info(`Using ${isS3Configured() ? 'Digital Ocean Spaces' : 'memory storage'} for file uploads`);
 
   app.post("/api/items", requireAuth, upload.single('imageFile'), async (req, res) => {
     try {
       // Log received form data for debugging
       logger.debug('Received form data:', req.body);
       logger.debug('Received file:', req.file);
-      
+
       let imageUrl = req.body.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4";
-      
+
       // Handle file upload if present
       if (req.file) {
         try {
-          if (process.env.DO_SPACES_KEY && process.env.DO_SPACES_SECRET) {
-            // If using S3 middleware, file location will be in req.file.location
-            if ('location' in req.file) {
-              imageUrl = req.file.location;
-              logger.debug('Image uploaded to S3:', { url: imageUrl });
-            } 
-            // For cases when using memory storage but we have S3 credentials
-            else if (req.file.buffer) {
-              imageUrl = await uploadBufferToS3(
-                req.file.buffer,
-                req.file.originalname,
-                req.file.mimetype
-              );
-              logger.debug('Image uploaded to S3 from buffer:', { url: imageUrl });
-            }
+          // If the file has a location property, it was uploaded to S3
+          if (req.file.location) {
+            // This is from multer-s3 - the file was uploaded to cloud storage
+            imageUrl = req.file.location;
+            logger.info('Image uploaded to cloud storage:', {
+              url: imageUrl,
+              originalName: req.file.originalname,
+              size: req.file.size
+            });
           } else {
-            // Fallback to base64 encoding if S3 credentials are not provided
-            logger.debug('S3 credentials not found, using base64 encoding');
+            // Fallback to base64 encoding for development
+            // Generate a unique filename
+            const timestamp = Date.now();
+            const filename = `${timestamp}-${req.file.originalname.replace(/\s+/g, '-')}`;
+
+            // Convert buffer to base64 for demo purposes
             const base64Image = req.file.buffer.toString('base64');
+
+            // Create a data URL that can be used in img src
             imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
+
+            logger.debug('Processed image upload using base64 fallback:', {
+              originalName: req.file.originalname,
+              size: req.file.size,
+              mimeType: req.file.mimetype
+            });
           }
-          
-          logger.debug('Processed image upload:', {
-            originalName: req.file.originalname,
-            size: req.file.size,
-            mimeType: req.file.mimetype,
-            storage: process.env.DO_SPACES_KEY ? 'S3' : 'base64'
-          });
         } catch (uploadError) {
           logger.error('Error processing uploaded image:', uploadError);
           // Continue with default image if upload fails
         }
       }
-      
+
       // Parse form data values and convert types appropriately
       const data = {
         title: req.body.title?.trim(),
@@ -963,34 +966,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let imageUrl = req.body.imageUrl;
       if (req.file) {
         try {
-          if (process.env.DO_SPACES_KEY && process.env.DO_SPACES_SECRET) {
-            // If using S3 middleware, file location will be in req.file.location
-            if ('location' in req.file) {
-              imageUrl = req.file.location;
-              logger.debug('Image uploaded to S3:', { url: imageUrl });
-            } 
-            // For cases when using memory storage but we have S3 credentials
-            else if (req.file.buffer) {
-              imageUrl = await uploadBufferToS3(
-                req.file.buffer,
-                req.file.originalname,
-                req.file.mimetype
-              );
-              logger.debug('Image uploaded to S3 from buffer:', { url: imageUrl });
-            }
+          // If the file has a location property, it was uploaded to S3
+          if (req.file.location) {
+            // This is from multer-s3 - the file was uploaded to cloud storage
+            imageUrl = req.file.location;
+            logger.info('Image uploaded to cloud storage:', { url: imageUrl, originalName: req.file.originalname, size: req.file.size });
           } else {
-            // Fallback to base64 encoding if S3 credentials are not provided
-            logger.debug('S3 credentials not found, using base64 encoding');
+            // Fallback to base64 encoding for development
+            // Generate a unique filename
+            const timestamp = Date.now();
+            const filename = `${timestamp}-${req.file.originalname.replace(/\s+/g, '-')}`;
+
+            // Convert buffer to base64 for demo purposes
             const base64Image = req.file.buffer.toString('base64');
+
+            // Create a data URL that can be used in img src
             imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
+
+            logger.debug('Processed image upload using base64 fallback:', {
+              originalName: req.file.originalname,
+              size: req.file.size,
+              mimeType: req.file.mimetype
+            });
           }
-          
-          logger.debug('Processed image upload:', {
-            originalName: req.file.originalname,
-            size: req.file.size,
-            mimeType: req.file.mimetype,
-            storage: process.env.DO_SPACES_KEY ? 'S3' : 'base64'
-          });
         } catch (uploadError) {
           logger.error('Error processing uploaded image:', uploadError);
           // Continue with existing image URL if upload fails
@@ -1005,7 +1003,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         imageUrl: z.string().optional(),
         community: z.string().optional()
       });
-      
+
       const data = {
         ...req.body,
         price: req.body.price ? Number(req.body.price) : undefined,
