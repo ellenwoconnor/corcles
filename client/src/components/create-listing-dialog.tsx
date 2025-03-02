@@ -60,6 +60,16 @@ export default function CreateListingDialog({
 
       // Create FormData for the request
       const formData = new FormData();
+      
+      // Validate required fields before submission
+      if (!data.title) {
+        throw new Error("Title is required");
+      }
+      
+      if (!data.communityId) {
+        throw new Error("Community selection is required");
+      }
+      
       formData.append('title', data.title.trim());
       formData.append('description', data.description || '');
       formData.append('isGift', String(data.isGift));
@@ -72,6 +82,12 @@ export default function CreateListingDialog({
       if (imageFile) {
         formData.append('imageFile', imageFile);
       }
+
+      console.log("Submitting form data:", {
+        title: data.title,
+        isGift: data.isGift,
+        communityId: data.communityId,
+      });
 
       const response = await apiRequest("POST", "/api/items", formData);
 

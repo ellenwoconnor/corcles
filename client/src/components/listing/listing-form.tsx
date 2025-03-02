@@ -307,3 +307,248 @@ export function ListingForm({
     </Form>
   );
 }
+import { useState, useRef } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Image as ImageIcon, Upload } from "lucide-react";
+
+interface ListingFormProps {
+  mode: "create" | "edit";
+  communities: Array<{
+    id: number;
+    name: string;
+    role: string;
+    memberCount: number;
+  }>;
+  schema: z.ZodType<any>;
+  defaultValues?: Record<string, any>;
+  onSubmit: (data: any, imageFile: File | null) => Promise<void>;
+  isLoading: boolean;
+  buttonText: string;
+}
+
+export function ListingForm({
+  mode,
+  communities,
+  schema,
+  defaultValues,
+  onSubmit,
+  isLoading,
+  buttonText,
+}: ListingFormProps) {
+  const [imagePreview, setImagePreview] = useState<string | null>(
+    defaultValues?.imageUrl || null
+  );
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+
+  const form = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      title: "",
+      description: "",
+      price: 0,
+      isGift: true,
+      imageUrl: "https://images.unsplash.com/photo-1737282836845-555d9214dfe4",
+      communityId: undefined,
+      ...defaultValues,
+    },
+  });
+
+  const isGift = form.watch("isGift");
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setImagePreview(event.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFormSubmit = async (data: any) => {
+    await onSubmit(data, imageFile);
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Title</FormLabel>
+              <FormControl>
+                <Input placeholder="What are you sharing?" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description (optional)</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Add details about your item..."
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="isGift"
+          render={({ field }) => (
+            <FormItem className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel>Free item</FormLabel>
+                <FormDescription>
+                  Are you giving this away for free?
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        {!isGift && (
+          <FormField
+            control={form.control}
+            name="price"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Price</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    {...field}
+                    onChange={(e) =>
+                      field.onChange(
+                        e.target.value ? parseFloat(e.target.value) : 0
+                      )
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        <FormField
+          control={form.control}
+          name="communityId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Community</FormLabel>
+              <Select
+                onValueChange={(value) => field.onChange(parseInt(value))}
+                defaultValue={field.value?.toString()}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a community" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {communities.map((community) => (
+                    <SelectItem
+                      key={community.id}
+                      value={community.id.toString()}
+                    >
+                      {community.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="space-y-2">
+          <FormLabel>Image</FormLabel>
+          <div
+            className="border rounded-md p-2 cursor-pointer flex items-center justify-center bg-muted/50 hover:bg-muted transition-colors"
+            onClick={() => imageInputRef.current?.click()}
+          >
+            {imagePreview ? (
+              <div className="aspect-square w-full relative overflow-hidden rounded-md">
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="object-cover w-full h-full"
+                />
+                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                  <Upload className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            ) : (
+              <div className="h-32 w-full flex flex-col items-center justify-center gap-2">
+                <ImageIcon className="h-10 w-10 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  Click to upload an image
+                </p>
+              </div>
+            )}
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageChange}
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end pt-4">
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? "Submitting..." : buttonText}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+}

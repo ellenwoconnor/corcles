@@ -43,6 +43,12 @@ export function EditListingDialog({
   const updateItemMutation = useMutation({
     mutationFn: async (data: {formData: FormData, imageFile: File | null}) => {
       const formData = new FormData();
+      
+      // Validate required fields before submission
+      if (!data.formData.title) {
+        throw new Error("Title is required");
+      }
+      
       formData.append('title', data.formData.title.trim());
       formData.append('description', data.formData.description || '');
       formData.append('isGift', String(data.formData.isGift));
@@ -54,6 +60,12 @@ export function EditListingDialog({
       if (data.imageFile) {
         formData.append('imageFile', data.imageFile);
       }
+      
+      console.log("Updating item with data:", {
+        title: data.formData.title,
+        isGift: data.formData.isGift,
+        communityId: item.communityId
+      });
 
       const response = await apiRequest("PATCH", `/api/items/${item.id}`, formData);
 
