@@ -82,9 +82,13 @@ export function ListingForm({
 
   const handleSubmit = async (data: any) => {
     console.log("Form submitted with data:", data);
+    console.log("Form values:", form.getValues());
 
+    // Get the current form values
+    const formValues = form.getValues();
+    
     // Validate title manually before submission
-    if (!data.title || data.title.trim() === '') {
+    if (!formValues.title || formValues.title.trim() === '') {
       form.setError("title", {
         type: "manual",
         message: "Title is required"
@@ -94,7 +98,7 @@ export function ListingForm({
 
     // Extract the actual uploaded image file if it exists
     const imageFile = fileInputRef.current?.files?.[0] || null;
-    await onSubmit(data, imageFile);
+    await onSubmit(formValues, imageFile);
   };
 
   // Add effect to log form errors for debugging
