@@ -275,23 +275,6 @@ export function ListingForm({
             )}
           />
         )}
-        <FormField
-          control={form.control}
-          name="title"
-          rules={{
-            required: "Title is required",
-            validate: (value) => (value && value.trim() !== "") || "Title cannot be empty"
-          }}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Title</FormLabel>
-              <FormControl>
-                <Input placeholder="Item title" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         <div className="pt-2">
           <Button type="submit" className="w-full" disabled={isLoading}>
