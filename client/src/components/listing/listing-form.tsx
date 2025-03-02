@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -51,6 +50,7 @@ export function ListingForm({
   const [imagePreview, setImagePreview] = useState<string>(
     defaultValues?.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4"
   );
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm({
     resolver: zodResolver(schema),
@@ -81,8 +81,32 @@ export function ListingForm({
   };
 
   const handleSubmit = async (data: any) => {
+    console.log("Form submitted with data:", data);
+
+    // Validate title manually before submission
+    if (!data.title || data.title.trim() === '') {
+      form.setError("title", {
+        type: "manual",
+        message: "Title is required"
+      });
+      return;
+    }
+
+    // Extract the actual uploaded image file if it exists
+    const imageFile = fileInputRef.current?.files?.[0] || null;
     await onSubmit(data, imageFile);
   };
+
+  // Add effect to log form errors for debugging
+  useEffect(() => {
+    const subscription = form.formState.subscribe(state => {
+      if (state.errors?.title) {
+        console.log("Form title error:", state.errors.title);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form.formState]);
 
   return (
     <Form {...form}>
@@ -116,7 +140,7 @@ export function ListingForm({
             </FormItem>
           )}
         />
-        
+
         {mode === 'create' && communities.length > 0 && (
           <FormField
             control={form.control}
@@ -149,7 +173,7 @@ export function ListingForm({
             )}
           />
         )}
-        
+
         <FormItem>
           <FormLabel>Item Image</FormLabel>
           <FormControl>
@@ -162,7 +186,7 @@ export function ListingForm({
                       alt="Preview"
                       className="max-h-[200px] rounded-lg object-cover"
                     />
-                    {imagePreview !== "https://images.unsplash.com/photo-1737282836845-555d9214dfe4" && 
+                    {imagePreview !== "https://images.unsplash.com/photo-1737282836845-555d9214dfe4" &&
                      imagePreview !== defaultValues?.imageUrl && (
                       <Button
                         type="button"
@@ -185,6 +209,7 @@ export function ListingForm({
                       >
                         <span>Upload an image</span>
                         <input
+                          ref={fileInputRef}
                           id={`${mode}-image-upload`}
                           type="file"
                           className="sr-only"
@@ -271,7 +296,7 @@ export function ListingForm({
             </FormItem>
           )}
         />
-        
+
         <div className="pt-2">
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? (
