@@ -410,6 +410,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Log received form data for debugging
       logger.debug('Received form data:', req.body);
+      logger.debug('Received file:', req.file);
+      
+      let imageUrl = req.body.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4";
+      
+      // Handle file upload if present
+      if (req.file) {
+        try {
+          // Generate a unique filename
+          const timestamp = Date.now();
+          const filename = `${timestamp}-${req.file.originalname.replace(/\s+/g, '-')}`;
+          
+          // Convert buffer to base64 for demo purposes
+          // In a production app, you would save this to cloud storage
+          const base64Image = req.file.buffer.toString('base64');
+          
+          // Create a data URL that can be used in img src
+          imageUrl = `data:${req.file.mimetype};base64,${base64Image}`;
+          
+          logger.debug('Processed image upload:', {
+            originalName: req.file.originalname,
+            size: req.file.size,
+            mimeType: req.file.mimetype
+          });
+        } catch (uploadError) {
+          logger.error('Error processing uploaded image:', uploadError);
+          // Continue with default image if upload fails
+        }
+      }
       
       // Parse form data values and convert types appropriately
       const data = {
@@ -419,7 +447,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         price: req.body.price ? parseFloat(req.body.price) : undefined,
         userId: req.user?.id,
         communityId: parseInt(req.body.communityId),
-        imageUrl: req.body.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4"
+        imageUrl: imageUrl
       };
 
       logger.debug('Creating item with data:', data);
