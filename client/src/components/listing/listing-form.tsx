@@ -62,6 +62,7 @@ export function ListingForm({
       isGift: true,
       imageUrl: '',
       userId: user?.id,
+      communityId: defaultValues.communityId || (communities.length > 0 ? communities[0].id : undefined),
       ...defaultValues,
     },
   });
@@ -84,9 +85,9 @@ export function ListingForm({
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Title</FormLabel>
+              <FormLabel>Title <span className="text-red-500">*</span></FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} required placeholder="Enter item title" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -181,6 +182,39 @@ export function ListingForm({
           />
         )}
 
+        {mode === 'create' && communities.length > 0 && (
+          <FormField
+            control={form.control}
+            name="communityId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Community <span className="text-red-500">*</span></FormLabel>
+                <Select
+                  onValueChange={(value) => field.onChange(Number(value))}
+                  defaultValue={field.value?.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a community" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {communities.map((community) => (
+                      <SelectItem
+                        key={community.id}
+                        value={community.id.toString()}
+                      >
+                        {community.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+        
         <FormField
           control={form.control}
           name="imageUrl"

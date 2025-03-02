@@ -70,6 +70,9 @@ export default function CreateListingDialog({
         throw new Error("Community selection is required");
       }
       
+      // Debug the form data
+      console.log("Form data received:", data);
+      
       formData.append('title', data.title.trim());
       formData.append('description', data.description || '');
       formData.append('isGift', String(data.isGift));
