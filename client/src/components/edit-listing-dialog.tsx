@@ -23,10 +23,10 @@ interface EditListingDialogProps {
   trigger?: React.ReactNode;
 }
 
-// Create a schema that makes the image optional for editing
+// Create a schema for editing that includes all fields from insertItemSchema
 const editSchema = z.object({
-  ...insertItemSchema.shape,
-  imageFile: z.instanceof(File).optional(),
+  ...insertItemSchema._def.schema.shape, // Access the underlying schema shape
+  imageFile: z.any().optional(),
 });
 
 type FormData = z.infer<typeof editSchema>;
@@ -43,7 +43,7 @@ export function EditListingDialog({
   const updateItemMutation = useMutation({
     mutationFn: async (data: {formData: FormData, imageFile: File | null}) => {
       const formData = new FormData();
-      formData.append('title', data.formData.title);
+      formData.append('title', data.formData.title.trim());
       formData.append('description', data.formData.description || '');
       formData.append('isGift', String(data.formData.isGift));
       formData.append('price', data.formData.isGift ? '0' : String(data.formData.price || 0));
@@ -54,9 +54,7 @@ export function EditListingDialog({
         formData.append('imageFile', data.imageFile);
       }
 
-      const response = await apiRequest("PATCH", `/api/items/${item.id}`, formData, {
-        // Don't set Content-Type header, let the browser set it with the boundary
-      });
+      const response = await apiRequest("PATCH", `/api/items/${item.id}`, formData);
 
       if (!response.ok) {
         const error = await response.json();
@@ -70,8 +68,8 @@ export function EditListingDialog({
       queryClient.invalidateQueries({ queryKey: ["/api/user/items"] });
 
       toast({
-        title: "Listing updated",
-        description: "Your listing has been successfully updated.",
+        title: "Success!",
+        description: "Your listing has been updated.",
       });
 
       setOpen(false);
@@ -79,15 +77,14 @@ export function EditListingDialog({
     onError: (error) => {
       console.error("Update failed:", error);
       toast({
-        title: "Error updating listing",
-        description: error.message || "There was a problem updating your listing.",
         variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update listing",
       });
     },
   });
 
   const handleSubmit = async (values: FormData, imageFile: File | null) => {
-    console.log('Form submitted with values:', values);
     updateItemMutation.mutate({formData: values, imageFile});
   };
 
@@ -123,7 +120,7 @@ export function EditListingDialog({
           defaultValues={defaultValues}
           onSubmit={handleSubmit}
           isLoading={updateItemMutation.isPending}
-          schema={editSchema.omit({ imageFile: true })}
+          schema={editSchema}
           buttonText="Update Listing"
         />
       </DialogContent>

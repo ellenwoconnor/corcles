@@ -17,17 +17,21 @@ import { apiRequest } from "@/lib/queryClient";
 import { ListingForm } from "./listing/listing-form";
 
 interface CreateListingDialogProps {
-  communities: (Community & { role: string; memberCount: number })[];
+  communities: Array<{
+    id: number;
+    name: string;
+    role: string;
+    memberCount: number;
+  }>;
 }
 
-// Create a schema that combines the insert schema with additional fields
-// Create a modified schema for the form that doesn't require imageFile
+// Create a schema for the form by combining insertItemSchema fields with additional ones
 const formSchema = z.object({
-  ...insertItemSchema.shape,
+  ...insertItemSchema._def.schema.shape, // Access the underlying schema shape
   communityId: z.number({
     required_error: "Please select a community",
   }),
-  imageFile: z.any().optional(), // Make imageFile optional in the form
+  imageFile: z.any().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -35,7 +39,6 @@ type FormData = z.infer<typeof formSchema>;
 export default function CreateListingDialog({
   communities,
 }: CreateListingDialogProps) {
-  console.log("CreateListingDialog rendering", { communities });
   const { user } = useAuth();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -43,8 +46,6 @@ export default function CreateListingDialog({
   const queryClient = useQueryClient();
 
   const handleSubmit = async (data: FormData, imageFile: File | null) => {
-    console.log("Form submitted with data:", data);
-
     if (!user) {
       toast({
         variant: "destructive",
@@ -54,112 +55,45 @@ export default function CreateListingDialog({
       return;
     }
 
-    if (!data.communityId) {
-      toast({
-        variant: "destructive",
-        title: "Validation error",
-        description: "Please select a community",
-      });
-      return;
-    }
-
     try {
       setIsLoading(true);
 
-      // Make sure we have the required fields and proper types
-      const itemData = {
-        title: data.title || "",
-        description: data.description || "",
-        isGift: Boolean(data.isGift),
-        price: data.isGift ? 0 : (data.price || 0),
-        imageUrl: data.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4",
-        userId: user.id,
-        communityId: Number(data.communityId)
-      };
+      // Create FormData for the request
+      const formData = new FormData();
+      formData.append('title', data.title.trim());
+      formData.append('description', data.description || '');
+      formData.append('isGift', String(data.isGift));
+      formData.append('price', data.isGift ? '0' : String(data.price || 0));
+      formData.append('userId', String(user.id));
+      formData.append('communityId', String(data.communityId));
 
-      console.log("Submitting item data:", itemData);
-
-      // Force title validation before submission
-      if (!itemData.title || itemData.title.trim() === '') {
-        form.setError("title", {
-          type: "manual",
-          message: "Title is required",
-        });
-        toast({
-          variant: "destructive", 
-          title: "Validation error",
-          description: "Title is required",
-        });
-        setIsLoading(false);
-        return;
+      // Only append imageFile if one was provided
+      if (imageFile) {
+        formData.append('imageFile', imageFile);
       }
 
-      // Check if we're using a FormData approach (with file) or JSON approach
-      if (imageFile) {
-        // Create FormData for file upload
-        const formData = new FormData();
-        formData.append('title', itemData.title.trim());
-        formData.append('description', itemData.description || '');
-        formData.append('isGift', String(itemData.isGift));
-        formData.append('price', itemData.isGift ? '0' : String(itemData.price || 0));
-        formData.append('imageUrl', itemData.imageUrl);
-        formData.append('userId', String(user.id));
-        formData.append('communityId', String(itemData.communityId));
-        formData.append('imageFile', imageFile);
+      const response = await apiRequest("POST", "/api/items", formData);
 
-        const response = await apiRequest("POST", "/api/items", formData, {
-          // Don't set Content-Type header, let browser set it with boundary
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          let errorMessage = "Failed to create listing";
-
-          // Extract error message from Zod validation errors if available
-          if (errorData.issues && errorData.issues.length > 0) {
-            errorMessage = errorData.issues.map(issue => issue.message).join(", ");
-          } else if (errorData.error) {
-            errorMessage = errorData.error;
-          }
-
-          throw new Error(errorMessage);
-        }
-      } else {
-        // Use JSON when no file is being uploaded
-        const response = await apiRequest("POST", "/api/items", itemData, {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          let errorMessage = "Failed to create listing";
-
-          // Extract error message from Zod validation errors if available
-          if (errorData.issues && errorData.issues.length > 0) {
-            errorMessage = errorData.issues.map(issue => issue.message).join(", ");
-          } else if (errorData.error) {
-            errorMessage = errorData.error;
-          }
-
-          throw new Error(errorMessage);
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create listing");
       }
 
       setOpen(false);
       toast({
-        title: "Listing created!",
-        description: "Your item has been successfully listed.",
+        title: "Success!",
+        description: "Your listing has been created.",
       });
-      // Invalidate queries to refresh the item list
-      queryClient.invalidateQueries(["/api/items"]);
+
+      // Invalidate queries to refresh the listings
+      await queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/user/items"] });
     } catch (error) {
       console.error("Failed to create listing:", error);
       toast({
         variant: "destructive",
-        title: "Failed to create listing",
-        description: error instanceof Error ? error.message : "There was an error creating your listing. Please try again.",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create listing",
       });
     } finally {
       setIsLoading(false);
