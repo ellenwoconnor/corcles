@@ -99,14 +99,10 @@ export function ListingForm({
 
   // Add effect to log form errors for debugging
   useEffect(() => {
-    const subscription = form.formState.subscribe(state => {
-      if (state.errors?.title) {
-        console.log("Form title error:", state.errors.title);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [form.formState]);
+    if (form.formState.errors?.title) {
+      console.log("Form title error:", form.formState.errors.title);
+    }
+  }, [form.formState.errors]);
 
   return (
     <Form {...form}>
