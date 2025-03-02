@@ -47,6 +47,19 @@ const sessionMiddleware = session({
   }
 });
 
+// Placeholder function - replace with your actual implementation
+function setupTestS3Routes(app: Express) {
+  app.get('/api/s3/test', async (req, res) => {
+    try {
+      const result = await uploadToDigitalOcean({buffer: Buffer.from('test'), originalname: 'test.txt'});
+      res.json({success: true, result});
+    } catch (error) {
+      res.status(500).json({error: 'S3 test failed', details: error});
+    }
+  });
+}
+
+
 export async function registerRoutes(app: Express): Promise<Server> {
   app.use(cookieParser());
   app.use(sessionMiddleware);
@@ -54,6 +67,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(passport.session());
 
   setupAuth(app);
+
+  // Setup S3 test routes
+  setupTestS3Routes(app);
 
   // Middleware to check authentication
   const requireAuth = (req: Request, res: Response, next: NextFunction) => {
@@ -872,7 +888,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/items/:id/confirm-pickup", requireAuth, async (req, res) => {
+  app.post("/api/items/:id/confirm-pickup", requireAuth, async (req, res) =>{
     try {
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
@@ -890,8 +906,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const [request] = await db
-        .select()
-        .from(schema.itemRequests)
+        .select()        .from(schema.itemRequests)
         .where(
           and(
             eq(schema.itemRequests.itemId, itemId),

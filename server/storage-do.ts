@@ -9,7 +9,8 @@ import logger from './logger';
 const requiredEnvVars = [
   'DO_SPACES_KEY',
   'DO_SPACES_SECRET',
-  'DO_SPACES_NAME'
+  'DO_SPACES_NAME',
+  'DO_SPACES_ENDPOINT'
 ];
 
 const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
@@ -19,9 +20,13 @@ if (missingVars.length > 0) {
   logger.warn('Image uploads will not work with Digital Ocean Spaces');
 }
 
+// Configure endpoint - use environment variable or fallback to default
+const endpoint = process.env.DO_SPACES_ENDPOINT || 'https://sfo2.digitaloceanspaces.com';
+logger.info(`Using Digital Ocean Spaces endpoint: ${endpoint}`);
+
 // Initialize the S3 client for Digital Ocean Spaces
 const s3Client = new S3Client({
-  endpoint: 'https://sfo2.digitaloceanspaces.com',
+  endpoint: endpoint,
   region: 'us-east-1', // DigitalOcean Spaces default region
   credentials: {
     accessKeyId: process.env.DO_SPACES_KEY || '',
@@ -40,7 +45,9 @@ export const uploadToDigitalOcean = multer({
       const filename = `${uuidv4()}-${file.originalname.replace(/\s+/g, '-')}`;
       // Store in a folder based on content type
       const folder = file.mimetype.startsWith('image/') ? 'images' : 'files';
-      cb(null, `${folder}/${filename}`);
+      const key = `${folder}/${filename}`;
+      logger.debug(`Generated key for upload: ${key}`);
+      cb(null, key);
     },
     contentType: multerS3.AUTO_CONTENT_TYPE,
   }),
@@ -51,3 +58,25 @@ export const uploadToDigitalOcean = multer({
 
 // Simple function to validate that S3 is properly configured
 export const isS3Configured = () => !missingVars.length;
+
+// Function to test S3 connection
+export const testS3Connection = async () => {
+  try {
+    if (!isS3Configured()) {
+      return { success: false, message: `Missing configuration: ${missingVars.join(', ')}` };
+    }
+    
+    // List buckets is a simple operation to test connectivity
+    const { ListBucketsCommand } = await import('@aws-sdk/client-s3');
+    await s3Client.send(new ListBucketsCommand({}));
+    
+    return { success: true, message: 'Successfully connected to Digital Ocean Spaces' };
+  } catch (error) {
+    logger.error('Failed to connect to Digital Ocean Spaces:', error);
+    return { 
+      success: false, 
+      message: `Connection failed: ${error.message}`,
+      error
+    };
+  }
+};
