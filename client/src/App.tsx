@@ -11,12 +11,8 @@ import ListingPage from "@/pages/listing-page";
 import ProfilePage from "@/pages/profile-page";
 import CommunitiesPage from "@/pages/communities-page";
 import WishlistsPage from "@/pages/wishlists-page";
-// Placeholder components - replace with actual components
-
-// Note: Missing component imports removed
-import S3TestPage from "@/components/admin/s3-test"; // Using existing component
-import { useAuth } from "@/features/auth/hooks/use-auth";
-
+// Import the S3 test component directly
+import S3TestComponent from "@/components/admin/s3-test";
 
 function Router() {
   return (
@@ -28,7 +24,7 @@ function Router() {
       <ProtectedRoute path="/wishlists" component={WishlistsPage} />
       <Route path="/auth" component={AuthPage} />
       {/* Favorites route removed - missing component */}
-      <ProtectedRoute path="/admin/s3-test" component={() => <S3TestPage />} />
+      <ProtectedRoute path="/admin/s3-test" component={S3TestComponent} />
       <Route component={NotFound} />
     </Switch>
   );
