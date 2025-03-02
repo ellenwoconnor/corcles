@@ -182,39 +182,7 @@ export function ListingForm({
           />
         )}
 
-        {mode === 'create' && communities.length > 0 && (
-          <FormField
-            control={form.control}
-            name="communityId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Community <span className="text-red-500">*</span></FormLabel>
-                <Select
-                  onValueChange={(value) => field.onChange(Number(value))}
-                  defaultValue={field.value?.toString()}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a community" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {communities.map((community) => (
-                      <SelectItem
-                        key={community.id}
-                        value={community.id.toString()}
-                      >
-                        {community.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-        
+
         <FormField
           control={form.control}
           name="imageUrl"
