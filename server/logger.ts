@@ -68,35 +68,12 @@ export const requestLogger = (req: any, res: any, next: any) => {
   // Log all requests in production, not just API requests
   const start = Date.now();
 
-  // Function to sanitize sensitive data 
-const sanitizeData = (data: any): any => {
-  if (!data) return data;
-  
-  // Create a deep copy to avoid modifying the original
-  const sanitized = JSON.parse(JSON.stringify(data));
-  
-  // Check if it's an object
-  if (typeof sanitized === 'object') {
-    // Handle base64 image data in strings
-    Object.keys(sanitized).forEach(key => {
-      if (typeof sanitized[key] === 'string' && 
-          sanitized[key].startsWith('data:image')) {
-        sanitized[key] = '[IMAGE DATA TRUNCATED]';
-      } else if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
-        sanitized[key] = sanitizeData(sanitized[key]); // Recursive sanitization
-      }
-    });
-  }
-  
-  return sanitized;
-};
-
-// Log request details
+  // Log request details
   logger.debug('Incoming request:', {
     method: req.method,
     url: req.url,
     query: req.query,
-    body: req.method !== 'GET' ? sanitizeData(req.body) : undefined,
+    body: req.method !== 'GET' ? req.body : undefined,
     headers: {
       'user-agent': req.headers['user-agent'],
       'content-type': req.headers['content-type'],
