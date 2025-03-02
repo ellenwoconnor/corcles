@@ -450,7 +450,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             logger.debug('Processed image upload using base64 fallback:', {
               originalName: req.file.originalname,
               size: req.file.size,
-              mimeType: req.file.mimetype
+              mimeType: req.file.mimetype,
+              dataPreview: 'data:' + req.file.mimetype + ';base64,[BASE64_DATA_TRUNCATED]'
             });
           }
         } catch (uploadError) {
@@ -908,7 +909,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .update(schema.itemRequests)
         .set({
           status: confirmed
-            ? REQUEST_STATUS.ACCEPTED
+            ?            ? REQUEST_STATUS.ACCEPTED
             : REQUEST_STATUS.PENDING
         })
         .where(eq(schema.itemRequests.id, request.id));
@@ -986,7 +987,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             logger.debug('Processed image upload using base64 fallback:', {
               originalName: req.file.originalname,
               size: req.file.size,
-              mimeType: req.file.mimetype
+              mimeType: req.file.mimetype,
+              dataPreview: 'data:' + req.file.mimetype + ';base64,[BASE64_DATA_TRUNCATED]'
             });
           }
         } catch (uploadError) {
