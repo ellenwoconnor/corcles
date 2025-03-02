@@ -1,10 +1,8 @@
-import { useState, useEffect, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useState, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { Button } from "@/components/ui/button";
-import { X, ImageIcon, Upload } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -23,16 +21,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { DollarSign, Gift, Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Image as ImageIcon, Upload, Loader2 } from "lucide-react";
 
 interface ListingFormProps {
-  mode: 'create' | 'edit';
-  communities?: { id: number; name: string }[];
-  defaultValues?: any;
+  mode: "create" | "edit";
+  communities?: Array<{
+    id: number;
+    name: string;
+    role: string;
+    memberCount: number;
+  }>;
+  schema: z.ZodType<any>;
+  defaultValues?: Record<string, any>;
   onSubmit: (data: any, imageFile: File | null) => Promise<void>;
   isLoading: boolean;
-  schema: z.ZodObject<any>;
   buttonText: string;
 }
 
@@ -134,7 +138,7 @@ export function ListingForm({
           )}
         />
 
-        {mode === 'create' && communities.length > 0 && (
+        {mode === "create" && communities && communities.length > 0 && (
           <FormField
             control={form.control}
             name="communityId"
@@ -167,278 +171,15 @@ export function ListingForm({
           />
         )}
 
-        <FormItem>
-          <FormLabel>Item Image</FormLabel>
-          <FormControl>
-            <div className="space-y-4">
-              <div className="flex flex-col items-center justify-center px-6 py-10 border-2 border-dashed rounded-lg border-border hover:border-primary/50 transition-colors">
-                {imagePreview ? (
-                  <div className="relative w-full max-w-md">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="w-full h-[200px] rounded-lg object-cover"
-                    />
-                    <div className="absolute top-2 right-2 flex gap-2">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="icon"
-                        className="bg-background/80 backdrop-blur-sm"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <Upload className="h-4 w-4" />
-                      </Button>
-                      {imagePreview !== PLACEHOLDER_IMAGE && imagePreview !== defaultValues?.imageUrl && (
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon"
-                          className="bg-background/80 backdrop-blur-sm"
-                          onClick={() => handleImageChange(null)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                    <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <div className="mt-4 flex text-sm leading-6 text-muted-foreground">
-                      <label
-                        htmlFor={`${mode}-image-upload`}
-                        className="relative cursor-pointer rounded-md bg-background font-semibold text-primary hover:text-primary/80"
-                      >
-                        Click to upload an image
-                      </label>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      PNG, JPG, GIF up to 5MB
-                    </p>
-                  </div>
-                )}
-                <input
-                  ref={fileInputRef}
-                  id={`${mode}-image-upload`}
-                  type="file"
-                  className="sr-only"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    handleImageChange(file || null);
-                  }}
-                />
-              </div>
-            </div>
-          </FormControl>
-          <FormDescription>
-            Upload a clear photo of your item. A default image will be used if none is provided.
-          </FormDescription>
-        </FormItem>
-
         <FormField
           control={form.control}
           name="isGift"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel>
-                  <div className="flex items-center space-x-2">
-                    <Gift className="h-4 w-4" />
-                    <span>Free item</span>
-                  </div>
-                </FormLabel>
-                <FormDescription>
-                  Check this if you're offering this item for free
-                </FormDescription>
-              </div>
-            </FormItem>
-          )}
-        />
-
-        {!isGift && (
-          <FormField
-            control={form.control}
-            name="price"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Price</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <DollarSign className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="number"
-                      step="0.01"
-                      className="pl-8"
-                      {...field}
-                      onChange={(e) => {
-                        const value = parseFloat(e.target.value);
-                        field.onChange(isNaN(value) ? 0 : value);
-                      }}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-
-        <div className="pt-2">
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {buttonText === 'Create Listing' ? 'Creating...' : 'Updating...'}
-              </>
-            ) : (
-              buttonText
-            )}
-          </Button>
-        </div>
-      </form>
-    </Form>
-  );
-}
-import { useState, useRef } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
-import { Image as ImageIcon, Upload } from "lucide-react";
-
-interface ListingFormProps {
-  mode: "create" | "edit";
-  communities: Array<{
-    id: number;
-    name: string;
-    role: string;
-    memberCount: number;
-  }>;
-  schema: z.ZodType<any>;
-  defaultValues?: Record<string, any>;
-  onSubmit: (data: any, imageFile: File | null) => Promise<void>;
-  isLoading: boolean;
-  buttonText: string;
-}
-
-export function ListingForm({
-  mode,
-  communities,
-  schema,
-  defaultValues,
-  onSubmit,
-  isLoading,
-  buttonText,
-}: ListingFormProps) {
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    defaultValues?.imageUrl || null
-  );
-  const imageInputRef = useRef<HTMLInputElement>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-
-  const form = useForm({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      title: "",
-      description: "",
-      price: 0,
-      isGift: true,
-      imageUrl: "https://images.unsplash.com/photo-1737282836845-555d9214dfe4",
-      communityId: undefined,
-      ...defaultValues,
-    },
-  });
-
-  const isGift = form.watch("isGift");
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setImagePreview(event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleFormSubmit = async (data: any) => {
-    await onSubmit(data, imageFile);
-  };
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Title</FormLabel>
-              <FormControl>
-                <Input placeholder="What are you sharing?" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description (optional)</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Add details about your item..."
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="isGift"
-          render={({ field }) => (
-            <FormItem className="flex items-center justify-between rounded-lg border p-4">
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
               <div className="space-y-0.5">
-                <FormLabel>Free item</FormLabel>
+                <FormLabel>Free Item</FormLabel>
                 <FormDescription>
-                  Are you giving this away for free?
+                  Is this item being offered for free?
                 </FormDescription>
               </div>
               <FormControl>
@@ -461,14 +202,12 @@ export function ListingForm({
                 <FormControl>
                   <Input
                     type="number"
-                    min="0"
-                    step="0.01"
+                    placeholder="0.00"
                     {...field}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value ? parseFloat(e.target.value) : 0
-                      )
-                    }
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      field.onChange(value === "" ? undefined : Number(value));
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -479,73 +218,75 @@ export function ListingForm({
 
         <FormField
           control={form.control}
-          name="communityId"
+          name="imageUrl"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Community</FormLabel>
-              <Select
-                onValueChange={(value) => field.onChange(parseInt(value))}
-                defaultValue={field.value?.toString()}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a community" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {communities.map((community) => (
-                    <SelectItem
-                      key={community.id}
-                      value={community.id.toString()}
-                    >
-                      {community.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormLabel>Image</FormLabel>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center justify-center rounded-lg border p-4">
+                  <div
+                    style={{
+                      backgroundImage: `url(${imagePreview})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                    className="h-32 w-full rounded-md"
+                  />
+                </div>
+                <div className="flex flex-col justify-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload
+                  </Button>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    ref={fileInputRef}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      if (file) {
+                        handleImageChange(file);
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = "";
+                      }
+                      handleImageChange(null);
+                    }}
+                  >
+                    <ImageIcon className="mr-2 h-4 w-4" />
+                    Use Default
+                  </Button>
+                </div>
+              </div>
+              <FormDescription>
+                Upload an image of your item or use our default image.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <div className="space-y-2">
-          <FormLabel>Image</FormLabel>
-          <div
-            className="border rounded-md p-2 cursor-pointer flex items-center justify-center bg-muted/50 hover:bg-muted transition-colors"
-            onClick={() => imageInputRef.current?.click()}
-          >
-            {imagePreview ? (
-              <div className="aspect-square w-full relative overflow-hidden rounded-md">
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="object-cover w-full h-full"
-                />
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                  <Upload className="h-6 w-6 text-white" />
-                </div>
-              </div>
+        <div className="pt-2">
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {buttonText === 'Create Listing' ? 'Creating...' : 'Updating...'}
+              </>
             ) : (
-              <div className="h-32 w-full flex flex-col items-center justify-center gap-2">
-                <ImageIcon className="h-10 w-10 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">
-                  Click to upload an image
-                </p>
-              </div>
+              buttonText
             )}
-            <input
-              ref={imageInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageChange}
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end pt-4">
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Submitting..." : buttonText}
           </Button>
         </div>
       </form>
