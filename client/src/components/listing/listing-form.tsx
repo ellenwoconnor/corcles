@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { X, Image as ImageIcon } from "lucide-react";
+import { X, ImageIcon, Upload } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -36,6 +36,8 @@ interface ListingFormProps {
   buttonText: string;
 }
 
+const PLACEHOLDER_IMAGE = "https://images.unsplash.com/photo-1737282836845-555d9214dfe4";
+
 export function ListingForm({
   mode,
   communities = [],
@@ -48,7 +50,7 @@ export function ListingForm({
   const { user } = useAuth();
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>(
-    defaultValues?.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4"
+    defaultValues?.imageUrl || PLACEHOLDER_IMAGE
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -58,7 +60,7 @@ export function ListingForm({
       title: "",
       description: "",
       isGift: true,
-      imageUrl: "https://images.unsplash.com/photo-1737282836845-555d9214dfe4",
+      imageUrl: PLACEHOLDER_IMAGE,
       userId: user?.id,
       ...defaultValues
     },
@@ -75,7 +77,7 @@ export function ListingForm({
       reader.readAsDataURL(file);
       setImageFile(file);
     } else {
-      setImagePreview(defaultValues?.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4");
+      setImagePreview(defaultValues?.imageUrl || PLACEHOLDER_IMAGE);
       setImageFile(null);
     }
   };
@@ -86,7 +88,7 @@ export function ListingForm({
 
     // Get the current form values
     const formValues = form.getValues();
-    
+
     // Validate title manually before submission
     if (!formValues.title || formValues.title.trim() === '') {
       form.setError("title", {
@@ -97,16 +99,8 @@ export function ListingForm({
     }
 
     // Extract the actual uploaded image file if it exists
-    const imageFile = fileInputRef.current?.files?.[0] || null;
     await onSubmit(formValues, imageFile);
   };
-
-  // Add effect to log form errors for debugging
-  useEffect(() => {
-    if (form.formState.errors?.title) {
-      console.log("Form title error:", form.formState.errors.title);
-    }
-  }, [form.formState.errors]);
 
   return (
     <Form {...form}>
@@ -178,55 +172,72 @@ export function ListingForm({
           <FormLabel>Item Image</FormLabel>
           <FormControl>
             <div className="space-y-4">
-              <div className="flex justify-center px-6 py-10 border-2 border-dashed rounded-lg border-border">
+              <div className="flex flex-col items-center justify-center px-6 py-10 border-2 border-dashed rounded-lg border-border hover:border-primary/50 transition-colors">
                 {imagePreview ? (
-                  <div className="relative">
+                  <div className="relative w-full max-w-md">
                     <img
                       src={imagePreview}
                       alt="Preview"
-                      className="max-h-[200px] rounded-lg object-cover"
+                      className="w-full h-[200px] rounded-lg object-cover"
                     />
-                    {imagePreview !== "https://images.unsplash.com/photo-1737282836845-555d9214dfe4" &&
-                     imagePreview !== defaultValues?.imageUrl && (
+                    <div className="absolute top-2 right-2 flex gap-2">
                       <Button
                         type="button"
-                        variant="destructive"
+                        variant="secondary"
                         size="icon"
-                        className="absolute top-2 right-2"
-                        onClick={() => handleImageChange(null)}
+                        className="bg-background/80 backdrop-blur-sm"
+                        onClick={() => fileInputRef.current?.click()}
                       >
-                        <X className="h-4 w-4" />
+                        <Upload className="h-4 w-4" />
                       </Button>
-                    )}
+                      {imagePreview !== PLACEHOLDER_IMAGE && imagePreview !== defaultValues?.imageUrl && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="bg-background/80 backdrop-blur-sm"
+                          onClick={() => handleImageChange(null)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ) : (
-                  <div className="text-center">
+                  <div className="text-center cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                     <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
                     <div className="mt-4 flex text-sm leading-6 text-muted-foreground">
                       <label
                         htmlFor={`${mode}-image-upload`}
-                        className="relative cursor-pointer rounded-md bg-background font-semibold text-primary"
+                        className="relative cursor-pointer rounded-md bg-background font-semibold text-primary hover:text-primary/80"
                       >
-                        <span>Upload an image</span>
-                        <input
-                          ref={fileInputRef}
-                          id={`${mode}-image-upload`}
-                          type="file"
-                          className="sr-only"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            handleImageChange(file || null);
-                          }}
-                        />
+                        Click to upload an image
                       </label>
                     </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      PNG, JPG, GIF up to 5MB
+                    </p>
                   </div>
                 )}
+                <input
+                  ref={fileInputRef}
+                  id={`${mode}-image-upload`}
+                  type="file"
+                  className="sr-only"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    handleImageChange(file || null);
+                  }}
+                />
               </div>
             </div>
           </FormControl>
+          <FormDescription>
+            Upload a clear photo of your item. A default image will be used if none is provided.
+          </FormDescription>
         </FormItem>
+
         <FormField
           control={form.control}
           name="isGift"
@@ -252,6 +263,7 @@ export function ListingForm({
             </FormItem>
           )}
         />
+
         {!isGift && (
           <FormField
             control={form.control}
