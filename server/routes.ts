@@ -909,7 +909,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .update(schema.itemRequests)
         .set({
           status: confirmed
-            ?            ? REQUEST_STATUS.ACCEPTED
+            ? REQUEST_STATUS.ACCEPTED
             : REQUEST_STATUS.PENDING
         })
         .where(eq(schema.itemRequests.id, request.id));
