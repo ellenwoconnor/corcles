@@ -115,7 +115,7 @@ export function setupTestS3Routes(app: Express) {
     const envStatus = {
       DO_SPACES_KEY: !!process.env.DO_SPACES_KEY,
       DO_SPACES_SECRET: !!process.env.DO_SPACES_SECRET,
-      DO_SPACES_NAME: !!process.env.DO_SPACES_NAME,
+      DO_SPACES_BUCKET: !!process.env.DO_SPACES_BUCKET,
       DO_SPACES_ENDPOINT: process.env.DO_SPACES_ENDPOINT || '(using default)'
     };
     

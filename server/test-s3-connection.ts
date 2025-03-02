@@ -10,7 +10,7 @@ async function runTest() {
     const requiredEnvVars = [
       'DO_SPACES_KEY',
       'DO_SPACES_SECRET', 
-      'DO_SPACES_NAME',
+      'DO_SPACES_BUCKET',
       'DO_SPACES_ENDPOINT'
     ];
     
@@ -22,7 +22,7 @@ async function runTest() {
     } else {
       logger.info('All required environment variables are set');
       logger.info(`Endpoint: ${process.env.DO_SPACES_ENDPOINT}`);
-      logger.info(`Bucket: ${process.env.DO_SPACES_NAME}`);
+      logger.info(`Bucket: ${process.env.DO_SPACES_BUCKET}`);
     }
     
     // Test the connection

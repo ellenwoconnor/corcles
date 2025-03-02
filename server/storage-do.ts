@@ -9,7 +9,7 @@ import logger from './logger';
 const requiredEnvVars = [
   'DO_SPACES_KEY',
   'DO_SPACES_SECRET',
-  'DO_SPACES_NAME',
+  'DO_SPACES_BUCKET',
   'DO_SPACES_ENDPOINT'
 ];
 
@@ -38,7 +38,7 @@ const s3Client = new S3Client({
 export const uploadToDigitalOcean = multer({
   storage: multerS3({
     s3: s3Client,
-    bucket: process.env.DO_SPACES_NAME || '',
+    bucket: process.env.DO_SPACES_BUCKET || '',
     acl: 'public-read',
     key: (req, file, cb) => {
       // Generate a unique filename using UUID
