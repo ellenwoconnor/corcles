@@ -14,7 +14,7 @@ import WishlistsPage from "@/pages/wishlists-page";
 // Placeholder components - replace with actual components
 
 // Note: Missing component imports removed
-import S3TestPage from "@/pages/s3-test-page"; // Placeholder component
+import S3TestPage from "@/components/admin/s3-test"; // Using existing component
 import RequireAuth from "@/components/require-auth"; // Placeholder component
 
 
