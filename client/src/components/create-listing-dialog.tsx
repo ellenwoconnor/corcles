@@ -46,6 +46,7 @@ export default function CreateListingDialog({
   const queryClient = useQueryClient();
 
   const handleSubmit = async (data: FormData, imageFile: File | null) => {
+    console.log(">??", formData);
     if (!user) {
       toast({
         variant: "destructive",
@@ -60,30 +61,34 @@ export default function CreateListingDialog({
 
       // Create FormData for the request
       const formData = new FormData();
-      
+
       // Validate required fields before submission
       if (!data.title) {
         throw new Error("Title is required");
       }
-      
+
       if (!data.communityId) {
         throw new Error("Community selection is required");
       }
-      
+
       // Debug the form data
       console.log("Form data received:", data);
-      
-      formData.append('title', data.title.trim());
-      formData.append('description', data.description || '');
-      formData.append('isGift', String(data.isGift));
-      formData.append('price', data.isGift ? '0' : String(data.price || 0));
-      formData.append('userId', String(user.id));
-      formData.append('communityId', String(data.communityId));
-      formData.append('imageUrl', data.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4");
+
+      formData.append("title", data.title.trim());
+      formData.append("description", data.description || "");
+      formData.append("isGift", String(data.isGift));
+      formData.append("price", data.isGift ? "0" : String(data.price || 0));
+      formData.append("userId", String(user.id));
+      formData.append("communityId", String(data.communityId));
+      formData.append(
+        "imageUrl",
+        data.imageUrl ||
+          "https://images.unsplash.com/photo-1737282836845-555d9214dfe4",
+      );
 
       // Only append imageFile if one was provided
       if (imageFile) {
-        formData.append('imageFile', imageFile);
+        formData.append("imageFile", imageFile);
       }
 
       console.log("Submitting form data:", {
@@ -113,7 +118,8 @@ export default function CreateListingDialog({
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create listing",
+        description:
+          error instanceof Error ? error.message : "Failed to create listing",
       });
     } finally {
       setIsLoading(false);
