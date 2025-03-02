@@ -1,3 +1,4 @@
+
 import { testS3Connection } from './storage-do';
 import logger from './logger';
 
@@ -17,7 +18,7 @@ async function runTest() {
 
     if (missingVars.length > 0) {
       logger.warn(`Missing environment variables: ${missingVars.join(', ')}`);
-      logger.warn('Make sure these are set in your .env file or Replit Secrets');
+      logger.warn('Make sure these are set in your Replit Secrets');
     } else {
       logger.info('All required environment variables are set');
       logger.info(`Endpoint: ${process.env.DO_SPACES_ENDPOINT}`);
