@@ -13,7 +13,7 @@ import CommunitiesPage from "@/pages/communities-page";
 import WishlistsPage from "@/pages/wishlists-page";
 // Placeholder components - replace with actual components
 
-import MyListingsPage from "@/pages/my-listings-page";
+// Note: Missing component imports removed
 import FavoritesPage from "@/pages/favorites-page";
 import S3TestPage from "@/pages/s3-test-page"; // Placeholder component
 import RequireAuth from "@/components/require-auth"; // Placeholder component
@@ -28,8 +28,7 @@ function Router() {
       <ProtectedRoute path="/communities" component={CommunitiesPage} />
       <ProtectedRoute path="/wishlists" component={WishlistsPage} />
       <Route path="/auth" component={AuthPage} />
-      {/* About page route removed */}
-      <Route path="/my-listings" element={<RequireAuth><MyListingsPage /></RequireAuth>} />
+      {/* My listings route removed - missing component */}
       <Route path="/favorites" element={<RequireAuth><FavoritesPage /></RequireAuth>} />
       <Route path="/admin/s3-test" element={<RequireAuth><S3TestPage /></RequireAuth>} />
       <Route component={NotFound} />
