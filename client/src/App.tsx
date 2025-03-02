@@ -15,7 +15,7 @@ import WishlistsPage from "@/pages/wishlists-page";
 
 // Note: Missing component imports removed
 import S3TestPage from "@/components/admin/s3-test"; // Using existing component
-import RequireAuth from "@/components/require-auth"; // Placeholder component
+import { useAuth } from "@/features/auth/hooks/use-auth";
 
 
 function Router() {
@@ -28,7 +28,7 @@ function Router() {
       <ProtectedRoute path="/wishlists" component={WishlistsPage} />
       <Route path="/auth" component={AuthPage} />
       {/* Favorites route removed - missing component */}
-      <Route path="/admin/s3-test" element={<RequireAuth><S3TestPage /></RequireAuth>} />
+      <ProtectedRoute path="/admin/s3-test" component={() => <S3TestPage />} />
       <Route component={NotFound} />
     </Switch>
   );
