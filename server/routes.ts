@@ -95,6 +95,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).send('Unauthorized');
     }
 
+    // Clean up existing connection if present
+    const existingClient = sseClients.get(userId);
+    if (existingClient) {
+      logger.info('Closing existing SSE connection for user:', { userId });
+      existingClient.res.end();
+      sseClients.delete(userId);
+    }
+
     // Set headers for SSE
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -109,10 +117,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     sseClients.set(userId, { id: userId, res });
     logger.info('SSE client connected:', { userId });
 
-    // Remove client on connection close
+    // Handle client disconnect
     req.on('close', () => {
-      sseClients.delete(userId);
       logger.info('SSE client disconnected:', { userId });
+      sseClients.delete(userId);
+    });
+
+    // Handle connection timeout
+    req.on('timeout', () => {
+      logger.warn('SSE connection timeout:', { userId });
+      sseClients.delete(userId);
+      res.end();
+    });
+
+    // Handle errors
+    req.on('error', (error) => {
+      logger.error('SSE connection error:', { userId, error: error.message });
+      sseClients.delete(userId);
+      res.end();
+    });
+
+    // Keep connection alive
+    const keepAlive = setInterval(() => {
+      try {
+        if (sseClients.has(userId)) {
+          res.write(':keepalive\n\n');
+        }
+      } catch (error) {
+        logger.error('Error sending keepalive:', { userId, error: error.message });
+        clearInterval(keepAlive);
+        sseClients.delete(userId);
+        res.end();
+      }
+    }, 30000);
+
+    // Clean up interval on connection close
+    req.on('close', () => {
+      clearInterval(keepAlive);
     });
   });
 

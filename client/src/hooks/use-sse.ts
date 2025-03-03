@@ -8,17 +8,30 @@ export function useSSE() {
   const [eventSource, setEventSource] = useState<EventSource | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+
     const setupSSE = () => {
       try {
+        // Clean up existing connection if any
+        if (eventSource) {
+          console.log('Cleaning up existing SSE connection');
+          eventSource.close();
+          setEventSource(null);
+        }
+
+        console.log('Initializing new SSE connection');
         const source = new EventSource('/api/events');
-        console.log('Initializing SSE connection');
 
         source.onopen = () => {
-          console.log('SSE connection established');
-          setIsConnected(true);
+          if (mounted) {
+            console.log('SSE connection established');
+            setIsConnected(true);
+          }
         };
 
         source.onmessage = (event) => {
+          if (!mounted) return;
+
           try {
             const message = JSON.parse(event.data);
             console.log('Received SSE message:', message);
@@ -59,6 +72,8 @@ export function useSSE() {
 
         source.onerror = (error) => {
           console.error('SSE error:', error);
+          if (!mounted) return;
+
           setIsConnected(false);
           source.close();
           setEventSource(null);
@@ -71,26 +86,38 @@ export function useSSE() {
               variant: "destructive"
             });
           }
+
+          // Attempt to reconnect after a delay
+          setTimeout(() => {
+            if (mounted) {
+              console.log('Attempting to reconnect SSE');
+              setupSSE();
+            }
+          }, 5000);
         };
 
         setEventSource(source);
       } catch (error) {
         console.error('Error setting up SSE:', error);
-        setIsConnected(false);
+        if (mounted) {
+          setIsConnected(false);
+        }
       }
     };
 
     setupSSE();
 
+    // Cleanup function
     return () => {
+      mounted = false;
       if (eventSource) {
-        console.log('Cleaning up SSE connection');
+        console.log('Cleaning up SSE connection on unmount');
         eventSource.close();
         setEventSource(null);
         setIsConnected(false);
       }
     };
-  }, [toast, isConnected]);
+  }, []); // Empty dependency array since we handle cleanup internally
 
   return { isConnected };
 }
