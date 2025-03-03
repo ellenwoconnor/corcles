@@ -14,6 +14,7 @@ export function useWebSocket() {
   const [isConnected, setIsConnected] = useState(false);
   const maxReconnectAttempts = 5;
   const reconnectAttemptRef = useRef(0);
+  const pingIntervalRef = useRef<NodeJS.Timeout>();
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -27,34 +28,51 @@ export function useWebSocket() {
     }
 
     try {
+      // Clean up existing connection
       if (wsRef.current) {
         wsRef.current.close();
+        wsRef.current = null;
       }
 
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/ws`;
 
-      console.log('Attempting WebSocket connection to:', wsUrl);
+      console.log('Connecting to WebSocket:', wsUrl);
 
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('WebSocket connection established');
+        console.log('WebSocket connected');
         setIsConnected(true);
         reconnectAttemptRef.current = 0;
-        if (reconnectTimeoutRef.current) {
-          clearTimeout(reconnectTimeoutRef.current);
-          reconnectTimeoutRef.current = undefined;
+
+        // Start ping interval
+        if (pingIntervalRef.current) {
+          clearInterval(pingIntervalRef.current);
         }
+        pingIntervalRef.current = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            try {
+              ws.send(JSON.stringify({ type: 'ping' }));
+            } catch (error) {
+              console.error('Error sending ping:', error);
+              ws.close();
+            }
+          }
+        }, 30000);
       };
 
       ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
-          console.log('Received WebSocket message:', message);
+          console.log('Received:', message);
 
           switch (message.type) {
+            case 'pong':
+              console.log('Server pong received');
+              break;
+
             case 'new_message':
               queryClient.invalidateQueries({ 
                 queryKey: ['/api/messages', message.data.requestId]
@@ -66,6 +84,7 @@ export function useWebSocket() {
                 });
               }
               break;
+
             case 'notification':
               queryClient.invalidateQueries({ 
                 queryKey: ['/api/notifications']
@@ -77,36 +96,43 @@ export function useWebSocket() {
                 });
               }
               break;
+
             case 'connection_established':
-              console.log('WebSocket connection confirmed:', message.data);
+              console.log('Connection confirmed:', message.data);
               break;
-            default:
-              console.warn('Unknown message type:', message.type);
           }
         } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
+          console.error('Message parsing error:', error);
         }
       };
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
-        setIsConnected(false);
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.close();
+        }
       };
 
-      ws.onclose = () => {
-        console.log('WebSocket connection closed');
+      ws.onclose = (event) => {
+        console.log('WebSocket closed:', event.code, event.reason);
         setIsConnected(false);
         wsRef.current = null;
+
+        // Clear ping interval
+        if (pingIntervalRef.current) {
+          clearInterval(pingIntervalRef.current);
+          pingIntervalRef.current = undefined;
+        }
 
         if (reconnectAttemptRef.current < maxReconnectAttempts) {
           reconnectAttemptRef.current += 1;
           const delay = Math.min(1000 * Math.pow(2, reconnectAttemptRef.current), 10000);
 
+          console.log(`Reconnecting (${reconnectAttemptRef.current}/${maxReconnectAttempts}) in ${delay}ms`);
+
           if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
           }
-
-          console.log(`Scheduling reconnection attempt ${reconnectAttemptRef.current} in ${delay}ms`);
           reconnectTimeoutRef.current = setTimeout(connect, delay);
         } else {
           console.log('Max reconnection attempts reached');
@@ -118,7 +144,7 @@ export function useWebSocket() {
         }
       };
     } catch (error) {
-      console.error('Error setting up WebSocket:', error);
+      console.error('Connection setup error:', error);
       setIsConnected(false);
     }
   }, [toast, isConnected]);
@@ -127,6 +153,9 @@ export function useWebSocket() {
     connect();
 
     return () => {
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+      }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }

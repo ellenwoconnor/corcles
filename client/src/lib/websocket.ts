@@ -14,6 +14,8 @@ export function setupWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws`;
 
+    console.log('Attempting WebSocket connection to:', wsUrl);
+
     socket = new WebSocket(wsUrl);
 
     socket.addEventListener('open', () => {
@@ -24,8 +26,10 @@ export function setupWebSocket() {
     socket.addEventListener('message', (event) => {
       try {
         const data = JSON.parse(event.data);
+        console.log('Received WebSocket message:', data);
+
         if (data.type === 'connection_established') {
-          console.log('WebSocket authenticated:', data.data);
+          console.log('WebSocket connection confirmed:', data.data);
         }
       } catch (error) {
         console.error('Error parsing WebSocket message:', error);
@@ -54,17 +58,9 @@ export function setupWebSocket() {
 
     socket.addEventListener('error', (error) => {
       console.error('WebSocket error:', error);
-      // Attempt to reconnect on error as well
-      if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-        reconnectAttempts++;
-        const retryDelay = Math.min(
-          INITIAL_RETRY_DELAY * Math.pow(2, reconnectAttempts),
-          MAX_RETRY_DELAY
-        );
-        console.log(`Attempting to reconnect (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}) in ${retryDelay}ms due to error`);
-        setTimeout(setupWebSocket, retryDelay);
-      } else {
-        console.error('Maximum reconnection attempts reached due to error');
+      // Close the socket on error to trigger the close event and reconnection
+      if (socket) {
+        socket.close();
       }
     });
 
@@ -108,6 +104,9 @@ export function startHeartbeat() {
         ws.send(JSON.stringify({ type: 'heartbeat' }));
       } catch (error) {
         console.error('Error sending heartbeat:', error);
+        if (ws) {
+          ws.close();
+        }
       }
     }
   }, 30000); // Send heartbeat every 30 seconds

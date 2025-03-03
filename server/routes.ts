@@ -9,12 +9,12 @@ import * as schema from "@shared/schema";
 import { ITEM_STATUS, REQUEST_STATUS } from "@shared/constants";
 import { z } from "zod";
 import { eq, and, not, or, inArray } from "drizzle-orm";
-import { 
-  insertItemBidSchema, 
+import {
+  insertItemBidSchema,
   insertItemRequestSchema,
   insertItemSchema,
   insertMessageSchema,
-  insertWishlistSchema 
+  insertWishlistSchema
 } from "@shared/schema";
 import { db } from "./db";
 import logger from './logger';
@@ -44,12 +44,107 @@ const sessionMiddleware = session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // Set to false for development
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     sameSite: 'lax',
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
+    maxAge: 24 * 60 * 60 * 1000,
+    path: '/'
+  },
+  name: 'sessionId'
 });
+
+// WebSocket setup
+const setupWebSocket = (httpServer: Server) => {
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/ws',
+    verifyClient: (info, callback) => {
+      logger.debug('WebSocket connection attempt:', {
+        headers: info.req.headers,
+        url: info.req.url,
+        sessionCookie: info.req.headers.cookie
+      });
+
+      sessionMiddleware(info.req, {} as any, (err) => {
+        if (err) {
+          logger.error('Session middleware error:', err);
+          callback(false, 500, 'Session error');
+          return;
+        }
+
+        const session = (info.req as any).session;
+        if (!session?.passport?.user) {
+          logger.warn('Authentication failed:', {
+            hasSession: !!session,
+            hasPassport: !!session?.passport,
+            sessionId: session?.id
+          });
+          callback(false, 401, 'Authentication required');
+          return;
+        }
+
+        logger.info('WebSocket authenticated:', {
+          userId: session.passport.user,
+          sessionId: session.id
+        });
+        callback(true);
+      });
+    }
+  });
+
+  wss.on('connection', (ws, request: any) => {
+    try {
+      const userId = request.session?.passport?.user;
+      if (!userId) {
+        ws.close(1008, 'Authentication required');
+        return;
+      }
+
+      // Remove existing connection if present
+      const existing = connectedClients.get(userId);
+      if (existing?.readyState === WebSocket.OPEN) {
+        existing.close();
+        connectedClients.delete(userId);
+      }
+
+      connectedClients.set(userId, ws);
+      logger.info('WebSocket connected:', { userId });
+
+      ws.send(JSON.stringify({
+        type: 'connection_established',
+        data: { userId }
+      }));
+
+      // Handle ping/pong
+      ws.on('message', (data) => {
+        try {
+          const message = JSON.parse(data.toString());
+          if (message.type === 'ping') {
+            ws.send(JSON.stringify({ type: 'pong' }));
+          }
+        } catch (error) {
+          logger.error('Message parsing error:', error);
+        }
+      });
+
+      ws.on('close', () => {
+        logger.info('WebSocket disconnected:', { userId });
+        connectedClients.delete(userId);
+      });
+
+      ws.on('error', (error) => {
+        logger.error('WebSocket error:', { userId, error });
+        connectedClients.delete(userId);
+      });
+
+    } catch (error) {
+      logger.error('Connection handler error:', error);
+      ws.close(1011, 'Internal error');
+    }
+  });
+
+  return wss;
+};
 
 // Placeholder function - replace with your actual implementation
 function setupTestS3Routes(app: Express) {
@@ -898,8 +993,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
       }
-      const { confirmed } = req.body;
-      if (typeof confirmed !== 'boolean') {
+      const { confirmed }= req.body;
+      if (typeof confirmed !== 'boolean'){
         return res.status(400).json({ error: "Confirmation status is required" });
       }
 
@@ -909,7 +1004,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const [request] = await db
-        .select()        .from(schema.itemRequests)
+        .select()
+        .from(schema.itemRequests)
         .where(
           and(
             eq(schema.itemRequests.itemId, itemId),
@@ -1074,7 +1170,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       logger.debug('Selected pickup window:', {
-        windowIndex,        pickupStart,
+        windowIndex,
+        pickupStart,
         pickupEnd,
         originalStart: selectedWindow.pickupStart,
         originalEnd: selectedWindow.pickupEnd
@@ -1125,11 +1222,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const requests = await storage.getUserRequests(req.user.id);
       logger.debug('Fetching user requests:', {
-        userId: req.user.id,        requestCount: requests?.length
+        userId: req.user.id,
+        requestCount: requests?.length
       });
       res.json(requests);
     } catch (error) {
-      logger.error('Error fetching user requests:', error);      res.status(500).json({ error: 'Failed to fetch user requests' });
+      logger.error('Error fetching user requests:', error);
+      res.status(500).json({ error: 'Failed to fetch user requests' });
     }
   });
 
@@ -1172,7 +1271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: c.name,
           role: c.role,
           memberCount: c.memberCount
-                }))
+        }))
       });
       res.json(communities);
     }catch (error) {
@@ -1535,61 +1634,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-
-  // Setup WebSocket server
-  const wss = new WebSocketServer({ 
-    server: httpServer,
-    path: '/ws',
-    verifyClient: ({ req }, done) => {
-      sessionMiddleware(req, {} as any, () => {
-        if (!req.session?.passport?.user) {
-          logger.warn('WebSocket unauthorized - no session');
-          done(false, 401, 'Unauthorized');
-        } else {
-          logger.info('WebSocket authorized for user:', req.session.passport.user);
-          done(true);
-        }
-      });
-    }
-  });
-
-  wss.on('connection', (ws, req: any) => {
-    const userId = req.session?.passport?.user;
-    if (!userId) {
-      logger.warn('WebSocket connection rejected - no authenticated user');
-      ws.close(1008, 'Authentication required');
-      return;
-    }
-
-    connectedClients.set(userId, ws);
-    logger.info('WebSocket client connected:', { userId });
-
-    ws.send(JSON.stringify({
-      type: 'connection_established',
-      data: { userId }
-    }));
-
-    ws.on('close', () => {
-      logger.info('WebSocket client disconnected:', { userId });
-      connectedClients.delete(userId);
-    });
-
-    ws.on('error', (error) => {
-      logger.error('WebSocket error:', { error, userId });
-      connectedClients.delete(userId);
-    });
-
-    ws.on('message', (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        if (message.type === 'heartbeat') {
-          ws.send(JSON.stringify({ type: 'heartbeat_ack' }));
-        }
-      } catch (error) {
-        logger.error('Error processing WebSocket message:', error);
-      }
-    });
-  });
+  const wss = setupWebSocket(httpServer);
 
   return httpServer;
 
