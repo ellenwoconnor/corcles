@@ -1,3 +1,4 @@
+import { promisify } from 'util';
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
@@ -25,6 +26,9 @@ import passport from "passport";
 import { sendMail, generateCommunityInviteEmail } from './utils/mail';
 import { insertCommunityInviteSchema } from "@shared/schema";
 import { uploadToDigitalOcean, isS3Configured, uploadFileToDigitalOcean } from './storage-do';
+
+// Add WebSocket client tracking
+const connectedClients = new Map<number, WebSocket>();
 
 const PostgresSessionStore = connectPg(session);
 
@@ -894,7 +898,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
       }
-
       const { confirmed } = req.body;
       if (typeof confirmed !== 'boolean') {
         return res.status(400).json({ error: "Confirmation status is required" });
@@ -1532,100 +1535,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-  const wss = new WebSocketServer({
+
+  // Setup WebSocket server
+  const wss = new WebSocketServer({ 
     server: httpServer,
     path: '/ws',
-    host: '0.0.0.0',
-    verifyClient: async (info, cb) => {
-      try {
-        const req = info.req;
-
-        logger.debug('WebSocket connection attempt:', {
-          cookies: req.headers.cookie,
-          sessionID: req.headers['sec-websocket-key']
-        });
-
-        const runSessionMiddleware = promisify(sessionMiddleware);
-        await runSessionMiddleware(req as any, {} as any);
-
-        const session = (req as any).session;
-        if (!session) {
+    verifyClient: ({ req }, done) => {
+      sessionMiddleware(req, {} as any, () => {
+        if (!req.session?.passport?.user) {
           logger.warn('WebSocket unauthorized - no session');
-          cb(false, 401, 'No session found');
-          return;
+          done(false, 401, 'Unauthorized');
+        } else {
+          logger.info('WebSocket authorized for user:', req.session.passport.user);
+          done(true);
         }
-
-        const userId = session.passport?.user;
-        if (!userId) {
-          logger.warn('WebSocket unauthorized - no user', {
-            sessionId: session.id
-          });
-          cb(false, 401, 'Not authenticated');
-          return;
-        }
-
-        logger.info('WebSocket connection authenticated:', {
-          userId,
-          sessionId: session.id
-        });
-
-        cb(true);
-      } catch (error) {
-        logger.error('WebSocket authentication error:', error);
-        cb(false, 500, 'Server error');
-      }
+      });
     }
   });
 
-  const connectedClients = new Map<number, WebSocket>();
-
-  logger.info('WebSocket server initialized on path: /ws');
-
-  wss.on('connection', async (ws, req) => {
-    try {
-      const userId = (req as any).session?.passport?.user;
-      if (!userId) {
-        logger.warn('WebSocket connection rejected - no authenticated user:', {
-          session: (req as any).session
-        });
-        ws.close(1008, 'Authentication required');
-        return;
-      }
-
-      connectedClients.set(userId, ws);
-
-      logger.info('WebSocket client connected:', {
-        userId,
-        totalConnections: connectedClients.size
-      });
-
-      ws.send(JSON.stringify({
-        type: 'connection_established',
-        data: {
-          userId,
-          timestamp: new Date().toISOString()
-        }
-      }));
-
-      ws.on('close', () => {
-        logger.info('WebSocket client disconnected:', {
-          userId,
-          remainingConnections: connectedClients.size - 1
-        });
-        connectedClients.delete(userId);
-      });
-
-      ws.on('error', (error) => {
-        logger.error('WebSocket error:', { error, userId });
-        ws.close();
-        connectedClients.delete(userId);
-      });
-
-    } catch (error) {
-      logger.error('Error during WebSocket connection setup:', error);
-      ws.close(1011, 'Internal server error');
+  wss.on('connection', (ws, req: any) => {
+    const userId = req.session?.passport?.user;
+    if (!userId) {
+      logger.warn('WebSocket connection rejected - no authenticated user');
+      ws.close(1008, 'Authentication required');
+      return;
     }
+
+    connectedClients.set(userId, ws);
+    logger.info('WebSocket client connected:', { userId });
+
+    ws.send(JSON.stringify({
+      type: 'connection_established',
+      data: { userId }
+    }));
+
+    ws.on('close', () => {
+      logger.info('WebSocket client disconnected:', { userId });
+      connectedClients.delete(userId);
+    });
+
+    ws.on('error', (error) => {
+      logger.error('WebSocket error:', { error, userId });
+      connectedClients.delete(userId);
+    });
+
+    ws.on('message', (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        if (message.type === 'heartbeat') {
+          ws.send(JSON.stringify({ type: 'heartbeat_ack' }));
+        }
+      } catch (error) {
+        logger.error('Error processing WebSocket message:', error);
+      }
+    });
   });
 
   return httpServer;
+
 }

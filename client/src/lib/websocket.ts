@@ -1,3 +1,5 @@
+import { promisify } from 'util';
+
 let socket: WebSocket | null = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
@@ -52,7 +54,7 @@ export function setupWebSocket() {
 
     socket.addEventListener('error', (error) => {
       console.error('WebSocket error:', error);
-      //Attempt to reconnect on error as well.
+      // Attempt to reconnect on error as well
       if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
         reconnectAttempts++;
         const retryDelay = Math.min(
@@ -64,7 +66,6 @@ export function setupWebSocket() {
       } else {
         console.error('Maximum reconnection attempts reached due to error');
       }
-
     });
 
     return socket;
