@@ -396,21 +396,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
+        logger.error('Invalid item ID:', { id: req.params.id });
         return res.status(400).json({ error: "Invalid item ID" });
       }
 
+      logger.debug('Fetching item:', { 
+        itemId: id,
+        userId: req.user?.id,
+        authenticated: req.isAuthenticated()
+      });
+
       const item = await storage.getItem(id, req.user?.id);
       if (!item) {
+        logger.warn('Item not found:', { itemId: id });
         return res.status(404).json({ error: "Item not found" });
       }
+
+      logger.debug('Successfully fetched item:', {
+        itemId: id,
+        ownerId: item.userId,
+        status: item.status
+      });
 
       res.json({
         ...item,
         createdAt: new Date(item.createdAt).toISOString()
       });
     } catch (error) {
-      logger.error('Error fetching item:', error);
-      res.status(500).json({ error: 'Failed to fetch item' });
+      logger.error('Error fetching item:', { 
+        error: error.message,
+        stack: error.stack,
+        itemId: req.params.id 
+      });
+      res.status(500).json({ 
+        error: 'Failed to fetch item',
+        details: error.message
+      });
     }
   });
 
