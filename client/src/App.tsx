@@ -11,7 +11,6 @@ import ListingPage from "@/pages/listing-page";
 import ProfilePage from "@/pages/profile-page";
 import CommunitiesPage from "@/pages/communities-page";
 import WishlistsPage from "@/pages/wishlists-page";
-// Import the S3 test component directly
 import S3TestComponent from "@/components/admin/s3-test";
 
 function Router() {
@@ -23,7 +22,6 @@ function Router() {
       <ProtectedRoute path="/communities" component={CommunitiesPage} />
       <ProtectedRoute path="/wishlists" component={WishlistsPage} />
       <Route path="/auth" component={AuthPage} />
-      {/* Favorites route removed - missing component */}
       <ProtectedRoute path="/admin/s3-test" component={S3TestComponent} />
       <Route component={NotFound} />
     </Switch>

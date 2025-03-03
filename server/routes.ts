@@ -9,15 +9,7 @@ import * as schema from "@shared/schema";
 import { ITEM_STATUS, REQUEST_STATUS } from "@shared/constants";
 import { z } from "zod";
 import { eq, and, not, or, inArray } from "drizzle-orm";
-import {
-  insertItemBidSchema,
-  insertItemRequestSchema,
-  insertItemSchema,
-  insertMessageSchema,
-  insertWishlistSchema
-} from "@shared/schema";
-import { db } from "./db";
-import logger from './logger';
+import { Transform } from 'stream';
 import session from 'express-session';
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -26,6 +18,7 @@ import passport from "passport";
 import { sendMail, generateCommunityInviteEmail } from './utils/mail';
 import { insertCommunityInviteSchema } from "@shared/schema";
 import { uploadToDigitalOcean, isS3Configured, uploadFileToDigitalOcean } from './storage-do';
+import logger from './logger';
 
 const PostgresSessionStore = connectPg(session);
 
@@ -50,114 +43,13 @@ const sessionMiddleware = session({
   name: 'sessionId'
 });
 
-// Add WebSocket client tracking
-const connectedClients = new Map<number, WebSocket>();
+// Global SSE clients registry
+interface SSEClient {
+  id: number;
+  res: Response;
+}
 
-// WebSocket setup
-const setupWebSocket = (httpServer: Server) => {
-  const wss = new WebSocketServer({ 
-    server: httpServer,
-    path: '/ws',
-    verifyClient: (info, callback) => {
-      logger.debug('WebSocket connection attempt:', {
-        headers: info.req.headers,
-        cookie: info.req.headers.cookie,
-        url: info.req.url
-      });
-
-      if (!info.req.headers.cookie) {
-        logger.warn('WebSocket connection rejected - no cookies present');
-        callback(false, 401, 'No session cookie');
-        return;
-      }
-
-      sessionMiddleware(info.req, {} as any, (err) => {
-        if (err) {
-          logger.error('Session middleware error:', err);
-          callback(false, 500, 'Session error');
-          return;
-        }
-
-        const session = (info.req as any).session;
-        if (!session?.passport?.user) {
-          logger.warn('WebSocket unauthorized:', {
-            hasSession: !!session,
-            hasPassport: !!session?.passport,
-            sessionId: session?.id
-          });
-          callback(false, 401, 'Authentication required');
-          return;
-        }
-
-        logger.info('WebSocket authorized:', {
-          userId: session.passport.user,
-          sessionId: session.id
-        });
-        callback(true);
-      });
-    }
-  });
-
-  wss.on('connection', (ws, request: any) => {
-    try {
-      const userId = request.session?.passport?.user;
-      if (!userId) {
-        logger.warn('Missing user ID in connection handler');
-        ws.close(1008, 'Authentication required');
-        return;
-      }
-
-      // Remove existing connection if present
-      const existing = connectedClients.get(userId);
-      if (existing?.readyState === WebSocket.OPEN) {
-        logger.info('Closing existing connection for user:', userId);
-        existing.close();
-        connectedClients.delete(userId);
-      }
-
-      connectedClients.set(userId, ws);
-      logger.info('WebSocket connected:', { userId });
-
-      ws.send(JSON.stringify({
-        type: 'connection_established',
-        data: { userId }
-      }));
-
-      ws.on('message', (data) => {
-        try {
-          const message = JSON.parse(data.toString());
-          logger.debug('Received message:', { userId, type: message.type });
-
-          if (message.type === 'ping') {
-            ws.send(JSON.stringify({ type: 'pong' }));
-          }
-        } catch (error) {
-          logger.error('Message parsing error:', error);
-        }
-      });
-
-      ws.on('close', (code, reason) => {
-        logger.info('WebSocket disconnected:', { 
-          userId, 
-          code,
-          reason: reason.toString()
-        });
-        connectedClients.delete(userId);
-      });
-
-      ws.on('error', (error) => {
-        logger.error('WebSocket error:', { userId, error });
-        connectedClients.delete(userId);
-      });
-
-    } catch (error) {
-      logger.error('Connection handler error:', error);
-      ws.close(1011, 'Internal error');
-    }
-  });
-
-  return wss;
-};
+const sseClients = new Map<number, SSEClient>();
 
 // Placeholder function - replace with your actual implementation
 function setupTestS3Routes(app: Express) {
@@ -195,6 +87,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     next();
   };
+
+  // SSE endpoint for real-time notifications
+  app.get('/api/events', requireAuth, (req, res) => {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).send('Unauthorized');
+    }
+
+    // Set headers for SSE
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
+    });
+
+    // Send initial connection message
+    res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
+
+    // Store client connection
+    sseClients.set(userId, { id: userId, res });
+    logger.info('SSE client connected:', { userId });
+
+    // Remove client on connection close
+    req.on('close', () => {
+      sseClients.delete(userId);
+      logger.info('SSE client disconnected:', { userId });
+    });
+  });
+
+  // Send message endpoint with SSE notifications
+  app.post("/api/messages/send", requireAuth, async (req, res) => {
+    try {
+      const { recipientId, content, requestId } = req.body;
+      logger.info('Received message request:', { 
+        recipientId, 
+        requestId,
+        senderId: req.user?.id 
+      });
+
+      if (!recipientId || !content || !requestId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const parseResult = insertMessageSchema.safeParse({
+        senderId: req.user.id,
+        recipientId,
+        content,
+        requestId
+      });
+
+      if (!parseResult.success) {
+        logger.error('Message validation failed:', parseResult.error);
+        return res.status(400).json(parseResult.error);
+      }
+
+      const request = await storage.getItemRequest(requestId);
+      if (!request) {
+        return res.status(404).json({ error: "Request not found" });
+      }
+
+      const item = await storage.getItem(request.itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      const isAuthorized = 
+        req.user.id === item.userId || 
+        req.user.id === request.requesterId;
+
+      if (!isAuthorized) {
+        return res.status(403).json({ error: "Not authorized to send messages for this request" });
+      }
+
+      const message = await storage.sendMessage(parseResult.data);
+
+      // Send SSE notification to recipient
+      const recipientClient = sseClients.get(recipientId);
+      if (recipientClient) {
+        recipientClient.res.write(`data: ${JSON.stringify({
+          type: 'new_message',
+          data: message
+        })}\n\n`);
+        logger.info('Sent SSE notification to recipient:', { recipientId });
+      }
+
+      // Send SSE notification to sender
+      const senderClient = sseClients.get(req.user.id);
+      if (senderClient) {
+        senderClient.res.write(`data: ${JSON.stringify({
+          type: 'new_message',
+          data: message
+        })}\n\n`);
+        logger.info('Sent SSE notification to sender:', { senderId: req.user.id });
+      }
+
+      res.status(201).json(message);
+    } catch (error) {
+      logger.error('Error sending message:', error);
+      res.status(500).json({ 
+        error: 'Failed to send message',
+        details: error.message 
+      });
+    }
+  });
 
   app.post("/api/wishlists", requireAuth, async (req, res) => {
     try {
@@ -341,81 +337,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error('Error updating wishlist:', error);
       res.status(500).json({ error: 'Failed to update wishlist' });
-    }
-  });
-
-  app.post("/api/messages/send", requireAuth, async (req, res) => {
-    try {
-      const { recipientId, content, requestId } = req.body;
-      logger.info('Received message request:', { 
-        recipientId, 
-        requestId,
-        senderId: req.user?.id 
-      });
-
-      if (!recipientId || !content || !requestId) {
-        return res.status(400).json({ error: "Missing required fields" });
-      }
-
-      const parseResult = insertMessageSchema.safeParse({
-        senderId: req.user.id,
-        recipientId,
-        content,
-        requestId
-      });
-
-      if (!parseResult.success) {
-        logger.error('Message validation failed:', parseResult.error);
-        return res.status(400).json(parseResult.error);
-      }
-
-      // Verify the request exists
-      const request = await storage.getItemRequest(requestId);
-      if (!request) {
-        return res.status(404).json({ error: "Request not found" });
-      }
-
-      // Verify user is authorized to send message
-      const item = await storage.getItem(request.itemId);
-      if (!item) {
-        return res.status(404).json({ error: "Item not found" });
-      }
-
-      const isAuthorized = 
-        req.user.id === item.userId || 
-        req.user.id === request.requesterId;
-
-      if (!isAuthorized) {
-        return res.status(403).json({ error: "Not authorized to send messages for this request" });
-      }
-
-      const message = await storage.sendMessage(parseResult.data);
-
-      const recipientWs = connectedClients.get(recipientId);
-      if (recipientWs?.readyState === WebSocket.OPEN) {
-        recipientWs.send(JSON.stringify({
-          type: 'new_message',
-          data: message
-        }));
-        logger.info('Sent WebSocket notification to recipient:', { recipientId });
-      }
-
-      const senderWs = connectedClients.get(req.user.id);
-      if (senderWs?.readyState === WebSocket.OPEN) {
-        senderWs.send(JSON.stringify({
-          type: 'new_message',
-          data: message
-        }));
-        logger.info('Sent WebSocket notification to sender:', { senderId: req.user.id });
-      }
-
-      res.status(201).json(message);
-    } catch (error) {
-      logger.error('Error sending message:', error);
-      res.status(500).json({ 
-        error: 'Failed to send message',
-        details: error.message 
-      });
     }
   });
 
@@ -898,8 +819,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
       }
 
-      res.json({ success: true });
-    } catch (error) {
+      res.json({ success: true });    } catch (error) {
       logger.error('Error performing drawing:', error);
       res.status(500).json({ error: 'Failed to perform drawing' });
     }
@@ -922,7 +842,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const [activeRequest] = await db
-        .select        .from(schema.itemRequests)
+        .select()
+        .from(schema.itemRequests)
         .where(
           and(
             eq(schema.itemRequests.itemId, itemId),
@@ -954,7 +875,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const now = new Date();
       const twoWeeksFromNow = addDays(now, 14);
 
-      const validatedWindows = [];      for (const window of timeWindows) {
+      const validatedWindows = [];
+      for (const window of timeWindows) {
         try {
           const startDate = new Date(window.pickupStart);
           const endDate = new Date(window.pickupEnd);
@@ -1677,8 +1599,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-  const wss = setupWebSocket(httpServer);
-
   return httpServer;
-
 }

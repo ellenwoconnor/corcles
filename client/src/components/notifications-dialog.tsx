@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useWebSocket } from "@/hooks/use-websocket";
+import { useSSE } from "@/hooks/use-sse";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 
@@ -21,7 +21,7 @@ interface Notification {
 export function NotificationsDialog() {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
-  const { socket, isConnected } = useWebSocket();
+  const { isConnected } = useSSE();
 
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
     queryKey: ['/api/notifications'],
@@ -48,27 +48,6 @@ export function NotificationsDialog() {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
     }
   });
-
-  useEffect(() => {
-    if (!socket || !isConnected) return;
-
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'notification') {
-          queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
-        }
-      } catch (error) {
-        console.error('Error handling WebSocket notification:', error);
-      }
-    };
-
-    socket.addEventListener('message', handleMessage);
-
-    return () => {
-      socket.removeEventListener('message', handleMessage);
-    };
-  }, [socket, isConnected, queryClient]);
 
   const handleNotificationClick = (notification: Notification) => {
     if (!notification.read) {
