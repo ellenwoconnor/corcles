@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LogOut, Menu, User, Users, Gift } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { NotificationsDialog } from "@/components/notifications-dialog";
 
 export default function Navbar() {
   const { user, logoutMutation } = useAuth();
@@ -40,6 +41,7 @@ export default function Navbar() {
             </Link>
           </div>
           <nav className="flex items-center space-x-2">
+            <NotificationsDialog />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button

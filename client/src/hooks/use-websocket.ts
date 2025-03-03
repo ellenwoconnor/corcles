@@ -16,20 +16,17 @@ export function useWebSocket() {
   const reconnectAttemptRef = useRef(0);
 
   const connect = useCallback(() => {
-    // Don't try to reconnect if we're already connected
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       console.log('WebSocket already connected');
       return;
     }
 
-    // Check if we've exceeded max reconnection attempts
     if (reconnectAttemptRef.current >= maxReconnectAttempts) {
       console.log('Max reconnection attempts reached');
       return;
     }
 
     try {
-      // Close existing connection if any
       if (wsRef.current) {
         wsRef.current.close();
       }
@@ -45,7 +42,7 @@ export function useWebSocket() {
       ws.onopen = () => {
         console.log('WebSocket connection established');
         setIsConnected(true);
-        reconnectAttemptRef.current = 0; // Reset attempt counter on successful connection
+        reconnectAttemptRef.current = 0;
         if (reconnectTimeoutRef.current) {
           clearTimeout(reconnectTimeoutRef.current);
           reconnectTimeoutRef.current = undefined;
@@ -59,16 +56,24 @@ export function useWebSocket() {
 
           switch (message.type) {
             case 'new_message':
-              // Invalidate queries to refresh message list
               queryClient.invalidateQueries({ 
                 queryKey: ['/api/messages', message.data.requestId]
               });
-
-              // Only show toast if the connection is established
               if (isConnected) {
                 toast({
                   title: "New Message",
                   description: "You have received a new message",
+                });
+              }
+              break;
+            case 'notification':
+              queryClient.invalidateQueries({ 
+                queryKey: ['/api/notifications']
+              });
+              if (isConnected && message.data.showToast !== false) {
+                toast({
+                  title: message.data.title || "New Notification",
+                  description: message.data.message,
                 });
               }
               break;
@@ -93,12 +98,10 @@ export function useWebSocket() {
         setIsConnected(false);
         wsRef.current = null;
 
-        // Only attempt reconnection if we're still mounted
         if (reconnectAttemptRef.current < maxReconnectAttempts) {
           reconnectAttemptRef.current += 1;
           const delay = Math.min(1000 * Math.pow(2, reconnectAttemptRef.current), 10000);
 
-          // Clear any existing timeout
           if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
           }
@@ -132,7 +135,7 @@ export function useWebSocket() {
         wsRef.current = null;
       }
       setIsConnected(false);
-      reconnectAttemptRef.current = maxReconnectAttempts; // Prevent reconnection attempts during cleanup
+      reconnectAttemptRef.current = maxReconnectAttempts;
     };
   }, [connect]);
 
