@@ -24,10 +24,35 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { useAuth } from "@/features/auth/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { insertItemSchema, type Item } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
+// Base schema for both create and edit
+export const baseItemSchema = {
+  ...insertItemSchema._def.schema.shape,
+  imageFile: z.any().optional(),
+};
+
+// Create specific schema
+export const createItemSchema = z.object({
+  ...baseItemSchema,
+  communityId: z.number({
+    required_error: "Please select a community",
+  }),
+});
+
+// Edit specific schema
+export const editItemSchema = z.object({
+  ...baseItemSchema,
+});
+
+export type FormData = z.infer<typeof createItemSchema>;
 
 interface ListingFormProps {
   mode: 'create' | 'edit';
+  itemId?: number;
   communities?: Array<{
     id: number;
     name: string;
@@ -35,23 +60,26 @@ interface ListingFormProps {
     memberCount: number;
   }>;
   defaultValues?: any;
-  onSubmit: (data: any, imageFile: File | null) => void;
-  isLoading: boolean;
-  schema: z.ZodType<any, any>;
+  onSuccess?: () => void;
+  isLoading?: boolean;
   buttonText: string;
 }
 
 export function ListingForm({
   mode,
+  itemId,
   communities = [],
   defaultValues = {},
-  onSubmit,
-  isLoading,
-  schema,
+  onSuccess,
+  isLoading: externalLoading,
   buttonText,
 }: ListingFormProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [imageFile, setImageFile] = useState<File | null>(null);
+
+  const schema = mode === 'create' ? createItemSchema : editItemSchema;
 
   const form = useForm({
     resolver: zodResolver(schema),
@@ -67,22 +95,80 @@ export function ListingForm({
     },
   });
 
-  const watchIsGift = form.watch('isGift');
-  
-  // Debug form values on changes
-  form.watch((value, { name, type }) => {
-    if (type === "change") {
-      console.log(`Form field '${name}' changed:`, value);
-    }
-    return value;
+  const mutation = useMutation({
+    mutationFn: async (data: FormData) => {
+      if (!user) {
+        throw new Error("Authentication required");
+      }
+
+      const formData = new FormData();
+
+      if (!data.title) {
+        throw new Error("Title is required");
+      }
+
+      if (mode === 'create' && !data.communityId) {
+        throw new Error("Community selection is required");
+      }
+
+      formData.append("title", data.title.trim());
+      formData.append("description", data.description || "");
+      formData.append("isGift", String(data.isGift));
+      formData.append("price", data.isGift ? "0" : String(data.price || 0));
+      formData.append("userId", String(user.id));
+
+      if (mode === 'create') {
+        formData.append("communityId", String(data.communityId));
+      }
+
+      formData.append(
+        "imageUrl",
+        data.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4"
+      );
+
+      if (imageFile) {
+        formData.append("imageFile", imageFile);
+      }
+
+      const method = mode === 'create' ? 'POST' : 'PATCH';
+      const endpoint = mode === 'create' ? '/api/items' : `/api/items/${itemId}`;
+
+      const response = await apiRequest(method, endpoint, formData);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || `Failed to ${mode} listing`);
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+      if (itemId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/user/items"] });
+
+      toast({
+        title: "Success!",
+        description: `Your listing has been ${mode === 'create' ? 'created' : 'updated'}.`,
+      });
+
+      onSuccess?.();
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message,
+      });
+    },
   });
 
-  const handleSubmit = (data: any) => {
-    console.log("ListingForm handleSubmit - data:", data);
-    console.log("ListingForm handleSubmit - imageFile:", imageFile ? imageFile.name : "none");
-    console.log("ListingForm handleSubmit - communityId:", data.communityId, typeof data.communityId);
-    console.log("ListingForm handleSubmit - form validation state:", form.formState.isValid);
-    onSubmit(data, imageFile);
+  const watchIsGift = form.watch('isGift');
+
+  const handleSubmit = (data: FormData) => {
+    mutation.mutate(data);
   };
 
   const handleImageChange = (file: File | null) => {
@@ -194,7 +280,6 @@ export function ListingForm({
           />
         )}
 
-
         <FormField
           control={form.control}
           name="imageUrl"
@@ -213,8 +298,12 @@ export function ListingForm({
           )}
         />
 
-        <Button type="submit" disabled={isLoading} className="w-full">
-          {isLoading ? "Loading..." : buttonText}
+        <Button 
+          type="submit" 
+          disabled={mutation.isPending || externalLoading} 
+          className="w-full"
+        >
+          {mutation.isPending || externalLoading ? "Loading..." : buttonText}
         </Button>
       </form>
     </Form>
