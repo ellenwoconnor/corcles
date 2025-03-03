@@ -153,7 +153,6 @@ export default function HomePage() {
     </div>
   );
 }
-import React, { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { fetchItems } from "@/lib/api";
