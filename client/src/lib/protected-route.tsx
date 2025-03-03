@@ -33,5 +33,6 @@ export function ProtectedRoute({
     );
   }
 
-  return <Route path={path} component={() => <Component {...props} />} />;
+  // Pass user data to the component
+  return <Route path={path} component={() => <Component user={user} {...props} />} />;
 }
