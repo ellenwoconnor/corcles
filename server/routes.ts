@@ -347,7 +347,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/messages/send", requireAuth, async (req, res) => {
     try {
       const { recipientId, content, requestId } = req.body;
-      logger.info('Received message request:', { recipientId, requestId });
+      logger.info('Received message request:', { 
+        recipientId, 
+        requestId,
+        senderId: req.user?.id 
+      });
+
+      if (!recipientId || !content || !requestId) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
 
       const parseResult = insertMessageSchema.safeParse({
         senderId: req.user.id,
@@ -357,33 +365,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!parseResult.success) {
+        logger.error('Message validation failed:', parseResult.error);
         return res.status(400).json(parseResult.error);
+      }
+
+      // Verify the request exists
+      const request = await storage.getItemRequest(requestId);
+      if (!request) {
+        return res.status(404).json({ error: "Request not found" });
+      }
+
+      // Verify user is authorized to send message
+      const item = await storage.getItem(request.itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      const isAuthorized = 
+        req.user.id === item.userId || 
+        req.user.id === request.requesterId;
+
+      if (!isAuthorized) {
+        return res.status(403).json({ error: "Not authorized to send messages for this request" });
       }
 
       const message = await storage.sendMessage(parseResult.data);
 
       const recipientWs = connectedClients.get(recipientId);
-      const senderWs = connectedClients.get(req.user.id);
-
-      const notificationPayload = JSON.stringify({
-        type: 'new_message',
-        data: message
-      });
-
       if (recipientWs?.readyState === WebSocket.OPEN) {
-        recipientWs.send(notificationPayload);
+        recipientWs.send(JSON.stringify({
+          type: 'new_message',
+          data: message
+        }));
         logger.info('Sent WebSocket notification to recipient:', { recipientId });
       }
 
+      const senderWs = connectedClients.get(req.user.id);
       if (senderWs?.readyState === WebSocket.OPEN) {
-        senderWs.send(notificationPayload);
+        senderWs.send(JSON.stringify({
+          type: 'new_message',
+          data: message
+        }));
         logger.info('Sent WebSocket notification to sender:', { senderId: req.user.id });
       }
 
       res.status(201).json(message);
     } catch (error) {
       logger.error('Error sending message:', error);
-      res.status(500).json({ error: 'Failed to send message' });
+      res.status(500).json({ 
+        error: 'Failed to send message',
+        details: error.message 
+      });
     }
   });
 
@@ -890,8 +922,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const [activeRequest] = await db
-        .select()
-        .from(schema.itemRequests)
+        .select        .from(schema.itemRequests)
         .where(
           and(
             eq(schema.itemRequests.itemId, itemId),
