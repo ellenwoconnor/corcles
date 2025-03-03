@@ -24,6 +24,11 @@ export function useWebSocket() {
 
     if (reconnectAttemptRef.current >= maxReconnectAttempts) {
       console.log('Max reconnection attempts reached');
+      toast({
+        title: "Connection Error",
+        description: "Unable to establish real-time connection. Please refresh the page.",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -37,7 +42,7 @@ export function useWebSocket() {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/ws`;
 
-      console.log('Connecting to WebSocket:', wsUrl);
+      console.log('Attempting WebSocket connection to:', wsUrl);
 
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
@@ -60,7 +65,7 @@ export function useWebSocket() {
               ws.close();
             }
           }
-        }, 30000);
+        }, 30000); // Send heartbeat every 30 seconds
       };
 
       ws.onmessage = (event) => {
@@ -108,6 +113,7 @@ export function useWebSocket() {
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
+        setIsConnected(false);
         if (ws.readyState === WebSocket.OPEN) {
           ws.close();
         }
@@ -143,11 +149,14 @@ export function useWebSocket() {
           });
         }
       };
+
+      return ws;
     } catch (error) {
-      console.error('Connection setup error:', error);
+      console.error('Error setting up WebSocket:', error);
       setIsConnected(false);
+      return null;
     }
-  }, [toast, isConnected]);
+  }, [toast]);
 
   useEffect(() => {
     connect();

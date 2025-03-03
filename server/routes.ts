@@ -27,9 +27,6 @@ import { sendMail, generateCommunityInviteEmail } from './utils/mail';
 import { insertCommunityInviteSchema } from "@shared/schema";
 import { uploadToDigitalOcean, isS3Configured, uploadFileToDigitalOcean } from './storage-do';
 
-// Add WebSocket client tracking
-const connectedClients = new Map<number, WebSocket>();
-
 const PostgresSessionStore = connectPg(session);
 
 const sessionStore = new PostgresSessionStore({
@@ -44,7 +41,7 @@ const sessionMiddleware = session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Set to false to work in development
     httpOnly: true,
     sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000,
@@ -52,6 +49,9 @@ const sessionMiddleware = session({
   },
   name: 'sessionId'
 });
+
+// Add WebSocket client tracking
+const connectedClients = new Map<number, WebSocket>();
 
 // WebSocket setup
 const setupWebSocket = (httpServer: Server) => {
@@ -61,9 +61,15 @@ const setupWebSocket = (httpServer: Server) => {
     verifyClient: (info, callback) => {
       logger.debug('WebSocket connection attempt:', {
         headers: info.req.headers,
-        url: info.req.url,
-        sessionCookie: info.req.headers.cookie
+        cookie: info.req.headers.cookie,
+        url: info.req.url
       });
+
+      if (!info.req.headers.cookie) {
+        logger.warn('WebSocket connection rejected - no cookies present');
+        callback(false, 401, 'No session cookie');
+        return;
+      }
 
       sessionMiddleware(info.req, {} as any, (err) => {
         if (err) {
@@ -74,7 +80,7 @@ const setupWebSocket = (httpServer: Server) => {
 
         const session = (info.req as any).session;
         if (!session?.passport?.user) {
-          logger.warn('Authentication failed:', {
+          logger.warn('WebSocket unauthorized:', {
             hasSession: !!session,
             hasPassport: !!session?.passport,
             sessionId: session?.id
@@ -83,7 +89,7 @@ const setupWebSocket = (httpServer: Server) => {
           return;
         }
 
-        logger.info('WebSocket authenticated:', {
+        logger.info('WebSocket authorized:', {
           userId: session.passport.user,
           sessionId: session.id
         });
@@ -96,6 +102,7 @@ const setupWebSocket = (httpServer: Server) => {
     try {
       const userId = request.session?.passport?.user;
       if (!userId) {
+        logger.warn('Missing user ID in connection handler');
         ws.close(1008, 'Authentication required');
         return;
       }
@@ -103,6 +110,7 @@ const setupWebSocket = (httpServer: Server) => {
       // Remove existing connection if present
       const existing = connectedClients.get(userId);
       if (existing?.readyState === WebSocket.OPEN) {
+        logger.info('Closing existing connection for user:', userId);
         existing.close();
         connectedClients.delete(userId);
       }
@@ -115,10 +123,11 @@ const setupWebSocket = (httpServer: Server) => {
         data: { userId }
       }));
 
-      // Handle ping/pong
       ws.on('message', (data) => {
         try {
           const message = JSON.parse(data.toString());
+          logger.debug('Received message:', { userId, type: message.type });
+
           if (message.type === 'ping') {
             ws.send(JSON.stringify({ type: 'pong' }));
           }
@@ -127,8 +136,12 @@ const setupWebSocket = (httpServer: Server) => {
         }
       });
 
-      ws.on('close', () => {
-        logger.info('WebSocket disconnected:', { userId });
+      ws.on('close', (code, reason) => {
+        logger.info('WebSocket disconnected:', { 
+          userId, 
+          code,
+          reason: reason.toString()
+        });
         connectedClients.delete(userId);
       });
 
@@ -910,8 +923,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const now = new Date();
       const twoWeeksFromNow = addDays(now, 14);
 
-      const validatedWindows = [];
-      for (const window of timeWindows) {
+      const validatedWindows = [];      for (const window of timeWindows) {
         try {
           const startDate = new Date(window.pickupStart);
           const endDate = new Date(window.pickupEnd);
