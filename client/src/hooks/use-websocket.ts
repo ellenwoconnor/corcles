@@ -14,29 +14,24 @@ export function useWebSocket() {
   const [isConnected, setIsConnected] = useState(false);
   const maxReconnectAttempts = 5;
   const reconnectAttemptRef = useRef(0);
-  const pingIntervalRef = useRef<NodeJS.Timeout>();
 
   const connect = useCallback(() => {
+    // Don't try to reconnect if we're already connected
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       console.log('WebSocket already connected');
       return;
     }
 
+    // Check if we've exceeded max reconnection attempts
     if (reconnectAttemptRef.current >= maxReconnectAttempts) {
       console.log('Max reconnection attempts reached');
-      toast({
-        title: "Connection Error",
-        description: "Unable to establish real-time connection. Please refresh the page.",
-        variant: "destructive"
-      });
       return;
     }
 
     try {
-      // Clean up existing connection
+      // Close existing connection if any
       if (wsRef.current) {
         wsRef.current.close();
-        wsRef.current = null;
       }
 
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -48,40 +43,28 @@ export function useWebSocket() {
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('WebSocket connected');
+        console.log('WebSocket connection established');
         setIsConnected(true);
-        reconnectAttemptRef.current = 0;
-
-        // Start ping interval
-        if (pingIntervalRef.current) {
-          clearInterval(pingIntervalRef.current);
+        reconnectAttemptRef.current = 0; // Reset attempt counter on successful connection
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+          reconnectTimeoutRef.current = undefined;
         }
-        pingIntervalRef.current = setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            try {
-              ws.send(JSON.stringify({ type: 'ping' }));
-            } catch (error) {
-              console.error('Error sending ping:', error);
-              ws.close();
-            }
-          }
-        }, 30000); // Send heartbeat every 30 seconds
       };
 
       ws.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
-          console.log('Received:', message);
+          console.log('Received WebSocket message:', message);
 
           switch (message.type) {
-            case 'pong':
-              console.log('Server pong received');
-              break;
-
             case 'new_message':
+              // Invalidate queries to refresh message list
               queryClient.invalidateQueries({ 
                 queryKey: ['/api/messages', message.data.requestId]
               });
+
+              // Only show toast if the connection is established
               if (isConnected) {
                 toast({
                   title: "New Message",
@@ -89,56 +72,38 @@ export function useWebSocket() {
                 });
               }
               break;
-
-            case 'notification':
-              queryClient.invalidateQueries({ 
-                queryKey: ['/api/notifications']
-              });
-              if (isConnected && message.data.showToast !== false) {
-                toast({
-                  title: message.data.title || "New Notification",
-                  description: message.data.message,
-                });
-              }
-              break;
-
             case 'connection_established':
-              console.log('Connection confirmed:', message.data);
+              console.log('WebSocket connection confirmed:', message.data);
               break;
+            default:
+              console.warn('Unknown message type:', message.type);
           }
         } catch (error) {
-          console.error('Message parsing error:', error);
+          console.error('Error parsing WebSocket message:', error);
         }
       };
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
         setIsConnected(false);
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.close();
-        }
       };
 
-      ws.onclose = (event) => {
-        console.log('WebSocket closed:', event.code, event.reason);
+      ws.onclose = () => {
+        console.log('WebSocket connection closed');
         setIsConnected(false);
         wsRef.current = null;
 
-        // Clear ping interval
-        if (pingIntervalRef.current) {
-          clearInterval(pingIntervalRef.current);
-          pingIntervalRef.current = undefined;
-        }
-
+        // Only attempt reconnection if we're still mounted
         if (reconnectAttemptRef.current < maxReconnectAttempts) {
           reconnectAttemptRef.current += 1;
           const delay = Math.min(1000 * Math.pow(2, reconnectAttemptRef.current), 10000);
 
-          console.log(`Reconnecting (${reconnectAttemptRef.current}/${maxReconnectAttempts}) in ${delay}ms`);
-
+          // Clear any existing timeout
           if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
           }
+
+          console.log(`Scheduling reconnection attempt ${reconnectAttemptRef.current} in ${delay}ms`);
           reconnectTimeoutRef.current = setTimeout(connect, delay);
         } else {
           console.log('Max reconnection attempts reached');
@@ -149,22 +114,16 @@ export function useWebSocket() {
           });
         }
       };
-
-      return ws;
     } catch (error) {
       console.error('Error setting up WebSocket:', error);
       setIsConnected(false);
-      return null;
     }
-  }, [toast]);
+  }, [toast, isConnected]);
 
   useEffect(() => {
     connect();
 
     return () => {
-      if (pingIntervalRef.current) {
-        clearInterval(pingIntervalRef.current);
-      }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
@@ -173,7 +132,7 @@ export function useWebSocket() {
         wsRef.current = null;
       }
       setIsConnected(false);
-      reconnectAttemptRef.current = maxReconnectAttempts;
+      reconnectAttemptRef.current = maxReconnectAttempts; // Prevent reconnection attempts during cleanup
     };
   }, [connect]);
 
