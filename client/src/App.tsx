@@ -13,6 +13,8 @@ import CommunitiesPage from "@/pages/communities-page";
 import WishlistsPage from "@/pages/wishlists-page";
 // Import the S3 test component directly
 import S3TestComponent from "@/components/admin/s3-test";
+// Import GreenMarket styling
+import "./styles/greenmarket.css";
 
 function Router() {
   return (
