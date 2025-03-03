@@ -12,12 +12,20 @@ import ProfilePage from "@/pages/profile-page";
 import CommunitiesPage from "@/pages/communities-page";
 import WishlistsPage from "@/pages/wishlists-page";
 import S3TestComponent from "@/components/admin/s3-test";
+import { useSSE } from "@/hooks/use-sse";
 
 function Router() {
+  // Initialize SSE connection at router level
+  const { isConnected } = useSSE();
+
   return (
     <Switch>
       <ProtectedRoute path="/" component={HomePage} />
-      <ProtectedRoute path="/item/:id" component={ListingPage} />
+      <ProtectedRoute 
+        path="/item/:id" 
+        component={ListingPage} 
+        sseConnected={isConnected}
+      />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/communities" component={CommunitiesPage} />
       <ProtectedRoute path="/wishlists" component={WishlistsPage} />
