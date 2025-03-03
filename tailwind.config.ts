@@ -24,8 +24,6 @@ export default {
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-          green: "#4CAF50",
-          lightGreen: "#8BC34A",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -42,11 +40,6 @@ export default {
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
-        },
-        greenmarket: {
-          primary: "#4CAF50",
-          light: "#8BC34A",
-          beige: "#F5F5DC",
         },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
