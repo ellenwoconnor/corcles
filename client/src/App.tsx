@@ -11,8 +11,8 @@ import ListingPage from "@/pages/listing-page";
 import ProfilePage from "@/pages/profile-page";
 import CommunitiesPage from "@/pages/communities-page";
 import WishlistsPage from "@/pages/wishlists-page";
-// Import the S3 test component directly
 import S3TestComponent from "@/components/admin/s3-test";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 function Router() {
   return (
@@ -23,7 +23,6 @@ function Router() {
       <ProtectedRoute path="/communities" component={CommunitiesPage} />
       <ProtectedRoute path="/wishlists" component={WishlistsPage} />
       <Route path="/auth" component={AuthPage} />
-      {/* Favorites route removed - missing component */}
       <ProtectedRoute path="/admin/s3-test" component={S3TestComponent} />
       <Route component={NotFound} />
     </Switch>
@@ -32,12 +31,14 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router />
-        <Toaster />
-      </AuthProvider>
-    </QueryClientProvider>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID}>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Router />
+          <Toaster />
+        </AuthProvider>
+      </QueryClientProvider>
+    </GoogleOAuthProvider>
   );
 }
 
