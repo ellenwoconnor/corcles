@@ -56,8 +56,27 @@ function AppContent() {
 }
 
 function App() {
+  // Log environment information for debugging
+  console.log("Environment Check:", {
+    isDevelopment: process.env.NODE_ENV === 'development',
+    isProduction: process.env.NODE_ENV === 'production',
+    mode: import.meta.env.MODE,
+    hasClientId: Boolean(import.meta.env.GOOGLE_CLIENT_ID),
+    clientIdLength: (import.meta.env.GOOGLE_CLIENT_ID || '').length,
+    envKeys: Object.keys(import.meta.env)
+  });
+
+  const clientId = import.meta.env.GOOGLE_CLIENT_ID || '';
+  
+  if (!clientId) {
+    console.log("Google OAuth Client ID is missing", {
+      env: process.env.NODE_ENV,
+      availableEnvVars: Object.keys(import.meta.env).join(', ')
+    });
+  }
+
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={clientId}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <AppContent />
