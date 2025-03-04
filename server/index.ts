@@ -1,3 +1,4 @@
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite } from "./vite";
@@ -59,7 +60,7 @@ async function startServer() {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
 
-      logger.error('Server error:', {
+      logger.error('Server error:', { 
         status,
         message,
         stack: err.stack,
@@ -68,8 +69,8 @@ async function startServer() {
       });
 
       // Don't expose internal errors in production
-      const responseMessage = process.env.NODE_ENV === 'production'
-        ? 'Internal Server Error'
+      const responseMessage = process.env.NODE_ENV === 'production' 
+        ? 'Internal Server Error' 
         : message;
 
       res.status(status).json({ error: responseMessage });
@@ -99,7 +100,7 @@ async function startServer() {
 
       // Use direct path to static files without symbolic links
       const publicDir = path.join(process.cwd(), 'dist', 'public');
-
+      
       logger.info('Static files directory:', {
         publicDir,
         exists: fs.existsSync(publicDir),
@@ -161,13 +162,25 @@ process.on('uncaughtException', (error) => {
 
 export function serveStatic(app: express.Application) {
   const staticDir = path.resolve(process.cwd(), "dist/public");
-
+  
   // Serve static files
   app.use(express.static(staticDir));
-
-  // Send index.html for all routes
+  
+  // For all routes, read and modify the HTML to inject environment variables
   app.get("*", (req, res) => {
-    res.sendFile(path.resolve(staticDir, "index.html"));
+    const indexPath = path.resolve(staticDir, "index.html");
+    let html = fs.readFileSync(indexPath, "utf8");
+    
+    // Inject environment variables into the HTML
+    html = html.replace(
+      "</head>",
+      `<script>
+        window.env = window.env || {};
+        window.env.GOOGLE_CLIENT_ID = "${process.env.GOOGLE_CLIENT_ID || ''}";
+      </script></head>`
+    );
+    
+    res.send(html);
   });
 }
 

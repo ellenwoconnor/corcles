@@ -13,7 +13,7 @@ import CommunitiesPage from "@/pages/communities-page";
 import WishlistsPage from "@/pages/wishlists-page";
 import S3TestComponent from "@/components/admin/s3-test";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { AddressCompletionDialog } from "./components/address-completion-dialog";
+import { AddressCompletionDialog } from "./components/address-completion-dialog"; // Added import
 
 function Router() {
   return (
@@ -30,6 +30,7 @@ function Router() {
   );
 }
 
+// This component handles rendering the address dialog when needed
 function AppContent() {
   const { 
     needsAddressInfo, 
@@ -42,6 +43,7 @@ function AppContent() {
       <Router />
       <Toaster />
 
+      {/* Render address collection dialog when needed */}
       {needsAddressInfo && pendingGoogleUser && (
         <AddressCompletionDialog
           open={needsAddressInfo}
@@ -54,29 +56,8 @@ function AppContent() {
 }
 
 function App() {
-  const clientId = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID;
-
-  // Log environment details on app initialization
-  console.log('Environment Check:', {
-    isDevelopment: import.meta.env.DEV,
-    isProduction: import.meta.env.PROD,
-    mode: import.meta.env.MODE,
-    hasClientId: Boolean(clientId),
-    clientIdLength: clientId?.length || 0,
-    envKeys: Object.keys(import.meta.env).filter(key => key.startsWith('VITE_'))
-  });
-
-  if (!clientId) {
-    console.error('Google OAuth Client ID is missing', {
-      env: import.meta.env.MODE,
-      availableEnvVars: Object.keys(import.meta.env)
-        .filter(key => key.startsWith('VITE_'))
-        .join(', ')
-    });
-  }
-
   return (
-    <GoogleOAuthProvider clientId={clientId || ''}>
+    <GoogleOAuthProvider clientId={import.meta.env.GOOGLE_CLIENT_ID}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <AppContent />
