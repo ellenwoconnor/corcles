@@ -25,6 +25,7 @@ export function AddressCompletionDialog({
   const [address, setAddress] = useState('');
   const [zipCode, setZipCode] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,7 +84,9 @@ export function AddressCompletionDialog({
             />
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
-          <Button type="submit" className="w-full">Complete Profile</Button>
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Processing..." : "Complete Profile"}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>
