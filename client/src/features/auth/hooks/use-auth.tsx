@@ -118,7 +118,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
     flow: 'implicit',
-    ux_mode: 'popup'
+    ux_mode: 'popup',
+    scope: 'email profile',
+    redirect_uri: window.location.origin
   });
 
   return (
