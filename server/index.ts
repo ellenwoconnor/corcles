@@ -59,7 +59,7 @@ async function startServer() {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
 
-      logger.error('Server error:', { 
+      logger.error('Server error:', {
         status,
         message,
         stack: err.stack,
@@ -68,8 +68,8 @@ async function startServer() {
       });
 
       // Don't expose internal errors in production
-      const responseMessage = process.env.NODE_ENV === 'production' 
-        ? 'Internal Server Error' 
+      const responseMessage = process.env.NODE_ENV === 'production'
+        ? 'Internal Server Error'
         : message;
 
       res.status(status).json({ error: responseMessage });
@@ -159,7 +159,7 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-export function serveStatic(app: express.Application) {
+function serveStatic(app: express.Application) {
   const staticDir = path.resolve(process.cwd(), "dist/public");
 
   // Serve static files
@@ -171,19 +171,47 @@ export function serveStatic(app: express.Application) {
     let html = fs.readFileSync(indexPath, "utf8");
 
     // Debug environment variables
-    logger.info('Environment variables for client:', {
+    logger.info('Environment configuration status:', {
       hasGoogleClientId: !!process.env.GOOGLE_CLIENT_ID,
       googleClientIdLength: process.env.GOOGLE_CLIENT_ID ? process.env.GOOGLE_CLIENT_ID.length : 0,
-      environment: process.env.NODE_ENV
+      environment: process.env.NODE_ENV,
+      isProduction: process.env.NODE_ENV === 'production'
     });
 
-    // Inject environment variables into the HTML
+    // Safely escape the client ID to prevent XSS
+    const safeClientId = process.env.GOOGLE_CLIENT_ID ?
+      JSON.stringify(process.env.GOOGLE_CLIENT_ID).slice(1, -1) : '';
+
+    // Inject environment variables into the HTML with enhanced error tracking
     html = html.replace(
       "</head>",
       `<script>
-        window.env = window.env || {};
-        window.env.GOOGLE_CLIENT_ID = "${process.env.GOOGLE_CLIENT_ID || ''}";
-        console.log("Injected GOOGLE_CLIENT_ID:", window.env.GOOGLE_CLIENT_ID);
+        // Initialize environment configuration
+        window.env = {
+          GOOGLE_CLIENT_ID: "${safeClientId}",
+          NODE_ENV: "${process.env.NODE_ENV}"
+        };
+
+        // Enhanced error tracking
+        window.onerror = function(msg, url, line, col, error) {
+          console.error('Global error:', {
+            message: msg,
+            location: url + ':' + line + ':' + col,
+            error: error?.stack,
+            googleAuthStatus: {
+              hasClientId: !!window.env?.GOOGLE_CLIENT_ID,
+              environment: window.env?.NODE_ENV
+            }
+          });
+          return false;
+        };
+
+        // Log OAuth configuration status
+        console.log("OAuth Configuration Status:", {
+          hasClientId: !!window.env?.GOOGLE_CLIENT_ID,
+          environment: window.env?.NODE_ENV,
+          clientIdLength: (window.env?.GOOGLE_CLIENT_ID || '').length
+        });
       </script></head>`
     );
 

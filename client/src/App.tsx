@@ -13,7 +13,20 @@ import CommunitiesPage from "@/pages/communities-page";
 import WishlistsPage from "@/pages/wishlists-page";
 import S3TestComponent from "@/components/admin/s3-test";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { AddressCompletionDialog } from "./components/address-completion-dialog"; // Added import
+import { AddressCompletionDialog } from "./components/address-completion-dialog";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+
+// Configuration error component
+function ConfigurationError({ message }: { message: string }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Alert variant="destructive" className="max-w-md">
+        <AlertTitle>Configuration Error</AlertTitle>
+        <AlertDescription>{message}</AlertDescription>
+      </Alert>
+    </div>
+  );
+}
 
 function Router() {
   return (
@@ -30,20 +43,13 @@ function Router() {
   );
 }
 
-// This component handles rendering the address dialog when needed
 function AppContent() {
-  const { 
-    needsAddressInfo, 
-    pendingGoogleUser, 
-    completeGoogleSignup 
-  } = useAuth();
+  const { needsAddressInfo, pendingGoogleUser, completeGoogleSignup } = useAuth();
 
   return (
     <>
       <Router />
       <Toaster />
-
-      {/* Render address collection dialog when needed */}
       {needsAddressInfo && pendingGoogleUser && (
         <AddressCompletionDialog
           open={needsAddressInfo}
@@ -56,31 +62,40 @@ function AppContent() {
 }
 
 function App() {
-  // Check both sources for Google Client ID
-  const envClientId = import.meta.env.GOOGLE_CLIENT_ID || '';
-  const windowClientId = typeof window !== 'undefined' && window.env?.GOOGLE_CLIENT_ID || '';
-  
-  // Use window.env in production, fallback to import.meta.env
-  const clientId = import.meta.env.PROD ? windowClientId : envClientId;
-  
-  // Enhanced debugging to isolate the issue
-  console.log("Google Client ID Debug:", {
-    finalClientId: clientId,
-    envClientId,
-    windowClientId,
-    isDevelopment: import.meta.env.DEV,
-    isProduction: import.meta.env.PROD,
-    mode: import.meta.env.MODE,
-    hasWindowEnv: typeof window !== 'undefined' && !!window.env,
-    windowEnvKeys: typeof window !== 'undefined' && window.env ? Object.keys(window.env) : [],
-    envKeys: Object.keys(import.meta.env)
+  // Enhanced client ID validation
+  const clientId = (() => {
+    try {
+      // Check if window.env exists and has the client ID
+      if (typeof window === 'undefined' || !window.env) {
+        throw new Error('Environment configuration not found');
+      }
+
+      const id = window.env.GOOGLE_CLIENT_ID;
+      if (!id) {
+        throw new Error('Google Client ID is not configured');
+      }
+
+      return id;
+    } catch (error) {
+      console.error('OAuth Configuration Error:', error);
+      return null;
+    }
+  })();
+
+  // Log configuration status
+  console.info('Application Configuration:', {
+    hasClientId: !!clientId,
+    environment: window.env?.NODE_ENV || process.env.NODE_ENV,
+    isProduction: window.env?.NODE_ENV === 'production'
   });
-  
+
+  // Show error UI if client ID is missing
   if (!clientId) {
-    console.error("Google OAuth Client ID is missing", {
-      env: import.meta.env.MODE,
-      availableEnvVars: Object.keys(import.meta.env).join(', ')
-    });
+    return (
+      <ConfigurationError 
+        message="OAuth configuration is missing. Please ensure the application is properly configured with Google Client ID."
+      />
+    );
   }
 
   return (
