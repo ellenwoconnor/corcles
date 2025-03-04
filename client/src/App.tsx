@@ -99,7 +99,10 @@ function App() {
   if (!clientId) {
     return (
       <ConfigurationError 
-        message="OAuth configuration is missing. Please ensure the application is properly configured with Google Client ID."
+        message={`OAuth configuration is missing. Please ensure:
+1. You are using the Web client ID (not auto-created)
+2. JavaScript origins include your domain
+3. The client ID is properly set in environment variables`}
       />
     );
   }

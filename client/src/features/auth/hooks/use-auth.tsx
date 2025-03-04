@@ -26,7 +26,7 @@ type AuthContextType = {
     accessToken: string;
   } | null;
   completeGoogleSignup: (address: string, zipCode: string) => Promise<SelectUser | undefined>;
-  isGoogleSignupLoading: boolean; 
+  isGoogleSignupLoading: boolean;
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
@@ -162,37 +162,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const googleLogin = useGoogleLogin({
     onSuccess: async (response) => {
       try {
+        // Log OAuth response for debugging
+        console.info('Google OAuth Success:', {
+          hasAccessToken: !!response.access_token,
+          tokenLength: response.access_token.length,
+          origin: window.location.origin
+        });
+
         const res = await googleAuthMutation.mutateAsync(response.access_token);
+
+        // Better type checking for the response
         if (res && 'needsAddressInfo' in res) {
           setNeedsAddressInfo(true);
           setPendingGoogleUser({
             email: res.email,
-            name: res.name,
-            picture: res.picture,
+            name: res.name || '',
+            picture: res.picture || '',
             userId: res.userId,
             accessToken: response.access_token
           });
         }
       } catch (error) {
-        console.error('Google login error:', error);
+        console.error('Google Authentication Error:', {
+          error,
+          origin: window.location.origin,
+          isDevelopment: import.meta.env.DEV,
+          clientIdSource: import.meta.env.DEV ? 'development' : 'production'
+        });
+
         toast({
           title: "Authentication Error",
-          description: error instanceof Error ? error.message : "Failed to authenticate with Google",
+          description: "Failed to authenticate. Please ensure you're using the Web client ID with correct domain configuration.",
           variant: "destructive",
         });
       }
     },
     onError: (error) => {
-      console.error('Google OAuth error:', error);
+      console.error('Google OAuth Error:', {
+        error,
+        origin: window.location.origin,
+        isDevelopment: import.meta.env.DEV
+      });
+
       toast({
-        title: "Google login failed",
-        description: "Could not sign in with Google. Please try again.",
+        title: "Google Sign-In Failed",
+        description: "Could not initialize Google Sign-In. Please check the client configuration.",
         variant: "destructive",
       });
     },
     flow: 'implicit',
-    scope: 'email profile',
-    redirect_uri: window.location.origin
+    scope: 'email profile'
   });
 
   return (
@@ -208,7 +227,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         needsAddressInfo,
         pendingGoogleUser,
         completeGoogleSignup,
-        isGoogleSignupLoading 
+        isGoogleSignupLoading
       }}
     >
       {children}
