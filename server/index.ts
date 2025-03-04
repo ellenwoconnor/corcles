@@ -170,6 +170,13 @@ export function serveStatic(app: express.Application) {
     const indexPath = path.resolve(staticDir, "index.html");
     let html = fs.readFileSync(indexPath, "utf8");
 
+    // Debug environment variables
+    logger.info('Environment variables for client:', {
+      hasGoogleClientId: !!process.env.GOOGLE_CLIENT_ID,
+      googleClientIdLength: process.env.GOOGLE_CLIENT_ID ? process.env.GOOGLE_CLIENT_ID.length : 0,
+      environment: process.env.NODE_ENV
+    });
+
     // Inject environment variables into the HTML
     html = html.replace(
       "</head>",
