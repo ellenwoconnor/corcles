@@ -1,4 +1,3 @@
-
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite } from "./vite";
@@ -100,7 +99,7 @@ async function startServer() {
 
       // Use direct path to static files without symbolic links
       const publicDir = path.join(process.cwd(), 'dist', 'public');
-      
+
       logger.info('Static files directory:', {
         publicDir,
         exists: fs.existsSync(publicDir),
@@ -162,24 +161,25 @@ process.on('uncaughtException', (error) => {
 
 export function serveStatic(app: express.Application) {
   const staticDir = path.resolve(process.cwd(), "dist/public");
-  
+
   // Serve static files
   app.use(express.static(staticDir));
-  
+
   // For all routes, read and modify the HTML to inject environment variables
   app.get("*", (req, res) => {
     const indexPath = path.resolve(staticDir, "index.html");
     let html = fs.readFileSync(indexPath, "utf8");
-    
+
     // Inject environment variables into the HTML
     html = html.replace(
       "</head>",
       `<script>
         window.env = window.env || {};
         window.env.GOOGLE_CLIENT_ID = "${process.env.GOOGLE_CLIENT_ID || ''}";
+        console.log("Injected GOOGLE_CLIENT_ID:", window.env.GOOGLE_CLIENT_ID);
       </script></head>`
     );
-    
+
     res.send(html);
   });
 }

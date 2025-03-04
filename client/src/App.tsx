@@ -56,19 +56,23 @@ function AppContent() {
 }
 
 function App() {
-  // Get client ID from window.env in production or import.meta.env in development
-  const clientId = typeof window !== 'undefined' && window.env?.GOOGLE_CLIENT_ID 
-    ? window.env.GOOGLE_CLIENT_ID 
-    : import.meta.env.GOOGLE_CLIENT_ID || '';
+  // Check both sources for Google Client ID
+  const envClientId = import.meta.env.GOOGLE_CLIENT_ID || '';
+  const windowClientId = typeof window !== 'undefined' && window.env?.GOOGLE_CLIENT_ID || '';
   
-  // Log environment information for debugging
-  console.log("Environment Check:", {
+  // Use window.env in production, fallback to import.meta.env
+  const clientId = import.meta.env.PROD ? windowClientId : envClientId;
+  
+  // Enhanced debugging to isolate the issue
+  console.log("Google Client ID Debug:", {
+    finalClientId: clientId,
+    envClientId,
+    windowClientId,
     isDevelopment: import.meta.env.DEV,
     isProduction: import.meta.env.PROD,
     mode: import.meta.env.MODE,
-    hasClientId: Boolean(clientId),
-    clientIdLength: clientId.length,
-    clientIdSource: typeof window !== 'undefined' && window.env?.GOOGLE_CLIENT_ID ? 'window.env' : 'import.meta.env',
+    hasWindowEnv: typeof window !== 'undefined' && !!window.env,
+    windowEnvKeys: typeof window !== 'undefined' && window.env ? Object.keys(window.env) : [],
     envKeys: Object.keys(import.meta.env)
   });
   
