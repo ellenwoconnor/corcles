@@ -26,7 +26,7 @@ type AuthContextType = {
     accessToken: string;
   } | null;
   completeGoogleSignup: (address: string, zipCode: string) => Promise<SelectUser | undefined>;
-  isGoogleSignupLoading: boolean; // Added isGoogleSignupLoading
+  isGoogleSignupLoading: boolean; 
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
@@ -121,8 +121,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-
-  // Create a separate loading state for the Google signup process
   const [isGoogleSignupLoading, setIsLoading] = useState(false);
 
   const completeGoogleSignup = async (address: string, zipCode: string) => {
@@ -165,29 +163,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: async (response) => {
       try {
         const res = await googleAuthMutation.mutateAsync(response.access_token);
-        if (res && res.needsAddressInfo) {
+        if (res && 'needsAddressInfo' in res) {
           setNeedsAddressInfo(true);
           setPendingGoogleUser({
             email: res.email,
             name: res.name,
             picture: res.picture,
-            userId: res.id,
+            userId: res.userId,
             accessToken: response.access_token
           });
         }
       } catch (error) {
-        // Error is handled by the mutation
+        console.error('Google login error:', error);
+        toast({
+          title: "Authentication Error",
+          description: error instanceof Error ? error.message : "Failed to authenticate with Google",
+          variant: "destructive",
+        });
       }
     },
     onError: (error) => {
+      console.error('Google OAuth error:', error);
       toast({
         title: "Google login failed",
-        description: "Could not sign in with Google",
+        description: "Could not sign in with Google. Please try again.",
         variant: "destructive",
       });
     },
     flow: 'implicit',
-    ux_mode: 'popup',
     scope: 'email profile',
     redirect_uri: window.location.origin
   });
@@ -205,7 +208,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         needsAddressInfo,
         pendingGoogleUser,
         completeGoogleSignup,
-        isGoogleSignupLoading // Added isGoogleSignupLoading to context
+        isGoogleSignupLoading 
       }}
     >
       {children}
