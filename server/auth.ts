@@ -6,6 +6,7 @@ import { storage } from "./storage";
 import { User as SelectUser, insertUserSchema } from "@shared/schema";
 import logger from './logger';
 import { hashPassword, comparePasswords } from './utils/auth';
+import fetch from 'node-fetch';
 
 declare global {
   namespace Express {
@@ -135,6 +136,81 @@ export function setupAuth(app: Express) {
         error,
         username: req.body.username
       });
+      next(error);
+    }
+  });
+
+  app.post("/api/auth/google", async (req, res, next) => {
+    try {
+      const { accessToken } = req.body;
+      if (!accessToken) {
+        return res.status(400).json({ error: "Access token is required" });
+      }
+
+      // Fetch user info from Google
+      const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+
+      if (!response.ok) {
+        logger.error('Failed to fetch Google user info:', {
+          status: response.status,
+          statusText: response.statusText
+        });
+        return res.status(401).json({ error: "Invalid access token" });
+      }
+
+      const googleUser = await response.json();
+      logger.debug('Received Google user info:', { 
+        email: googleUser.email,
+        name: googleUser.name
+      });
+
+      // Find or create user
+      let user = await storage.getUserByEmail(googleUser.email);
+
+      if (!user) {
+        // Create new user
+        const username = googleUser.email.split('@')[0];
+        let uniqueUsername = username;
+        let counter = 1;
+
+        // Ensure username is unique
+        while (await storage.getUserByUsername(uniqueUsername)) {
+          uniqueUsername = `${username}${counter}`;
+          counter++;
+        }
+
+        user = await storage.createUser({
+          username: uniqueUsername,
+          displayName: googleUser.name,
+          email: googleUser.email,
+          password: await hashPassword(Math.random().toString(36)),
+          address: '',
+          zipCode: '',
+          avatarUrl: googleUser.picture || null
+        });
+
+        logger.info('Created new user from Google auth:', {
+          userId: user.id,
+          email: user.email
+        });
+      }
+
+      // Log the user in
+      req.login(user, (err) => {
+        if (err) {
+          logger.error('Error during Google auth login:', {
+            error: err,
+            userId: user.id
+          });
+          return next(err);
+        }
+        res.json(user);
+      });
+
+    } catch (error) {
+      logger.error('Error during Google authentication:', error);
       next(error);
     }
   });
