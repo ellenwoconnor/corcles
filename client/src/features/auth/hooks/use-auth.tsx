@@ -7,6 +7,7 @@ import {
 import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useGoogleLogin } from '@react-oauth/google';
 
 type AuthContextType = {
   user: SelectUser | null;
@@ -15,6 +16,7 @@ type AuthContextType = {
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
+  googleLogin: () => void;
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
@@ -71,15 +73,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
-      // Clear all queries from the cache when logging out
       queryClient.clear();
-      // Set user to null after clearing cache
       queryClient.setQueryData(["/api/user"], null);
     },
     onError: (error: Error) => {
       toast({
         title: "Logout failed",
         description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const googleAuthMutation = useMutation({
+    mutationFn: async (accessToken: string) => {
+      const res = await apiRequest("POST", "/api/auth/google", { accessToken });
+      return await res.json();
+    },
+    onSuccess: (user: SelectUser) => {
+      queryClient.setQueryData(["/api/user"], user);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Google login failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (response) => {
+      try {
+        await googleAuthMutation.mutateAsync(response.access_token);
+      } catch (error) {
+        // Error is handled by the mutation
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Google login failed",
+        description: "Could not sign in with Google",
         variant: "destructive",
       });
     },
@@ -94,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
+        googleLogin,
       }}
     >
       {children}
