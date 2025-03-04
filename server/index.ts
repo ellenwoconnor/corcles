@@ -1,4 +1,3 @@
-
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite } from "./vite";
@@ -162,24 +161,29 @@ process.on('uncaughtException', (error) => {
 
 export function serveStatic(app: express.Application) {
   const staticDir = path.resolve(process.cwd(), "dist/public");
-  
+
   // Serve static files
   app.use(express.static(staticDir));
-  
+
   // For all routes, read and modify the HTML to inject environment variables
   app.get("*", (req, res) => {
     const indexPath = path.resolve(staticDir, "index.html");
     let html = fs.readFileSync(indexPath, "utf8");
-    
+
+    // Properly escape the environment variable to prevent XSS
+    const googleClientId = process.env.GOOGLE_CLIENT_ID ? 
+      JSON.stringify(process.env.GOOGLE_CLIENT_ID) : 
+      '""';
+
     // Inject environment variables into the HTML
     html = html.replace(
       "</head>",
       `<script>
         window.env = window.env || {};
-        window.env.GOOGLE_CLIENT_ID = "${process.env.GOOGLE_CLIENT_ID || ''}";
+        window.env.GOOGLE_CLIENT_ID = ${googleClientId};
       </script></head>`
     );
-    
+
     res.send(html);
   });
 }
