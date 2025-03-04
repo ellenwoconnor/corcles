@@ -97,32 +97,14 @@ async function startServer() {
         }))
       });
 
-      // Create symbolic link from server/public to dist/public
-      const serverPublicDir = path.join(process.cwd(), 'server', 'public');
-      const distPublicDir = path.join(process.cwd(), 'dist', 'public');
-
-      try {
-        // Remove existing symlink or directory if it exists
-        if (fs.existsSync(serverPublicDir)) {
-          fs.rmSync(serverPublicDir, { recursive: true, force: true });
-        }
-
-        // Ensure parent directory exists
-        fs.mkdirSync(path.dirname(serverPublicDir), { recursive: true });
-
-        // Create symlink from server/public to dist/public
-        fs.symlinkSync(distPublicDir, serverPublicDir, 'dir');
-        logger.info('Created symbolic link for static files:', {
-          from: distPublicDir,
-          to: serverPublicDir
-        });
-      } catch (error) {
-        logger.error('Error creating symbolic link:', {
-          error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined
-        });
-        throw error;
-      }
+      // Use direct path to static files without symbolic links
+      const publicDir = path.join(process.cwd(), 'dist', 'public');
+      
+      logger.info('Static files directory:', {
+        publicDir,
+        exists: fs.existsSync(publicDir),
+        hasIndex: fs.existsSync(path.join(publicDir, 'index.html'))
+      });
 
       serveStatic(app);
     }
