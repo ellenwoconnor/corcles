@@ -62,20 +62,23 @@ function AppContent() {
 }
 
 function App() {
-  // Enhanced client ID validation
+  // Get the client ID based on environment
   const clientId = (() => {
     try {
-      // Check if window.env exists and has the client ID
-      if (typeof window === 'undefined' || !window.env) {
-        throw new Error('Environment configuration not found');
+      // In development, use Vite's import.meta.env
+      if (import.meta.env.DEV) {
+        const devClientId = import.meta.env.GOOGLE_CLIENT_ID;
+        if (!devClientId) {
+          throw new Error('Google Client ID not found in development environment');
+        }
+        return devClientId;
       }
 
-      const id = window.env.GOOGLE_CLIENT_ID;
-      if (!id) {
-        throw new Error('Google Client ID is not configured');
+      // In production, use window.env
+      if (typeof window === 'undefined' || !window.env?.GOOGLE_CLIENT_ID) {
+        throw new Error('Google Client ID not found in production environment');
       }
-
-      return id;
+      return window.env.GOOGLE_CLIENT_ID;
     } catch (error) {
       console.error('OAuth Configuration Error:', error);
       return null;
@@ -83,10 +86,13 @@ function App() {
   })();
 
   // Log configuration status
-  console.info('Application Configuration:', {
+  console.info('OAuth Configuration Status:', {
     hasClientId: !!clientId,
-    environment: window.env?.NODE_ENV || process.env.NODE_ENV,
-    isProduction: window.env?.NODE_ENV === 'production'
+    clientIdLength: clientId?.length || 0,
+    isDevelopment: import.meta.env.DEV,
+    isProduction: import.meta.env.PROD,
+    devClientId: import.meta.env.DEV ? import.meta.env.GOOGLE_CLIENT_ID : undefined,
+    windowEnvClientId: typeof window !== 'undefined' ? window.env?.GOOGLE_CLIENT_ID : undefined
   });
 
   // Show error UI if client ID is missing
