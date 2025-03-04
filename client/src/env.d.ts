@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly GOOGLE_CLIENT_ID: string
+  readonly VITE_GOOGLE_OAUTH_CLIENT_ID: string
 }
 
 interface ImportMeta {
@@ -10,6 +10,6 @@ interface ImportMeta {
 
 interface Window {
   env?: {
-    GOOGLE_CLIENT_ID: string
+    VITE_GOOGLE_OAUTH_CLIENT_ID: string
   }
 }

@@ -15,21 +15,6 @@ import S3TestComponent from "@/components/admin/s3-test";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AddressCompletionDialog } from "./components/address-completion-dialog";
 
-// Get Google Client ID from either dev or prod environment
-const getGoogleClientId = () => {
-  // Try import.meta.env first (development)
-  const devClientId = import.meta.env.GOOGLE_CLIENT_ID;
-  if (devClientId) {
-    console.debug('Using development Google Client ID');
-    return devClientId;
-  }
-
-  // Fallback to window.env (production)
-  const prodClientId = window.env?.GOOGLE_CLIENT_ID;
-  console.debug('Using production Google Client ID:', Boolean(prodClientId));
-  return prodClientId;
-};
-
 function Router() {
   return (
     <Switch>
@@ -69,18 +54,29 @@ function AppContent() {
 }
 
 function App() {
-  const googleClientId = getGoogleClientId();
+  const clientId = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID;
 
-  if (!googleClientId) {
-    console.error('Google Client ID is not configured', {
-      hasDevClientId: Boolean(import.meta.env.GOOGLE_CLIENT_ID),
-      hasWindowEnv: Boolean(window.env),
-      hasWindowEnvClientId: Boolean(window.env?.GOOGLE_CLIENT_ID)
+  // Log environment details on app initialization
+  console.log('Environment Check:', {
+    isDevelopment: import.meta.env.DEV,
+    isProduction: import.meta.env.PROD,
+    mode: import.meta.env.MODE,
+    hasClientId: Boolean(clientId),
+    clientIdLength: clientId?.length || 0,
+    envKeys: Object.keys(import.meta.env).filter(key => key.startsWith('VITE_'))
+  });
+
+  if (!clientId) {
+    console.error('Google OAuth Client ID is missing', {
+      env: import.meta.env.MODE,
+      availableEnvVars: Object.keys(import.meta.env)
+        .filter(key => key.startsWith('VITE_'))
+        .join(', ')
     });
   }
 
   return (
-    <GoogleOAuthProvider clientId={googleClientId || ''}>
+    <GoogleOAuthProvider clientId={clientId || ''}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <AppContent />

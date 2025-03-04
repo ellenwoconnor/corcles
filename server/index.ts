@@ -59,7 +59,7 @@ async function startServer() {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
 
-      logger.error('Server error:', { 
+      logger.error('Server error:', {
         status,
         message,
         stack: err.stack,
@@ -68,8 +68,8 @@ async function startServer() {
       });
 
       // Don't expose internal errors in production
-      const responseMessage = process.env.NODE_ENV === 'production' 
-        ? 'Internal Server Error' 
+      const responseMessage = process.env.NODE_ENV === 'production'
+        ? 'Internal Server Error'
         : message;
 
       res.status(status).json({ error: responseMessage });
@@ -99,7 +99,7 @@ async function startServer() {
 
       // Use direct path to static files without symbolic links
       const publicDir = path.join(process.cwd(), 'dist', 'public');
-      
+
       logger.info('Static files directory:', {
         publicDir,
         exists: fs.existsSync(publicDir),
@@ -165,26 +165,9 @@ export function serveStatic(app: express.Application) {
   // Serve static files
   app.use(express.static(staticDir));
 
-  // For all routes, read and modify the HTML to inject environment variables
+  // Send index.html for all routes
   app.get("*", (req, res) => {
-    const indexPath = path.resolve(staticDir, "index.html");
-    let html = fs.readFileSync(indexPath, "utf8");
-
-    // Properly escape the environment variable to prevent XSS
-    const googleClientId = process.env.GOOGLE_CLIENT_ID ? 
-      JSON.stringify(process.env.GOOGLE_CLIENT_ID) : 
-      '""';
-
-    // Inject environment variables into the HTML
-    html = html.replace(
-      "</head>",
-      `<script>
-        window.env = window.env || {};
-        window.env.GOOGLE_CLIENT_ID = ${googleClientId};
-      </script></head>`
-    );
-
-    res.send(html);
+    res.sendFile(path.resolve(staticDir, "index.html"));
   });
 }
 
