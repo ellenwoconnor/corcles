@@ -19,10 +19,15 @@ import { AddressCompletionDialog } from "./components/address-completion-dialog"
 const getGoogleClientId = () => {
   // Try import.meta.env first (development)
   const devClientId = import.meta.env.GOOGLE_CLIENT_ID;
-  if (devClientId) return devClientId;
+  if (devClientId) {
+    console.debug('Using development Google Client ID');
+    return devClientId;
+  }
 
   // Fallback to window.env (production)
-  return window.env?.GOOGLE_CLIENT_ID;
+  const prodClientId = window.env?.GOOGLE_CLIENT_ID;
+  console.debug('Using production Google Client ID:', Boolean(prodClientId));
+  return prodClientId;
 };
 
 function Router() {
@@ -67,7 +72,11 @@ function App() {
   const googleClientId = getGoogleClientId();
 
   if (!googleClientId) {
-    console.error('Google Client ID is not configured');
+    console.error('Google Client ID is not configured', {
+      hasDevClientId: Boolean(import.meta.env.GOOGLE_CLIENT_ID),
+      hasWindowEnv: Boolean(window.env),
+      hasWindowEnvClientId: Boolean(window.env?.GOOGLE_CLIENT_ID)
+    });
   }
 
   return (
