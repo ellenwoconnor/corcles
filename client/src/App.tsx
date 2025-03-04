@@ -13,7 +13,17 @@ import CommunitiesPage from "@/pages/communities-page";
 import WishlistsPage from "@/pages/wishlists-page";
 import S3TestComponent from "@/components/admin/s3-test";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { AddressCompletionDialog } from "./components/address-completion-dialog"; // Added import
+import { AddressCompletionDialog } from "./components/address-completion-dialog";
+
+// Get Google Client ID from either dev or prod environment
+const getGoogleClientId = () => {
+  // Try import.meta.env first (development)
+  const devClientId = import.meta.env.GOOGLE_CLIENT_ID;
+  if (devClientId) return devClientId;
+
+  // Fallback to window.env (production)
+  return window.env?.GOOGLE_CLIENT_ID;
+};
 
 function Router() {
   return (
@@ -30,7 +40,6 @@ function Router() {
   );
 }
 
-// This component handles rendering the address dialog when needed
 function AppContent() {
   const { 
     needsAddressInfo, 
@@ -43,7 +52,6 @@ function AppContent() {
       <Router />
       <Toaster />
 
-      {/* Render address collection dialog when needed */}
       {needsAddressInfo && pendingGoogleUser && (
         <AddressCompletionDialog
           open={needsAddressInfo}
@@ -56,8 +64,14 @@ function AppContent() {
 }
 
 function App() {
+  const googleClientId = getGoogleClientId();
+
+  if (!googleClientId) {
+    console.error('Google Client ID is not configured');
+  }
+
   return (
-    <GoogleOAuthProvider clientId={import.meta.env.GOOGLE_CLIENT_ID}>
+    <GoogleOAuthProvider clientId={googleClientId || ''}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <AppContent />
