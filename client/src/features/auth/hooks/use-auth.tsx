@@ -26,6 +26,7 @@ type AuthContextType = {
     accessToken: string;
   } | null;
   completeGoogleSignup: (address: string, zipCode: string) => Promise<SelectUser | undefined>;
+  isGoogleSignupLoading: boolean; // Added isGoogleSignupLoading
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
@@ -121,8 +122,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
 
+  // Create a separate loading state for the Google signup process
+  const [isGoogleSignupLoading, setIsLoading] = useState(false);
+
   const completeGoogleSignup = async (address: string, zipCode: string) => {
-    if (!pendingGoogleUser) return;
+    if (!pendingGoogleUser) {
+      throw new Error('No pending Google user');
+    }
 
     try {
       setIsLoading(true);
@@ -199,6 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         needsAddressInfo,
         pendingGoogleUser,
         completeGoogleSignup,
+        isGoogleSignupLoading // Added isGoogleSignupLoading to context
       }}
     >
       {children}

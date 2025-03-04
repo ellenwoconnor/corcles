@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +9,7 @@ import {
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 
 interface AddressCompletionDialogProps {
   open: boolean;
@@ -25,23 +25,23 @@ export function AddressCompletionDialog({
   const [address, setAddress] = useState('');
   const [zipCode, setZipCode] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const { isLoading, setIsLoading } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate input
     if (!address.trim()) {
       setError('Address is required');
       return;
     }
-    
+
     // Check if zip code is exactly 5 digits
     if (!/^\d{5}$/.test(zipCode)) {
       setError('Zip code must be exactly 5 digits');
       return;
     }
-    
+
     // If validation passes, call the onComplete function
     onComplete(address, zipCode);
   };
