@@ -56,21 +56,25 @@ function AppContent() {
 }
 
 function App() {
+  // Get client ID from window.env in production or import.meta.env in development
+  const clientId = typeof window !== 'undefined' && window.env?.GOOGLE_CLIENT_ID 
+    ? window.env.GOOGLE_CLIENT_ID 
+    : import.meta.env.GOOGLE_CLIENT_ID || '';
+  
   // Log environment information for debugging
   console.log("Environment Check:", {
-    isDevelopment: process.env.NODE_ENV === 'development',
-    isProduction: process.env.NODE_ENV === 'production',
+    isDevelopment: import.meta.env.DEV,
+    isProduction: import.meta.env.PROD,
     mode: import.meta.env.MODE,
-    hasClientId: Boolean(import.meta.env.GOOGLE_CLIENT_ID),
-    clientIdLength: (import.meta.env.GOOGLE_CLIENT_ID || '').length,
+    hasClientId: Boolean(clientId),
+    clientIdLength: clientId.length,
+    clientIdSource: typeof window !== 'undefined' && window.env?.GOOGLE_CLIENT_ID ? 'window.env' : 'import.meta.env',
     envKeys: Object.keys(import.meta.env)
   });
-
-  const clientId = import.meta.env.GOOGLE_CLIENT_ID || '';
   
   if (!clientId) {
-    console.log("Google OAuth Client ID is missing", {
-      env: process.env.NODE_ENV,
+    console.error("Google OAuth Client ID is missing", {
+      env: import.meta.env.MODE,
       availableEnvVars: Object.keys(import.meta.env).join(', ')
     });
   }
