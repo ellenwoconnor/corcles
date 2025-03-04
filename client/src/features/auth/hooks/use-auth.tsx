@@ -117,6 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         variant: "destructive",
       });
     },
+    flow: 'implicit',
+    ux_mode: 'popup'
   });
 
   return (
