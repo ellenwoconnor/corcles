@@ -1,6 +1,7 @@
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic } from "./vite";
+import { setupVite } from "./vite";
 import logger, { requestLogger, logStartupInfo } from "./logger";
 import { db } from "./db";
 import { sql } from 'drizzle-orm';
@@ -158,6 +159,30 @@ process.on('uncaughtException', (error) => {
   });
   process.exit(1);
 });
+
+export function serveStatic(app: express.Application) {
+  const staticDir = path.resolve(process.cwd(), "dist/public");
+  
+  // Serve static files
+  app.use(express.static(staticDir));
+  
+  // For all routes, read and modify the HTML to inject environment variables
+  app.get("*", (req, res) => {
+    const indexPath = path.resolve(staticDir, "index.html");
+    let html = fs.readFileSync(indexPath, "utf8");
+    
+    // Inject environment variables into the HTML
+    html = html.replace(
+      "</head>",
+      `<script>
+        window.env = window.env || {};
+        window.env.GOOGLE_CLIENT_ID = "${process.env.GOOGLE_CLIENT_ID || ''}";
+      </script></head>`
+    );
+    
+    res.send(html);
+  });
+}
 
 startServer().catch((error) => {
   logger.error('Server startup failed:', {
