@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
@@ -53,29 +53,10 @@ export function MessageDialog({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Use SSE for real-time updates with minimal reconnections
+  // Use SSE instead of WebSocket
   const { isConnected } = useServerEvents({
-    endpoint: '/api/events',
-    enabled: !!open, // Only enable when dialog is open
-    onMessage: (data) => {
-      if (data.type === 'new_message' && data.data.requestId === requestId) {
-        // Invalidate queries for both sender and recipient
-        queryClient.invalidateQueries({ 
-          queryKey: ['/api/messages', currentUserId, requestId]
-        });
-        queryClient.invalidateQueries({ 
-          queryKey: ['/api/messages', otherPartyId, requestId]
-        });
-
-        // Only show toast for received messages
-        if (data.data.senderId !== currentUserId) {
-          toast({
-            title: "New Message",
-            description: "You have received a new message"
-          });
-        }
-      }
-    }
+    enabled: open, // Only connect when dialog is open
+    endpoint: '/api/events'
   });
 
   const form = useForm<MessageFormValues>({
@@ -123,9 +104,7 @@ export function MessageDialog({
     },
     onSuccess: () => {
       form.reset();
-      // Invalidate queries for both users after sending
       queryClient.invalidateQueries({ queryKey: ['/api/messages', currentUserId, requestId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/messages', otherPartyId, requestId] });
     },
     onError: (error: Error) => {
       toast({
