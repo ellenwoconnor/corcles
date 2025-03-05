@@ -199,6 +199,23 @@ export function ListingForm({
 
         <FormField
           control={form.control}
+          name="imageUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Image</FormLabel>
+              <FormControl>
+                <ImageUpload
+                  value={field.value}
+                  onChange={(url) => field.onChange(url)}
+                  onFileChange={handleImageChange}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name="description"
           render={({ field }) => (
             <FormItem>
@@ -285,23 +302,7 @@ export function ListingForm({
           />
         )}
 
-        <FormField
-          control={form.control}
-          name="imageUrl"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Image</FormLabel>
-              <FormControl>
-                <ImageUpload
-                  value={field.value}
-                  onChange={(url) => field.onChange(url)}
-                  onFileChange={handleImageChange}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+
         <FormField
           control={form.control}
           name="pickupLocation"
