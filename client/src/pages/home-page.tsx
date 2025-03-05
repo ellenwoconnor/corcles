@@ -17,6 +17,7 @@ import CommunityWishlists from "@/components/community-wishlists";
 export default function HomePage() {
   const { user } = useAuth();
   const [searchValue, setSearchValue] = useState("");
+  const debouncedSearchValue = useDebounce(searchValue, 300); // Debounce with 300ms delay
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const { data: userCommunities = [] } = useQuery<
@@ -29,14 +30,14 @@ export default function HomePage() {
   const communityIds = userCommunities.map((c) => c.id);
 
   const { data: items = [], isLoading } = useQuery<Item[]>({
-    queryKey: ["/api/items", communityIds, searchValue, showFreeOnly],
+    queryKey: ["/api/items", communityIds, debouncedSearchValue, showFreeOnly], // Use debounced value
     queryFn: async () => {
       if (communityIds.length === 0) return [];
       const params = new URLSearchParams();
       params.append("communities", communityIds.join(","));
 
-      if (searchValue.trim()) {
-        params.append("search", searchValue.trim());
+      if (debouncedSearchValue && debouncedSearchValue.trim()) { // Use debounced value
+        params.append("search", debouncedSearchValue.trim()); // Use debounced value
       }
 
       if (showFreeOnly) {
