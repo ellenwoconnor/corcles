@@ -53,10 +53,21 @@ export function MessageDialog({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Use SSE instead of WebSocket
+  // Use SSE for real-time updates
   const { isConnected } = useServerEvents({
-    enabled: open, // Only connect when dialog is open
-    endpoint: '/api/events'
+    enabled: open,
+    endpoint: '/api/events',
+    onMessage: (data) => {
+      if (data.type === 'new_message' && data.data.requestId === requestId) {
+        // Invalidate queries for both sender and recipient
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/messages', currentUserId, requestId]
+        });
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/messages', otherPartyId, requestId]
+        });
+      }
+    }
   });
 
   const form = useForm<MessageFormValues>({
@@ -104,7 +115,9 @@ export function MessageDialog({
     },
     onSuccess: () => {
       form.reset();
+      // Invalidate queries for both users after sending
       queryClient.invalidateQueries({ queryKey: ['/api/messages', currentUserId, requestId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/messages', otherPartyId, requestId] });
     },
     onError: (error: Error) => {
       toast({

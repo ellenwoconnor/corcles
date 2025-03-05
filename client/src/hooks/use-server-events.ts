@@ -5,9 +5,14 @@ import { queryClient } from '@/lib/queryClient';
 interface UseServerEventsOptions {
   endpoint?: string;
   enabled?: boolean;
+  onMessage?: (data: any) => void;
 }
 
-export function useServerEvents({ endpoint = '/api/events', enabled = true }: UseServerEventsOptions = {}) {
+export function useServerEvents({ 
+  endpoint = '/api/events', 
+  enabled = true,
+  onMessage 
+}: UseServerEventsOptions = {}) {
   const [isConnected, setIsConnected] = useState(false);
   const { toast } = useToast();
 
@@ -17,7 +22,7 @@ export function useServerEvents({ endpoint = '/api/events', enabled = true }: Us
     }
 
     const eventSource = new EventSource(endpoint);
-    
+
     eventSource.onopen = () => {
       console.log('SSE connection established');
       setIsConnected(true);
@@ -26,7 +31,7 @@ export function useServerEvents({ endpoint = '/api/events', enabled = true }: Us
     eventSource.onerror = (error) => {
       console.error('SSE connection error:', error);
       setIsConnected(false);
-      
+
       toast({
         title: "Connection Error",
         description: "Real-time updates may be delayed. Please refresh the page.",
@@ -39,21 +44,27 @@ export function useServerEvents({ endpoint = '/api/events', enabled = true }: Us
         const data = JSON.parse(event.data);
         console.log('Received SSE message:', data);
 
-        switch (data.type) {
-          case 'new_message':
-            // Invalidate queries to refresh message list
-            queryClient.invalidateQueries({ 
-              queryKey: ['/api/messages', data.data.requestId]
-            });
+        // Call the onMessage callback if provided
+        if (onMessage) {
+          onMessage(data);
+        } else {
+          // Default handling if no callback provided
+          switch (data.type) {
+            case 'new_message':
+              // Invalidate queries to refresh message list
+              queryClient.invalidateQueries({ 
+                queryKey: ['/api/messages', data.data.requestId]
+              });
 
-            toast({
-              title: "New Message",
-              description: "You have received a new message",
-            });
-            break;
+              toast({
+                title: "New Message",
+                description: "You have received a new message",
+              });
+              break;
 
-          default:
-            console.warn('Unknown message type:', data.type);
+            default:
+              console.warn('Unknown message type:', data.type);
+          }
         }
       } catch (error) {
         console.error('Error processing SSE message:', error);
@@ -65,7 +76,7 @@ export function useServerEvents({ endpoint = '/api/events', enabled = true }: Us
       eventSource.close();
       setIsConnected(false);
     };
-  }, [endpoint, enabled, toast]);
+  }, [endpoint, enabled, toast, onMessage]);
 
   return {
     isConnected
