@@ -8,6 +8,7 @@ import * as schema from "@shared/schema";
 import { ITEM_STATUS, REQUEST_STATUS } from "@shared/constants";
 import { z } from "zod";
 import { eq, and, not, or, inArray } from "drizzle-orm";
+import { addDays, addHours, isBefore, isAfter } from "date-fns";
 import { 
   insertItemBidSchema, 
   insertItemRequestSchema,
