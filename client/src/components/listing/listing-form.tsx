@@ -41,11 +41,13 @@ export const createItemSchema = z.object({
   communityId: z.number({
     required_error: "Please select a community",
   }),
+  pickupLocation: z.string().min(1, "Pickup location is required"),
 });
 
 // Edit specific schema
 export const editItemSchema = z.object({
   ...baseItemSchema,
+  pickupLocation: z.string().min(1, "Pickup location is required"),
 });
 
 export type FormData = z.infer<typeof createItemSchema>;
@@ -91,6 +93,7 @@ export function ListingForm({
       imageUrl: '',
       userId: user?.id,
       communityId: defaultValues.communityId || (communities.length > 0 ? communities[0].id : undefined),
+      pickupLocation: defaultValues.pickupLocation || "",
       ...defaultValues,
     },
   });
@@ -125,6 +128,7 @@ export function ListingForm({
         "imageUrl",
         data.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4"
       );
+      formData.append("pickupLocation", data.pickupLocation);
 
       if (imageFile) {
         formData.append("imageFile", imageFile);
@@ -292,6 +296,19 @@ export function ListingForm({
                   onChange={(url) => field.onChange(url)}
                   onFileChange={handleImageChange}
                 />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="pickupLocation"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Pickup Location <span className="text-red-500">*</span></FormLabel>
+              <FormControl>
+                <Input placeholder="Enter pickup location" {...field} required />
               </FormControl>
               <FormMessage />
             </FormItem>
