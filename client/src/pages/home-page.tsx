@@ -15,21 +15,10 @@ import CommunityWishlists from "@/components/community-wishlists";
 ("use client");
 
 export default function HomePage() {
-  // Basic console.log to verify component mounting
-  if (process.env.NODE_ENV === "development") {
-    console.log("HomePage component mounting");
-  }
-
   const { user } = useAuth();
   const [searchValue, setSearchValue] = useState("");
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
-
-  // Debug log after state initialization
-  if (process.env.NODE_ENV === "development") {
-    console.log("Current state values:", { searchValue, showFreeOnly });
-  }
-
   const { data: userCommunities = [] } = useQuery<
     (Community & { role: string; memberCount: number })[]
   >({
@@ -43,11 +32,6 @@ export default function HomePage() {
     queryKey: ["/api/items", communityIds, searchValue, showFreeOnly],
     queryFn: async () => {
       if (communityIds.length === 0) return [];
-
-      if (process.env.NODE_ENV === "development") {
-        console.log("Making API request with search:", searchValue);
-      }
-
       const params = new URLSearchParams();
       params.append("communities", communityIds.join(","));
 
@@ -92,9 +76,6 @@ export default function HomePage() {
             value={searchValue}
             onChange={(e) => {
               const newValue = e.target.value;
-              if (process.env.NODE_ENV === "development") {
-                console.log("Search input change:", newValue); // Debug log
-              }
               setSearchValue(newValue);
             }}
             placeholder="Search items..."
