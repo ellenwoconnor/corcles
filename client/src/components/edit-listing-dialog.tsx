@@ -1,11 +1,7 @@
 import { z } from "zod";
 import { Pencil } from "lucide-react";
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/features/auth/hooks/use-auth";
-import { insertItemSchema, type Item } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { type Item } from "@shared/schema";
 import { ListingForm } from "./listing/listing-form";
 
 import {
@@ -25,81 +21,18 @@ interface EditListingDialogProps {
 
 // Create a schema for editing that includes all fields from insertItemSchema
 const editSchema = z.object({
-  ...insertItemSchema._def.schema.shape, // Access the underlying schema shape
+  // ...insertItemSchema._def.schema.shape, // Access the underlying schema shape
   imageFile: z.any().optional(),
 });
 
 type FormData = z.infer<typeof editSchema>;
+
 
 export function EditListingDialog({
   item,
   trigger,
 }: EditListingDialogProps) {
   const [open, setOpen] = useState(false);
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  const updateItemMutation = useMutation({
-    mutationFn: async (data: {formData: FormData, imageFile: File | null}) => {
-      const formData = new FormData();
-      
-      // Validate required fields before submission
-      if (!data.formData.title) {
-        throw new Error("Title is required");
-      }
-      
-      formData.append('title', data.formData.title.trim());
-      formData.append('description', data.formData.description || '');
-      formData.append('isGift', String(data.formData.isGift));
-      formData.append('price', data.formData.isGift ? '0' : String(data.formData.price || 0));
-      formData.append('communityId', String(item.communityId));
-      formData.append('userId', String(user?.id));
-      formData.append('imageUrl', data.formData.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4");
-
-      if (data.imageFile) {
-        formData.append('imageFile', data.imageFile);
-      }
-      
-      console.log("Updating item with data:", {
-        title: data.formData.title,
-        isGift: data.formData.isGift,
-        communityId: item.communityId
-      });
-
-      const response = await apiRequest("PATCH", `/api/items/${item.id}`, formData);
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update item");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/user/items"] });
-
-      toast({
-        title: "Success!",
-        description: "Your listing has been updated.",
-      });
-
-      setOpen(false);
-    },
-    onError: (error) => {
-      console.error("Update failed:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update listing",
-      });
-    },
-  });
-
-  const handleSubmit = async (values: FormData, imageFile: File | null) => {
-    updateItemMutation.mutate({formData: values, imageFile});
-  };
 
   const defaultValues = {
     title: item.title,
@@ -130,11 +63,11 @@ export function EditListingDialog({
         </DialogHeader>
         <ListingForm
           mode="edit"
+          itemId={item.id}
           defaultValues={defaultValues}
-          onSubmit={handleSubmit}
-          isLoading={updateItemMutation.isPending}
-          schema={editSchema}
+          onSuccess={() => setOpen(false)}
           buttonText="Update Listing"
+          schema={editSchema}
         />
       </DialogContent>
     </Dialog>

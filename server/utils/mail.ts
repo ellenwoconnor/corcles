@@ -1,5 +1,5 @@
-import { Resend } from 'resend';
-import logger from '../logger';
+import { Resend } from "resend";
+import logger from "../logger";
 
 if (!process.env.RESEND_API_KEY) {
   throw new Error("RESEND_API_KEY environment variable must be set");
@@ -13,28 +13,32 @@ interface SendMailParams {
   html: string;
 }
 
-export async function sendMail({ to, subject, html }: SendMailParams): Promise<boolean> {
+export async function sendMail({
+  to,
+  subject,
+  html,
+}: SendMailParams): Promise<boolean> {
   try {
-    logger.info('Attempting to send email:', { to, subject });
+    logger.info("Attempting to send email:", { to, subject });
 
     await resend.emails.send({
-      from: 'Corcles <onboarding@resend.dev>',
+      from: "Corcles <admin@corcles.com>",
       to,
       subject,
       html,
     });
 
-    logger.info('Email sent successfully', { to, subject });
+    logger.info("Email sent successfully", { to, subject });
     return true;
   } catch (error: unknown) {
     if (error instanceof Error) {
-      logger.error('Failed to send email:', {
+      logger.error("Failed to send email:", {
         error: error.message,
         to,
-        subject
+        subject,
       });
     } else {
-      logger.error('Failed to send email with unknown error:', error);
+      logger.error("Failed to send email with unknown error:", error);
     }
     return false;
   }
@@ -45,7 +49,10 @@ interface InviteEmailParams {
   inviterName: string;
 }
 
-export function generateCommunityInviteEmail({ communityName, inviterName }: InviteEmailParams): string {
+export function generateCommunityInviteEmail({
+  communityName,
+  inviterName,
+}: InviteEmailParams): string {
   return `
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 2rem; background-color: #ffffff; border-radius: 8px; color: hsl(222.2 47.4% 11.2%);">
       <div style="text-align: center; margin-bottom: 2rem;">

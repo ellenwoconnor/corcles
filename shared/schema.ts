@@ -66,6 +66,7 @@ export const items = pgTable("items", {
   pickupStart: timestamp("pickup_start"),
   pickupEnd: timestamp("pickup_end"),
   proposedPickupWindows: jsonb("proposed_pickup_windows").array(),
+  pickupLocation: text("pickup_location"),
 });
 
 export const itemRequests = pgTable("item_requests", {
@@ -121,6 +122,7 @@ export type InsertItem = z.infer<typeof insertItemSchema>;
 export type Item = typeof items.$inferSelect & {
   userDisplayName?: string;
   proposedPickupWindows?: PickupWindow[];
+  pickupLocation?: string;
 };
 export type InsertItemRequest = z.infer<typeof insertItemRequestSchema>;
 export type ItemRequest = typeof itemRequests.$inferSelect & {
@@ -165,6 +167,7 @@ export const insertItemSchema = createInsertSchema(items).omit({
   userId: z.number(),
   communityId: z.number({ required_error: "Please select a community" }),
   imageUrl: z.string().optional(),
+  pickupLocation: z.string().optional(),
 }).refine((data) => {
   if (!data.isGift && (!data.price || data.price < 0.01)) {
     return false;

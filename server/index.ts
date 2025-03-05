@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic } from "./vite";
+import { setupVite } from "./vite";
 import logger, { requestLogger, logStartupInfo } from "./logger";
 import { db } from "./db";
 import { sql } from 'drizzle-orm';
@@ -30,7 +30,7 @@ async function startServer() {
     });
 
     // Validate required environment variables
-    const requiredEnvVars = ['DATABASE_URL', 'SESSION_SECRET'];
+    const requiredEnvVars = ['DATABASE_URL', 'SESSION_SECRET', 'GOOGLE_CLIENT_ID'];
     const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
     if (missingVars.length > 0) {
@@ -59,7 +59,7 @@ async function startServer() {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
 
-      logger.error('Server error:', { 
+      logger.error('Server error:', {
         status,
         message,
         stack: err.stack,
@@ -68,8 +68,8 @@ async function startServer() {
       });
 
       // Don't expose internal errors in production
-      const responseMessage = process.env.NODE_ENV === 'production' 
-        ? 'Internal Server Error' 
+      const responseMessage = process.env.NODE_ENV === 'production'
+        ? 'Internal Server Error'
         : message;
 
       res.status(status).json({ error: responseMessage });
@@ -81,50 +81,69 @@ async function startServer() {
       await setupVite(app, server);
     } else {
       logger.info('Setting up production environment');
-      // Check all possible static file locations
-      const possiblePaths = [
-        path.join(process.cwd(), 'public'),
-        path.join(process.cwd(), 'dist', 'public'),
-        path.join(process.cwd(), 'dist'),
-        path.join(process.cwd(), 'client', 'dist')
-      ];
+      const staticDir = path.resolve(process.cwd(), "dist/public");
 
-      logger.info('Checking possible static file locations:', {
-        paths: possiblePaths.map(p => ({
-          path: p,
-          exists: fs.existsSync(p),
-          hasIndex: fs.existsSync(path.join(p, 'index.html'))
-        }))
+      logger.info('Static files directory:', {
+        staticDir,
+        exists: fs.existsSync(staticDir),
+        hasIndex: fs.existsSync(path.join(staticDir, 'index.html'))
       });
 
-      // Create symbolic link from server/public to dist/public
-      const serverPublicDir = path.join(process.cwd(), 'server', 'public');
-      const distPublicDir = path.join(process.cwd(), 'dist', 'public');
+      // Serve static files
+      app.use(express.static(staticDir));
 
-      try {
-        // Remove existing symlink or directory if it exists
-        if (fs.existsSync(serverPublicDir)) {
-          fs.rmSync(serverPublicDir, { recursive: true, force: true });
-        }
+      // For all routes, read and modify the HTML to inject environment variables
+      app.get("*", (req, res) => {
+        const indexPath = path.resolve(staticDir, "index.html");
+        let html = fs.readFileSync(indexPath, "utf8");
 
-        // Ensure parent directory exists
-        fs.mkdirSync(path.dirname(serverPublicDir), { recursive: true });
-
-        // Create symlink from server/public to dist/public
-        fs.symlinkSync(distPublicDir, serverPublicDir, 'dir');
-        logger.info('Created symbolic link for static files:', {
-          from: distPublicDir,
-          to: serverPublicDir
+        // Debug environment variables
+        logger.info('Environment configuration status:', {
+          hasGoogleClientId: !!process.env.GOOGLE_CLIENT_ID,
+          googleClientIdLength: process.env.GOOGLE_CLIENT_ID ? process.env.GOOGLE_CLIENT_ID.length : 0,
+          environment: process.env.NODE_ENV,
+          isProduction: process.env.NODE_ENV === 'production'
         });
-      } catch (error) {
-        logger.error('Error creating symbolic link:', {
-          error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined
-        });
-        throw error;
-      }
 
-      serveStatic(app);
+        // Safely escape the client ID to prevent XSS
+        const safeClientId = process.env.GOOGLE_CLIENT_ID ?
+          JSON.stringify(process.env.GOOGLE_CLIENT_ID).slice(1, -1) : '';
+
+        // Inject environment variables into the HTML with enhanced error tracking
+        html = html.replace(
+          "</head>",
+          `<script>
+            // Initialize environment configuration
+            window.env = {
+              GOOGLE_CLIENT_ID: "${safeClientId}",
+              NODE_ENV: "${process.env.NODE_ENV}"
+            };
+
+            // Enhanced error tracking
+            window.onerror = function(msg, url, line, col, error) {
+              console.error('Global error:', {
+                message: msg,
+                location: url + ':' + line + ':' + col,
+                error: error?.stack,
+                googleAuthStatus: {
+                  hasClientId: !!window.env?.GOOGLE_CLIENT_ID,
+                  environment: window.env?.NODE_ENV
+                }
+              });
+              return false;
+            };
+
+            // Log OAuth configuration status
+            console.log("OAuth Configuration Status:", {
+              hasClientId: !!window.env?.GOOGLE_CLIENT_ID,
+              environment: window.env?.NODE_ENV,
+              clientIdLength: (window.env?.GOOGLE_CLIENT_ID || '').length
+            });
+          </script></head>`
+        );
+
+        res.send(html);
+      });
     }
 
     // Start server with proper port binding

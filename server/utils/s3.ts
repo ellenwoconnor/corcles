@@ -4,10 +4,14 @@ import { Upload } from '@aws-sdk/lib-storage';
 import multerS3 from 'multer-s3';
 import multer from 'multer';
 import logger from '../logger';
+import { v4 as uuidv4 } from 'uuid';
+
+// Get endpoint from environment or use default
+const endpoint = process.env.DO_SPACES_ENDPOINT || 'https://sfo2.digitaloceanspaces.com';
 
 // S3 client configuration
 const s3Client = new S3Client({
-  endpoint: process.env.DO_SPACES_ENDPOINT, // e.g., "https://nyc3.digitaloceanspaces.com"
+  endpoint: endpoint,
   region: 'us-east-1', // Digital Ocean Spaces uses this region regardless of actual location
   credentials: {
     accessKeyId: process.env.DO_SPACES_KEY || '',
@@ -15,7 +19,7 @@ const s3Client = new S3Client({
   }
 });
 
-const bucketName = process.env.DO_SPACES_NAME || 'your-bucket-name';
+const bucketName = process.env.DO_SPACES_NAME || '';
 
 // Configure multer storage for S3
 export const uploadMiddleware = multer({
@@ -26,7 +30,8 @@ export const uploadMiddleware = multer({
     contentType: multerS3.AUTO_CONTENT_TYPE,
     key: (req, file, cb) => {
       const timestamp = Date.now();
-      const fileName = `uploads/${timestamp}-${file.originalname.replace(/\s+/g, '-')}`;
+      const fileName = `uploads/${timestamp}-${uuidv4()}-${file.originalname.replace(/\s+/g, '-')}`;
+      logger.debug(`Generated upload key: ${fileName}`);
       cb(null, fileName);
     }
   }),
@@ -37,7 +42,9 @@ export const uploadMiddleware = multer({
 export async function uploadBufferToS3(buffer: Buffer, filename: string, mimetype: string): Promise<string> {
   try {
     const timestamp = Date.now();
-    const key = `uploads/${timestamp}-${filename.replace(/\s+/g, '-')}`;
+    const key = `uploads/${timestamp}-${uuidv4()}-${filename.replace(/\s+/g, '-')}`;
+    
+    logger.debug(`Uploading file to S3: ${key}, type: ${mimetype}, size: ${buffer.length} bytes`);
     
     const upload = new Upload({
       client: s3Client,
@@ -54,8 +61,11 @@ export async function uploadBufferToS3(buffer: Buffer, filename: string, mimetyp
     logger.info('Successfully uploaded file to S3', { key });
     
     // Construct and return the URL
-    const spacesDomain = process.env.DO_SPACES_ENDPOINT?.replace('https://', '') || '';
-    return `https://${bucketName}.${spacesDomain}/${key}`;
+    // Extract domain from endpoint (remove protocol)
+    const spacesDomain = endpoint.replace(/^https?:\/\//, '');
+    const fileUrl = `https://${bucketName}.${spacesDomain}/${key}`;
+    logger.debug(`Generated file URL: ${fileUrl}`);
+    return fileUrl;
   } catch (error) {
     logger.error('Error uploading to S3:', error);
     throw error;

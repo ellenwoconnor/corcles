@@ -1,8 +1,7 @@
-
 import { Item, ItemRequest } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow, format } from "date-fns";
-import { Clock } from "lucide-react";
+import { Clock, MapPin } from "lucide-react";
 import PickupTimeSelector from "@/components/pickup-time-selector";
 import { MessageDialog } from "@/components/message-dialog";
 import { Button } from "@/components/ui/button";
@@ -94,6 +93,15 @@ export default function RecipientListingView({
             {item.description}
           </p>
         </div>
+
+        {/* Pickup Location */}
+        {item.pickupLocation && (
+          <div className="mb-4 flex items-center text-sm text-muted-foreground">
+            <MapPin className="w-4 h-4 mr-1" />
+            <span>Pickup: {item.pickupLocation}</span>
+          </div>
+        )}
+
 
         {/* Show confirmed pickup time */}
         {item.pickupStart && item.pickupEnd && (
