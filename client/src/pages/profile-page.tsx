@@ -95,7 +95,9 @@ export default function ProfilePage() {
 
           <TabsContent value="listings">
             <div className="grid gap-4">
-              {userItems?.some(item => item.recipientId && !item.pickupStart) && (
+              {userItems?.some(item => 
+                (item.status === "requested" || item.status === "scheduling") && !item.pickupStart
+              ) && (
                 <Alert className="mb-4">
                   <Clock className="h-4 w-4" />
                   <AlertTitle>Action Needed</AlertTitle>
