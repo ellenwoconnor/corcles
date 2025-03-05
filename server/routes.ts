@@ -379,21 +379,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { search, communities: communityParam, freeOnly } = req.query;
       const searchTerm = typeof search === "string" ? search.trim() : undefined;
 
-      // Only log search information when a real search is being performed
-      if (searchTerm) {
-        logger.info("Search request:", {
-          term: searchTerm,
-          communities: communities.join(','),
-          freeOnly: freeOnly === "true" ? true : false,
-        });
-      }
-
       let communities: number[] = [];
       if (typeof communityParam === "string") {
         communities = communityParam
           .split(",")
           .map((c) => parseInt(c))
           .filter((c) => !isNaN(c));
+      }
+
+      // Only log search information when a real search is being performed
+      if (searchTerm) {
+        logger.info("Search request:", {
+          term: searchTerm,
+          communityIds: communities.join(','),
+          freeOnly: freeOnly === "true" ? true : false,
+        });
       }
 
       logger.debug("Parsed communities:", {
