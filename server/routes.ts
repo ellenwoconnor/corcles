@@ -22,8 +22,6 @@ import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 import cookieParser from "cookie-parser";
 import passport from "passport";
-import { sendMail, generateCommunityInviteEmail } from "./utils/mail";
-import { insertCommunityInviteSchema } from "@shared/schema";
 import {
   uploadToDigitalOcean,
   isS3Configured,
@@ -44,27 +42,12 @@ const sessionMiddleware = session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false, // Set to false for development
+    secure: false,
     httpOnly: true,
     sameSite: "lax",
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    maxAge: 24 * 60 * 60 * 1000,
   },
 });
-
-// Placeholder function - replace with your actual implementation
-function setupTestS3Routes(app: Express) {
-  app.get("/api/s3/test", async (req, res) => {
-    try {
-      const result = await uploadToDigitalOcean({
-        buffer: Buffer.from("test"),
-        originalname: "test.txt",
-      });
-      res.json({ success: true, result });
-    } catch (error) {
-      res.status(500).json({ error: "S3 test failed", details: error });
-    }
-  });
-}
 
 // Track SSE clients
 const sseClients = new Map<number, Response>();
@@ -73,7 +56,14 @@ const sseClients = new Map<number, Response>();
 function sendSSEMessage(userId: number, data: any) {
   const client = sseClients.get(userId);
   if (client) {
-    client.write(`data: ${JSON.stringify(data)}\n\n`);
+    try {
+      client.write(`data: ${JSON.stringify(data)}\n\n`);
+      logger.debug('SSE message sent successfully:', { userId, messageType: data.type });
+    } catch (error) {
+      logger.error('Failed to send SSE message:', { userId, error });
+      // Remove failed connection
+      sseClients.delete(userId);
+    }
   }
 }
 
@@ -84,9 +74,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(passport.session());
 
   setupAuth(app);
-
-  // Setup S3 test routes
-  setupTestS3Routes(app);
 
   // Middleware to check authentication
   const requireAuth = (req: Request, res: Response, next: NextFunction) => {
@@ -100,6 +87,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     next();
   };
+
+  // SSE endpoint setup
+  app.get("/api/events", requireAuth, (req, res) => {
+    const userId = req.user?.id;
+    if (!userId) {
+      logger.warn('SSE connection attempt without user ID');
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    logger.info('New SSE connection established:', { userId });
+
+    // Set headers for SSE
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
+    });
+
+    // Send initial connection message
+    res.write(`data: ${JSON.stringify({ type: "connected" })}\n\n`);
+
+    // Store client connection
+    sseClients.set(userId, res);
+
+    // Remove client on connection close
+    req.on('close', () => {
+      logger.info('SSE connection closed:', { userId });
+      sseClients.delete(userId);
+      res.end();
+    });
+
+    // Handle errors
+    res.on('error', (error) => {
+      logger.error('SSE connection error:', { userId, error });
+      sseClients.delete(userId);
+      res.end();
+    });
+  });
 
   app.post("/api/wishlists", requireAuth, async (req, res) => {
     try {
@@ -931,7 +956,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.items.id, itemId));
 
-      await db
+      awaitdb
         .update(schema.itemRequests)
         .set({ status: REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
         .where(eq(schema.itemRequests.id, activeRequest.id));
@@ -964,7 +989,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
-        return res.status(400).json({ error:"Invalid item ID" });
+        return res.status(400).json({ error: "Invalid item ID" });
       }
 
       const { confirmed } = req.body;
@@ -1628,32 +1653,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add SSE endpoint
-  app.get("/api/events", requireAuth, (req, res) => {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: "Authentication required" });
-    }
-
-    // Set headers for SSE
-    res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive'
-    });
-
-    // Send initial connection message
-    res.write(`data: ${JSON.stringify({ type: "connected" })}\n\n`);
-
-    // Store client connection
-    sseClients.set(userId, res);
-
-    // Remove client on connection close
-    req.on('close', () => {
-      sseClients.delete(userId);
-      res.end();
-    });
-  });
-
+  //This line was already in the edited code, no need to add it again
 
   const server = createServer(app);
   return server;
