@@ -114,6 +114,7 @@ export default function ProfilePage() {
                   </AlertDescription>
                 </Alert>
               )}
+              
               {!userItems || userItems.length === 0 ? (
                 <Card>
                   <CardHeader className="py-3">
