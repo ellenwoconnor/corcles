@@ -64,7 +64,7 @@ export function MessageDialog({
     defaultValues: {
       content: "",
       senderId: currentUserId,
-      recipientId: otherPartyId,
+      recipientId: otherPartyId, // Use otherPartyId instead of hardcoding
       requestId
     }
   });
@@ -88,9 +88,10 @@ export function MessageDialog({
         throw new Error("Message cannot be empty");
       }
 
+      // Ensure we're sending to the correct recipient
       const response = await apiRequest('POST', '/api/messages/send', {
         content: data.content,
-        recipientId: otherPartyId,
+        recipientId: otherPartyId, // Use otherPartyId from props
         requestId: requestId,
         senderId: currentUserId
       });
