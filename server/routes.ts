@@ -904,7 +904,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const item = await storage.getItem(itemId);
-      ifif (!item) {
+      if (!item) {
         return res.status(404).json({ error: "Item not found" });
       }
 
