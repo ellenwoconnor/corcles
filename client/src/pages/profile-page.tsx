@@ -33,6 +33,10 @@ export default function ProfilePage() {
     r => r.status === "awaiting_pickup_confirmation"
   ) || [];
 
+  const requestedItems = userItems?.filter(
+    item => (item.status === "requested" && !item.pickupStart)
+  );
+
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
@@ -77,7 +81,11 @@ export default function ProfilePage() {
           <TabsList className="mb-4">
             <TabsTrigger value="listings" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
-              My Listings
+              My Listings {requestedItems.length && (
+                <Badge variant="default" className="ml-2">
+                  {requestedItems.length}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="requests" className="flex items-center gap-2">
               <Gift className="h-4 w-4" />
@@ -96,7 +104,7 @@ export default function ProfilePage() {
           <TabsContent value="listings">
             <div className="grid gap-4">
               {userItems?.some(item => 
-                (item.status === "requested" || item.status === "scheduling") && !item.pickupStart
+                (item.status === "requested" && !item.pickupStart
               ) && (
                 <Alert className="mb-4">
                   <Clock className="h-4 w-4" />
