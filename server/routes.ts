@@ -379,23 +379,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { search, communities: communityParam, freeOnly } = req.query;
       const searchTerm = typeof search === "string" ? search.trim() : undefined;
 
-      // Always log search information for debugging
-      logger.info("Received search request:", {
-        rawQuery: req.url,
-        searchParam: search,
-        searchParamType: typeof search,
-        communityParam,
-        searchTerm: searchTerm ? `"${searchTerm}"` : "(empty)",
-        freeOnly: freeOnly === "true" ? true : false,
-      });
-
-      // Always log search attempts - even if empty
-      logger.info("Search term detected in request", {
-        search: search !== undefined ? search : "undefined",
-        searchTerm: searchTerm || "empty",
-        emptySearch: !searchTerm || search === "",
-        searchIncluded: req.url.includes("search="),
-      });
+      // Only log search information when a real search is being performed
+      if (searchTerm) {
+        logger.info("Search request:", {
+          term: searchTerm,
+          communities: communities.join(','),
+          freeOnly: freeOnly === "true" ? true : false,
+        });
+      }
 
       let communities: number[] = [];
       if (typeof communityParam === "string") {
@@ -416,10 +407,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: "At least one valid community ID is required" });
       }
 
-      // Log search term for debugging
-      if (searchTerm) {
-        logger.info("Searching items with term:", { searchTerm });
-      }
+      // No need for additional search term logging
 
       const items = await storage.getItems(
         communities,
@@ -429,12 +417,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         freeOnly === "true",
       );
 
-      logger.debug("Items fetched:", {
-        communities,
-        searchTerm: searchTerm || "none",
-        freeOnly: freeOnly === "true",
-        itemCount: items.length,
-      });
+      // Only log item fetches with search terms or if explicitly debugging
+      if (searchTerm && logger.level === 'debug') {
+        logger.debug("Items fetched:", {
+          searchTerm,
+          itemCount: items.length,
+        });
+      }
 
       res.json(
         items.map((item) => ({
