@@ -12,12 +12,12 @@ import { useDebounce } from "@/hooks/use-debounce";
 import CommunityWishlists from "@/components/community-wishlists";
 
 // Add 'use client' directive for Next.js strict mode
-'use client';
+("use client");
 
 export default function HomePage() {
   // Basic console.log to verify component mounting
-  if (process.env.NODE_ENV === 'development') {
-    console.log('HomePage component mounting');
+  if (process.env.NODE_ENV === "development") {
+    console.log("HomePage component mounting");
   }
 
   const { user } = useAuth();
@@ -26,8 +26,8 @@ export default function HomePage() {
   const [showWelcome, setShowWelcome] = useState(false);
 
   // Debug log after state initialization
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Current state values:', { searchValue, showFreeOnly });
+  if (process.env.NODE_ENV === "development") {
+    console.log("Current state values:", { searchValue, showFreeOnly });
   }
 
   const { data: userCommunities = [] } = useQuery<
@@ -44,28 +44,28 @@ export default function HomePage() {
     queryFn: async () => {
       if (communityIds.length === 0) return [];
 
-      if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === "development") {
         console.log("Making API request with search:", searchValue);
       }
 
       const params = new URLSearchParams();
-      params.append('communities', communityIds.join(','));
+      params.append("communities", communityIds.join(","));
 
       if (searchValue.trim()) {
-        params.append('search', searchValue.trim());
+        params.append("search", searchValue.trim());
       }
 
       if (showFreeOnly) {
-        params.append('freeOnly', 'true');
+        params.append("freeOnly", "true");
       }
 
       const response = await fetch(`/api/items?${params}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch items');
+        throw new Error("Failed to fetch items");
       }
       return response.json();
     },
-    enabled: communityIds.length > 0
+    enabled: communityIds.length > 0,
   });
 
   return (
@@ -92,8 +92,8 @@ export default function HomePage() {
             value={searchValue}
             onChange={(e) => {
               const newValue = e.target.value;
-              if (process.env.NODE_ENV === 'development') {
-                console.log("Search input change:", newValue);  // Debug log
+              if (process.env.NODE_ENV === "development") {
+                console.log("Search input change:", newValue); // Debug log
               }
               setSearchValue(newValue);
             }}
