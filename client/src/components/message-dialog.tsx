@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertMessageSchema } from "@shared/schema";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
-import { useWebSocket } from "@/hooks/use-websocket";
+import { useServerEvents } from "@/hooks/use-server-events";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -51,8 +51,13 @@ export function MessageDialog({
   const onOpenChange = controlledOnOpenChange ?? setInternalOpen;
 
   const queryClient = useQueryClient();
-  const { socket, isConnected } = useWebSocket();
   const { toast } = useToast();
+
+  // Use SSE instead of WebSocket
+  const { isConnected } = useServerEvents({
+    enabled: open, // Only connect when dialog is open
+    endpoint: '/api/events'
+  });
 
   const form = useForm<MessageFormValues>({
     resolver: zodResolver(insertMessageSchema),
@@ -76,27 +81,6 @@ export function MessageDialog({
     },
     enabled: open
   });
-
-  useEffect(() => {
-    if (!socket || !isConnected) return;
-
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'new_message' && data.requestId === requestId) {
-          queryClient.invalidateQueries({ queryKey: ['/api/messages', currentUserId, requestId] });
-        }
-      } catch (error) {
-        console.error('Error handling WebSocket message:', error);
-      }
-    };
-
-    socket.addEventListener('message', handleMessage);
-
-    return () => {
-      socket.removeEventListener('message', handleMessage);
-    };
-  }, [socket, isConnected, requestId, currentUserId, queryClient]);
 
   const sendMessageMutation = useMutation({
     mutationFn: async (data: MessageFormValues) => {
@@ -198,13 +182,15 @@ export function MessageDialog({
               <Button 
                 type="submit" 
                 className="w-full" 
-                disabled={sendMessageMutation.isPending}
+                disabled={sendMessageMutation.isPending || !isConnected}
               >
                 {sendMessageMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Sending...
                   </>
+                ) : !isConnected ? (
+                  "Connecting..."
                 ) : (
                   "Send Message"
                 )}

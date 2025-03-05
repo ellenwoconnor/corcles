@@ -1,6 +1,5 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { WebSocketServer, WebSocket } from "ws";
 import multer from "multer";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
@@ -65,6 +64,17 @@ function setupTestS3Routes(app: Express) {
       res.status(500).json({ error: "S3 test failed", details: error });
     }
   });
+}
+
+// Track SSE clients
+const sseClients = new Map<number, Response>();
+
+// Helper function to send SSE message to a specific user
+function sendSSEMessage(userId: number, data: any) {
+  const client = sseClients.get(userId);
+  if (client) {
+    client.write(`data: ${JSON.stringify(data)}\n\n`);
+  }
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -252,7 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       logger.info("Received message request:", { recipientId, requestId });
 
       const parseResult = insertMessageSchema.safeParse({
-        senderId: req.user.id,
+        senderId: req.user?.id,
         recipientId,
         content,
         requestId,
@@ -264,26 +274,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const message = await storage.sendMessage(parseResult.data);
 
-      const recipientWs = connectedClients.get(recipientId);
-      const senderWs = connectedClients.get(req.user.id);
-
-      const notificationPayload = JSON.stringify({
+      // Send SSE notifications
+      const notificationPayload = {
         type: "new_message",
         data: message,
-      });
+      };
 
-      if (recipientWs?.readyState === WebSocket.OPEN) {
-        recipientWs.send(notificationPayload);
-        logger.info("Sent WebSocket notification to recipient:", {
-          recipientId,
-        });
-      }
+      // Notify recipient
+      sendSSEMessage(recipientId, notificationPayload);
 
-      if (senderWs?.readyState === WebSocket.OPEN) {
-        senderWs.send(notificationPayload);
-        logger.info("Sent WebSocket notification to sender:", {
-          senderId: req.user.id,
-        });
+      // Notify sender
+      if (req.user?.id) {
+        sendSSEMessage(req.user.id, notificationPayload);
       }
 
       res.status(201).json(message);
@@ -962,7 +964,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
-        return res.status(400).json({ error: "Invalid item ID" });
+        return res.status(400).json({ error:"Invalid item ID" });
       }
 
       const { confirmed } = req.body;
@@ -983,7 +985,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .where(
           and(
             eq(schema.itemRequests.itemId, itemId),
-            eq(schema.itemRequests.requesterId, req.user.id),
+            eq(schema.itemRequests.requesterId, req.user?.id),
             eq(
               schema.itemRequests.status,
               REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION,
@@ -1004,31 +1006,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.itemRequests.id, request.id));
 
-      await db
-        .update(schema.itemRequests)
-        .set({
-          status: REQUEST_STATUS.PENDING,
-        })
-        .where(
-          and(
-            eq(schema.itemRequests.itemId, itemId),
-            not(eq(schema.itemRequests.id, request.id)),
-          ),
-        );
+      // Send SSE notification about the confirmation
+      const notificationPayload = {
+        type: "pickup_confirmation",
+        data: {
+          itemId,
+          requestId: request.id,
+          confirmed,
+        },
+      };
 
-      if (confirmed) {
-        await db
-          .update(schema.items)
-          .set({ status: ITEM_STATUS.SCHEDULED })
-          .where(eq(schema.items.id, itemId));
-      }
-
-      logger.debug("Updated pickup confirmation:", {
-        itemId,
-        requestId: request.id,
-        confirmed,
-        newStatus: confirmed ? "completed" : "available",
-      });
+      // Notify both parties
+      if (item.userId) sendSSEMessage(item.userId, notificationPayload);
+      if (req.user?.id) sendSSEMessage(req.user.id, notificationPayload);
 
       res.json({ success: true });
     } catch (error) {
@@ -1637,102 +1627,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
-  const wss = new WebSocketServer({
-    server: httpServer,
-    path: "/ws",
-    host: "0.0.0.0",
-    verifyClient: async (info, cb) => {
-      try {
-        const req = info.req;
-
-        logger.debug("WebSocket connection attempt:", {
-          cookies: req.headers.cookie,
-          sessionID: req.headers["sec-websocket-key"],
-        });
-
-        const runSessionMiddleware = promisify(sessionMiddleware);
-        await runSessionMiddleware(req as any, {} as any);
-
-        const session = (req as any).session;
-        if (!session) {
-          logger.warn("WebSocket unauthorized - no session");
-          cb(false, 401, "No session found");
-          return;
-        }
-
-        const userId = session.passport?.user;
-        if (!userId) {
-          logger.warn("WebSocket unauthorized - no user", {
-            sessionId: session.id,
-          });
-          cb(false, 401, "Not authenticated");
-          return;
-        }
-
-        logger.info("WebSocket connection authenticated:", {
-          userId,
-          sessionId: session.id,
-        });
-
-        cb(true);
-      } catch (error) {
-        logger.error("WebSocket authentication error:", error);
-        cb(false, 500, "Server error");
-      }
-    },
-  });
-
-  const connectedClients = new Map<number, WebSocket>();
-
-  logger.info("WebSocket server initialized on path: /ws");
-
-  wss.on("connection", async (ws, req) => {
-    try {
-      const userId = (req as any).session?.passport?.user;
-      if (!userId) {
-        logger.warn("WebSocket connection rejected - no authenticated user:", {
-          session: (req as any).session,
-        });
-        ws.close(1008, "Authentication required");
-        return;
-      }
-
-      connectedClients.set(userId, ws);
-
-      logger.info("WebSocket client connected:", {
-        userId,
-        totalConnections: connectedClients.size,
-      });
-
-      ws.send(
-        JSON.stringify({
-          type: "connection_established",
-          data: {
-            userId,
-            timestamp: new Date().toISOString(),
-          },
-        }),
-      );
-
-      ws.on("close", () => {
-        logger.info("WebSocket client disconnected:", {
-          userId,
-          remainingConnections: connectedClients.size - 1,
-        });
-        connectedClients.delete(userId);
-      });
-
-      ws.on("error", (error) => {
-        logger.error("WebSocket error:", { error, userId });
-        ws.close();
-        connectedClients.delete(userId);
-      });
-    } catch (error) {
-      logger.error("Error during WebSocket connection setup:", error);
-      ws.close(1011, "Internal server error");
+  // Add SSE endpoint
+  app.get("/api/events", requireAuth, (req, res) => {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: "Authentication required" });
     }
+
+    // Set headers for SSE
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive'
+    });
+
+    // Send initial connection message
+    res.write(`data: ${JSON.stringify({ type: "connected" })}\n\n`);
+
+    // Store client connection
+    sseClients.set(userId, res);
+
+    // Remove client on connection close
+    req.on('close', () => {
+      sseClients.delete(userId);
+      res.end();
+    });
   });
 
-  return httpServer;
+
+  const server = createServer(app);
+  return server;
 }
