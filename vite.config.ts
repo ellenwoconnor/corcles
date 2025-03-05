@@ -15,6 +15,9 @@ export default defineConfig({
       "@shared": path.resolve(__dirname, "shared"),
     },
   },
+  define: {
+    'import.meta.env.GOOGLE_CLIENT_ID': JSON.stringify(process.env.GOOGLE_CLIENT_ID || ''),
+  },
   root: path.resolve(__dirname, "client"),
   build: {
     outDir: path.resolve(__dirname, "dist/public"),

@@ -56,7 +56,7 @@ export interface IStorage {
     id: number,
     userId?: number,
   ): Promise<(Item & { userHasFavorited: boolean }) | undefined>;
-  createItem(item: InsertItem & { userId: number; communityId: number }): Promise<Item>;
+  createItem(item: InsertItem & { userId: number; communityId: number; pickupLocation?: string | null }): Promise<Item>;
   createItemRequest(request: InsertItemRequest): Promise<ItemRequest>;
   getItemRequests(itemId: number): Promise<ItemRequest[]>;
   getUserRequests(userId: number): Promise<(ItemRequest & { item: Item })[]>;
@@ -407,7 +407,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createItem(item: InsertItem & { userId: number; communityId: number }): Promise<Item> {
+  async createItem(item: InsertItem & { userId: number; communityId: number; pickupLocation?: string | null }): Promise<Item> {
     try {
       // Validate required fields
       if (!item.userId) {
@@ -420,17 +420,28 @@ export class DatabaseStorage implements IStorage {
         throw new Error('Community ID is required');
       }
 
+      // If no pickup location provided, fetch the user's address
+      let pickupLocation = item.pickupLocation;
+      if (!pickupLocation) {
+        const user = await this.getUser(item.userId);
+        if (user) {
+          pickupLocation = user.address;
+        }
+      }
+
       const [newItem] = await db.insert(items).values({
         ...item,
         status: 'available',
-        createdAt: new Date()
+        createdAt: new Date(),
+        pickupLocation
       }).returning();
 
       logger.debug('Created new item:', {
         itemId: newItem.id,
         userId: newItem.userId,
         communityId: newItem.communityId,
-        title: newItem.title
+        title: newItem.title,
+        pickupLocation: newItem.pickupLocation
       });
 
       return newItem;

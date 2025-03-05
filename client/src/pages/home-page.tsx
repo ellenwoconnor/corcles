@@ -12,24 +12,13 @@ import { useDebounce } from "@/hooks/use-debounce";
 import CommunityWishlists from "@/components/community-wishlists";
 
 // Add 'use client' directive for Next.js strict mode
-'use client';
+("use client");
 
 export default function HomePage() {
-  // Basic console.log to verify component mounting
-  if (process.env.NODE_ENV === 'development') {
-    console.log('HomePage component mounting');
-  }
-
   const { user } = useAuth();
   const [searchValue, setSearchValue] = useState("");
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
-
-  // Debug log after state initialization
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Current state values:', { searchValue, showFreeOnly });
-  }
-
   const { data: userCommunities = [] } = useQuery<
     (Community & { role: string; memberCount: number })[]
   >({
@@ -43,29 +32,24 @@ export default function HomePage() {
     queryKey: ["/api/items", communityIds, searchValue, showFreeOnly],
     queryFn: async () => {
       if (communityIds.length === 0) return [];
-
-      if (process.env.NODE_ENV === 'development') {
-        console.log("Making API request with search:", searchValue);
-      }
-
       const params = new URLSearchParams();
-      params.append('communities', communityIds.join(','));
+      params.append("communities", communityIds.join(","));
 
       if (searchValue.trim()) {
-        params.append('search', searchValue.trim());
+        params.append("search", searchValue.trim());
       }
 
       if (showFreeOnly) {
-        params.append('freeOnly', 'true');
+        params.append("freeOnly", "true");
       }
 
       const response = await fetch(`/api/items?${params}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch items');
+        throw new Error("Failed to fetch items");
       }
       return response.json();
     },
-    enabled: communityIds.length > 0
+    enabled: communityIds.length > 0,
   });
 
   return (
@@ -92,9 +76,6 @@ export default function HomePage() {
             value={searchValue}
             onChange={(e) => {
               const newValue = e.target.value;
-              if (process.env.NODE_ENV === 'development') {
-                console.log("Search input change:", newValue);  // Debug log
-              }
               setSearchValue(newValue);
             }}
             placeholder="Search items..."

@@ -1,7 +1,7 @@
 import { Item, ItemRequest } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow, format } from "date-fns";
-import { Clock, Pencil } from "lucide-react";
+import { Clock, Pencil, MapPin } from "lucide-react";
 import { EditListingDialog } from "@/components/edit-listing-dialog";
 import RequestsList from "@/components/requests-list";
 import BidsList from "@/components/bids-list";
@@ -192,6 +192,14 @@ export default function OwnerListingView({
                 }
               />
             </div>
+          </div>
+        )}
+
+        {/* Pickup Location */}
+        {item.pickupLocation && (
+          <div className="mb-4 flex items-center text-sm text-muted-foreground">
+            <MapPin className="w-4 h-4 mr-1" />
+            <span>Pickup: {item.pickupLocation}</span>
           </div>
         )}
       </div>

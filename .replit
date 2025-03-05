@@ -7,8 +7,8 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "cloudrun"
-build = ["npm", "run", "build"]
-run = ["npm", "run", "start"]
+build = ["sh", "-c", "GOOGLE_CLIENT_ID=\"$GOOGLE_CLIENT_ID\" npm run build"]
+run = ["sh", "-c", "export GOOGLE_CLIENT_ID=\"$GOOGLE_CLIENT_ID\" && NODE_ENV=production node dist/index.js"]
 
 [[ports]]
 localPort = 5000
