@@ -383,7 +383,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (searchTerm) {
         logger.info("Search request:", {
           term: searchTerm,
-          communities: communities.map(c => c.toString()).join(','),
+          communities: communities.join(','),
           freeOnly: freeOnly === "true" ? true : false,
         });
       }
