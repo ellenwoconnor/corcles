@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { insertItemSchema, type Item } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import PickupLocationInput from "../pickup-location-input";
 
 // Base schema for both create and edit
 export const baseItemSchema = {
@@ -93,7 +94,7 @@ export function ListingForm({
       imageUrl: '',
       userId: user?.id,
       communityId: defaultValues.communityId || (communities.length > 0 ? communities[0].id : undefined),
-      pickupLocation: defaultValues.pickupLocation || "",
+      pickupLocation: defaultValues.pickupLocation || user?.address || "",
       ...defaultValues,
     },
   });
@@ -308,7 +309,7 @@ export function ListingForm({
             <FormItem>
               <FormLabel>Pickup Location <span className="text-red-500">*</span></FormLabel>
               <FormControl>
-                <Input placeholder="Enter pickup location" {...field} required />
+                <PickupLocationInput {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
