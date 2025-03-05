@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useToast } from './use-toast';
 import { queryClient } from '@/lib/queryClient';
 
@@ -15,78 +15,92 @@ export function useServerEvents({
 }: UseServerEventsOptions = {}) {
   const [isConnected, setIsConnected] = useState(false);
   const { toast } = useToast();
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
-    let eventSource: EventSource | null = null;
+    if (!enabled) {
+      if (eventSourceRef.current) {
+        console.log('Closing SSE connection due to disabled state');
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+        setIsConnected(false);
+      }
+      return;
+    }
 
-    const connect = () => {
-      if (!enabled || eventSource?.readyState === EventSource.OPEN) {
-        return;
+    // Don't create a new connection if we already have one
+    if (eventSourceRef.current?.readyState === EventSource.OPEN) {
+      console.log('SSE connection already exists');
+      return;
+    }
+
+    // Clean up any existing connection
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
+    console.log('Creating new SSE connection');
+    const eventSource = new EventSource(endpoint);
+    eventSourceRef.current = eventSource;
+
+    eventSource.onopen = () => {
+      console.log('SSE connection established');
+      setIsConnected(true);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = undefined;
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error('SSE connection error:', error);
+      setIsConnected(false);
+
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
       }
 
-      eventSource = new EventSource(endpoint);
-      console.log('Creating new SSE connection');
-
-      eventSource.onopen = () => {
-        console.log('SSE connection established');
-        setIsConnected(true);
-      };
-
-      eventSource.onerror = (error) => {
-        console.error('SSE connection error:', error);
-        setIsConnected(false);
-
-        if (eventSource) {
-          eventSource.close();
-          eventSource = null;
-        }
-
-        toast({
-          title: "Connection Error",
-          description: "Real-time updates may be delayed. Please refresh the page.",
-          variant: "destructive"
-        });
-      };
-
-      eventSource.addEventListener('message', (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log('Received SSE message:', data);
-
-          // Call the onMessage callback if provided
-          if (onMessage) {
-            onMessage(data);
-          } else {
-            // Default handling if no callback provided
-            switch (data.type) {
-              case 'new_message':
-                // Invalidate queries to refresh message list
-                queryClient.invalidateQueries({ 
-                  queryKey: ['/api/messages', data.data.requestId]
-                });
-
-                toast({
-                  title: "New Message",
-                  description: "You have received a new message",
-                });
-                break;
-
-              default:
-                console.warn('Unknown message type:', data.type);
-            }
-          }
-        } catch (error) {
-          console.error('Error processing SSE message:', error);
-        }
+      toast({
+        title: "Connection Error",
+        description: "Real-time updates may be delayed. Please refresh the page.",
+        variant: "destructive"
       });
     };
 
-    connect();
+    eventSource.addEventListener('message', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('Received SSE message:', data);
+
+        if (onMessage) {
+          onMessage(data);
+        } else {
+          switch (data.type) {
+            case 'new_message':
+              queryClient.invalidateQueries({ 
+                queryKey: ['/api/messages', data.data.requestId]
+              });
+              break;
+            default:
+              console.warn('Unknown message type:', data.type);
+          }
+        }
+      } catch (error) {
+        console.error('Error processing SSE message:', error);
+      }
+    });
 
     return () => {
-      if (eventSource) {
-        console.log('Closing SSE connection');
-        eventSource.close();
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (eventSourceRef.current) {
+        console.log('Cleaning up SSE connection');
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
         setIsConnected(false);
       }
     };

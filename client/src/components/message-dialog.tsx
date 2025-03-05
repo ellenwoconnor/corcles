@@ -53,10 +53,10 @@ export function MessageDialog({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Use SSE for real-time updates
+  // Use SSE for real-time updates with minimal reconnections
   const { isConnected } = useServerEvents({
-    enabled: open,
     endpoint: '/api/events',
+    enabled: !!open, // Only enable when dialog is open
     onMessage: (data) => {
       if (data.type === 'new_message' && data.data.requestId === requestId) {
         // Invalidate queries for both sender and recipient
@@ -67,6 +67,7 @@ export function MessageDialog({
           queryKey: ['/api/messages', otherPartyId, requestId]
         });
 
+        // Only show toast for received messages
         if (data.data.senderId !== currentUserId) {
           toast({
             title: "New Message",
