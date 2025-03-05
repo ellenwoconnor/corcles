@@ -9,6 +9,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ListingForm } from "./listing/listing-form";
+import { useAuth } from "@/features/auth/hooks/use-auth";
 
 interface CreateListingDialogProps {
   communities: Array<{
@@ -22,6 +23,7 @@ interface CreateListingDialogProps {
 export default function CreateListingDialog({
   communities,
 }: CreateListingDialogProps) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
 
   return (

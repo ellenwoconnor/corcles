@@ -484,7 +484,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         price: req.body.price ? parseFloat(req.body.price) : undefined,
         userId: req.user?.id,
         communityId: parseInt(req.body.communityId),
-        imageUrl: imageUrl
+        imageUrl: imageUrl,
+        pickupLocation: req.body.pickupLocation || null //Added pickupLocation
       };
 
       logger.debug('Creating item with data:', data);
@@ -498,6 +499,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         imageUrl: z.string(),
         userId: z.number(),
         communityId: z.number({ required_error: "Please select a community" }),
+        pickupLocation: z.string().nullable().optional() //Added pickupLocation
       }).refine((data) => {
         if (!data.isGift && (!data.price || data.price < 0.01)) {
           return false;
@@ -902,7 +904,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const item = await storage.getItem(itemId);
-      if (!item) {
+      ifif (!item) {
         return res.status(404).json({ error: "Item not found" });
       }
 
@@ -1017,7 +1019,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         price: z.number().optional(),
         isGift: z.boolean().optional(),
         imageUrl: z.string().optional(),
-        community: z.string().optional()
+        community: z.string().optional(),
+        pickupLocation: z.string().nullable().optional() //Added pickupLocation
       });
 
       const data = {
