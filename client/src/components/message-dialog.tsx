@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
@@ -66,6 +66,13 @@ export function MessageDialog({
         queryClient.invalidateQueries({ 
           queryKey: ['/api/messages', otherPartyId, requestId]
         });
+
+        if (data.data.senderId !== currentUserId) {
+          toast({
+            title: "New Message",
+            description: "You have received a new message"
+          });
+        }
       }
     }
   });

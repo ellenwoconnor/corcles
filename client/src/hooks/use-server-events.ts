@@ -17,64 +17,78 @@ export function useServerEvents({
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!enabled) {
-      return;
-    }
+    let eventSource: EventSource | null = null;
 
-    const eventSource = new EventSource(endpoint);
+    const connect = () => {
+      if (!enabled || eventSource?.readyState === EventSource.OPEN) {
+        return;
+      }
 
-    eventSource.onopen = () => {
-      console.log('SSE connection established');
-      setIsConnected(true);
-    };
+      eventSource = new EventSource(endpoint);
+      console.log('Creating new SSE connection');
 
-    eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error);
-      setIsConnected(false);
+      eventSource.onopen = () => {
+        console.log('SSE connection established');
+        setIsConnected(true);
+      };
 
-      toast({
-        title: "Connection Error",
-        description: "Real-time updates may be delayed. Please refresh the page.",
-        variant: "destructive"
+      eventSource.onerror = (error) => {
+        console.error('SSE connection error:', error);
+        setIsConnected(false);
+
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+
+        toast({
+          title: "Connection Error",
+          description: "Real-time updates may be delayed. Please refresh the page.",
+          variant: "destructive"
+        });
+      };
+
+      eventSource.addEventListener('message', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('Received SSE message:', data);
+
+          // Call the onMessage callback if provided
+          if (onMessage) {
+            onMessage(data);
+          } else {
+            // Default handling if no callback provided
+            switch (data.type) {
+              case 'new_message':
+                // Invalidate queries to refresh message list
+                queryClient.invalidateQueries({ 
+                  queryKey: ['/api/messages', data.data.requestId]
+                });
+
+                toast({
+                  title: "New Message",
+                  description: "You have received a new message",
+                });
+                break;
+
+              default:
+                console.warn('Unknown message type:', data.type);
+            }
+          }
+        } catch (error) {
+          console.error('Error processing SSE message:', error);
+        }
       });
     };
 
-    eventSource.addEventListener('message', (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        console.log('Received SSE message:', data);
-
-        // Call the onMessage callback if provided
-        if (onMessage) {
-          onMessage(data);
-        } else {
-          // Default handling if no callback provided
-          switch (data.type) {
-            case 'new_message':
-              // Invalidate queries to refresh message list
-              queryClient.invalidateQueries({ 
-                queryKey: ['/api/messages', data.data.requestId]
-              });
-
-              toast({
-                title: "New Message",
-                description: "You have received a new message",
-              });
-              break;
-
-            default:
-              console.warn('Unknown message type:', data.type);
-          }
-        }
-      } catch (error) {
-        console.error('Error processing SSE message:', error);
-      }
-    });
+    connect();
 
     return () => {
-      console.log('Closing SSE connection');
-      eventSource.close();
-      setIsConnected(false);
+      if (eventSource) {
+        console.log('Closing SSE connection');
+        eventSource.close();
+        setIsConnected(false);
+      }
     };
   }, [endpoint, enabled, toast, onMessage]);
 
