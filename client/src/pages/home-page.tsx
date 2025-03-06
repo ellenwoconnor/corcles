@@ -6,7 +6,6 @@ import ItemGrid from "@/components/item-grid";
 import CreateListingDialog from "@/components/create-listing-dialog";
 import { WelcomeDialog } from "@/components/welcome-dialog";
 import { Loader2, Search, Gift } from "lucide-react";
-import { Label } from "@/components/ui/label";
 import React, { useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import CommunityWishlists from "@/components/community-wishlists";
@@ -14,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
 import ItemCard from "@/components/item-card";
 
 // Add 'use client' directive for Next.js strict mode
@@ -78,46 +76,47 @@ export default function HomePage() {
 
         <div className="space-y-4 mb-8">
           <div className="relative">
+            <div className="mt-8">
+              <div className="flex items-center mb-4">
+                <div className="relative grow mr-4">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search listings..."
+                    className="pl-8"
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center">
+                  <Checkbox
+                    id="freeOnly"
+                    checked={showFreeOnly}
+                    onCheckedChange={(checked) =>
+                      setShowFreeOnly(checked === true)
+                    }
+                    className="mr-2"
+                  />
+                  <Label htmlFor="freeOnly">Free only</Label>
+                </div>
+              </div>
 
-        <div className="mt-8">
-          <div className="flex items-center mb-4">
-            <div className="relative grow mr-4">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search listings..."
-                className="pl-8"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-              />
+              {isLoading ? (
+                <div className="flex justify-center items-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : items.length === 0 ? (
+                <Card className="p-6 text-center">
+                  <p>No items found in your communities.</p>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {items.map((item) => (
+                    <ItemCard key={item.id} item={item} />
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="flex items-center">
-              <Checkbox
-                id="freeOnly"
-                checked={showFreeOnly}
-                onCheckedChange={(checked) => setShowFreeOnly(checked === true)}
-                className="mr-2"
-              />
-              <Label htmlFor="freeOnly">Free only</Label>
-            </div>
-          </div>
-
-          {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : items.length === 0 ? (
-            <Card className="p-6 text-center">
-              <p>No items found in your communities.</p>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {items.map((item) => (
-                <ItemCard key={item.id} item={item} />
-              ))}
-            </div>
-          )}
-        </div>
 
             <div className="flex items-center border rounded-md px-3 focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary transition-all">
               <Search className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
@@ -156,11 +155,32 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center space-x-2 bg-background border rounded-md px-3 py-2 text-sm">
-            <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setShowFreeOnly(!showFreeOnly)}>
-              <div className={`w-4 h-4 rounded border flex items-center justify-center ${showFreeOnly ? 'bg-primary border-primary' : 'border-input'}`}>
-                {showFreeOnly && <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 text-primary-foreground"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+            <div
+              className="flex items-center space-x-2 cursor-pointer"
+              onClick={() => setShowFreeOnly(!showFreeOnly)}
+            >
+              <div
+                className={`w-4 h-4 rounded border flex items-center justify-center ${showFreeOnly ? "bg-primary border-primary" : "border-input"}`}
+              >
+                {showFreeOnly && (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-3 w-3 text-primary-foreground"
+                  >
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                )}
               </div>
-              <Label htmlFor="free-only" className="flex items-center gap-2 cursor-pointer">
+              <Label
+                htmlFor="free-only"
+                className="flex items-center gap-2 cursor-pointer"
+              >
                 <Gift className="h-4 w-4" />
                 Show only free items
               </Label>
@@ -188,8 +208,8 @@ export default function HomePage() {
                     : "Be the first to list an item in your communities."}
             </p>
             {debouncedSearchValue && (
-              <button 
-                onClick={() => setSearchValue("")} 
+              <button
+                onClick={() => setSearchValue("")}
                 className="mt-2 inline-flex items-center text-primary hover:underline"
               >
                 Clear search
