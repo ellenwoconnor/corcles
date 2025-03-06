@@ -17,7 +17,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import { z } from "zod";
 // Import the new component
-import CommunityInviteForm from './community-invite-form';
+import CommunityInviteForm from '@/components/community-invite-form';
 
 
 export default function CommunitiesPage() {
