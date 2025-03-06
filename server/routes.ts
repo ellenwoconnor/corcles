@@ -475,6 +475,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         searchTerm,
         false,
         freeOnly === "true",
+        true, // Add parameter to exclude items with recipients
       );
 
       // Only log item fetches with search terms or if explicitly debugging

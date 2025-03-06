@@ -293,7 +293,8 @@ export class DatabaseStorage implements IStorage {
     communities: number[],
     userId?: number,
     search?: string,
-    userItemsOnly?: boolean
+    userItemsOnly?: boolean,
+    excludeItemsWithRecipients?: boolean
   ): Promise<(Item & { userHasFavorited: boolean })[]> {
     try {
       logger.debug('Fetching items with params:', {
@@ -319,6 +320,11 @@ export class DatabaseStorage implements IStorage {
 
       // Don't show completed items
       conditions.push(notInArray(items.status, ['completed']));
+
+      // Exclude items with recipients if requested
+      if (excludeItemsWithRecipients) {
+        conditions.push(sql`${items.recipientId} IS NULL`);
+      }
 
       // Filter by user's items if requested
       if (userItemsOnly && userId) {
