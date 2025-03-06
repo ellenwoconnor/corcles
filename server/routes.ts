@@ -376,45 +376,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: "You cannot view these messages" });
       }
 
-      // Get all messages between item owner and requester for this request
-      const messages = await db
-        .select({
-          id: schema.messages.id,
-          content: schema.messages.content,
-          senderId: schema.messages.senderId,
-          recipientId: schema.messages.recipientId,
-          createdAt: schema.messages.createdAt,
-          readAt: schema.messages.readAt,
-        })
-        .from(schema.messages)
-        .where(
-          and(
-            eq(schema.messages.requestId, requestId),
-            or(
-              and(
-                eq(schema.messages.senderId, item.userId),
-                eq(schema.messages.recipientId, itemRequest.requesterId)
-              ),
-              and(
-                eq(schema.messages.senderId, itemRequest.requesterId),
-                eq(schema.messages.recipientId, item.userId)
-              )
-            )
-          )
-        )
-        .orderBy(schema.messages.createdAt);
+      // Get all messages between these two users for this request
+      const messages = await storage.getConversation(
+        item.userId,
+        itemRequest.requesterId,
+        requestId,
+      );
 
       // Mark messages as read
       await storage.markMessagesAsRead(req.user.id, userId, requestId);
-
-      logger.debug("Fetched messages:", {
-        requestId,
-        itemId: item.id,
-        itemOwner: item.userId,
-        requester: itemRequest.requesterId,
-        messageCount: messages.length,
-        currentUser: req.user.id
-      });
 
       res.json(messages);
     } catch (error) {
