@@ -294,6 +294,7 @@ export class DatabaseStorage implements IStorage {
     userId?: number,
     search?: string,
     userItemsOnly?: boolean,
+    freeOnly?: boolean,
     excludeItemsWithRecipients?: boolean
   ): Promise<(Item & { userHasFavorited: boolean })[]> {
     try {
@@ -302,6 +303,8 @@ export class DatabaseStorage implements IStorage {
         userId,
         search,
         userItemsOnly,
+        freeOnly,
+        excludeItemsWithRecipients
       });
 
       // First select all fields from items table directly
