@@ -13,8 +13,8 @@ import {
   DialogFooter,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
-import CreateWishlistDialog from "./create-wishlist-dialog";
 import { Loader2 } from "lucide-react";
+import { ListingForm } from "./listing/listing-form";
 
 interface FulfillWishlistDialogProps {
   open: boolean;
@@ -31,6 +31,11 @@ export default function FulfillWishlistDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createItemDialogOpen, setCreateItemDialogOpen] = useState(false);
+
+  const { data: userCommunities = [] } = useQuery<any[]>({
+    queryKey: ["/api/user/communities"],
+    enabled: !!user,
+  });
 
   // Mutation to set a recipient for an item
   const setRecipient = useMutation({
@@ -63,12 +68,11 @@ export default function FulfillWishlistDialog({
 
   // When the user confirms they want to fulfill the wishlist
   const handleFulfill = () => {
-    // We'll open the CreateWishlistDialog to create a new item that will fulfill the wishlist
+    // We'll open the create listing form
     setCreateItemDialogOpen(true);
   };
 
-  // This is just a placeholder - in a real implementation, you'd need to get the selected item ID
-  // after the user creates a new item, and then set the recipient
+  // This handles when a new item is created
   const handleItemCreated = (newItemId: number) => {
     if (wishlist && wishlist.userId) {
       setRecipient.mutate({
@@ -112,11 +116,28 @@ export default function FulfillWishlistDialog({
         </DialogContent>
       </Dialog>
 
-      {/* This is a placeholder - in real implementation, you'd create a more specialized dialog */}
-      <CreateWishlistDialog 
-        open={createItemDialogOpen}
-        onOpenChange={setCreateItemDialogOpen}
-      />
+      {/* Use the Create Listing Dialog when we need to create a new item */}
+      <Dialog open={createItemDialogOpen} onOpenChange={setCreateItemDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New Item</DialogTitle>
+            <DialogDescription>
+              Create an item to fulfill the wishlist
+            </DialogDescription>
+          </DialogHeader>
+          <ListingForm
+            mode="create"
+            communities={userCommunities}
+            onSuccess={() => {
+              setCreateItemDialogOpen(false);
+              // In a real implementation, we'd need to get the newly created item ID here
+              // and pass it to handleItemCreated
+              // handleItemCreated(newItemId);
+            }}
+            buttonText="Create Item"
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
