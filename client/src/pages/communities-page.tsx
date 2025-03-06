@@ -111,11 +111,6 @@ export default function CommunitiesPage() {
     createCommunityMutation.mutate(data);
   };
 
-  const handleInviteClick = (community: Community) => {
-    setSelectedCommunity(community);
-    setInviteDialogOpen(true);
-  };
-
   const onInvite = (data: { invitedEmail: string }) => {
     if (!selectedCommunity) return;
     inviteMutation.mutate({ invitedEmail: data.invitedEmail, communityId: selectedCommunity.id });
@@ -260,9 +255,13 @@ export default function CommunitiesPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleInviteClick(community)}
+                          className="ml-2"
+                          onClick={() => {
+                            setSelectedCommunity(community);
+                            setInviteDialogOpen(true);
+                          }}
                         >
-                          <UserPlus className="h-4 w-4 mr-2" />
+                          <UserPlus className="h-4 w-4 mr-1" />
                           Invite
                         </Button>
                       </DialogTrigger>
