@@ -37,14 +37,17 @@ export default function OwnerListingView({
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  const activeRequest = requests.find((r) =>
-    [
-      "pending",
-      "accepted",
-      "awaiting_pickup_confirmation",
-      "scheduled",
-    ].includes(r.status),
-  );
+  // Find the request that matches the selected recipient
+  const activeRequest = item.recipientId
+    ? requests.find((r) => r.requesterId === item.recipientId)
+    : requests.find((r) =>
+        [
+          "pending",
+          "accepted",
+          "awaiting_pickup_confirmation",
+          "scheduled",
+        ].includes(r.status),
+      );
 
   const showPickupScheduler = ["requested", "scheduling", "scheduled"].includes(
     item.status || "",
