@@ -98,10 +98,7 @@ export function MessageDialog({
         recipientId,
         requestId,
         currentUserId,
-        enabled: open && !!recipientId && !!requestId,
-        open,
-        hasRecipientId: !!recipientId,
-        hasRequestId: !!requestId
+        enabled: open && !!recipientId && !!requestId
       });
 
       const response = await apiRequest('GET', `/api/messages/${recipientId}/${requestId}`);
