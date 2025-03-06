@@ -72,6 +72,47 @@ export default function HomePage() {
 
         <div className="space-y-4 mb-8">
           <div className="relative">
+
+        <div className="mt-8">
+          <div className="flex items-center mb-4">
+            <div className="relative grow mr-4">
+              <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search listings..."
+                className="pl-8"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center">
+              <Checkbox
+                id="freeOnly"
+                checked={showFreeOnly}
+                onCheckedChange={(checked) => setShowFreeOnly(checked === true)}
+                className="mr-2"
+              />
+              <Label htmlFor="freeOnly">Free only</Label>
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : items.length === 0 ? (
+            <Card className="p-6 text-center">
+              <p>No items found in your communities.</p>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {items.map((item) => (
+                <ItemCard key={item.id} item={item} />
+              ))}
+            </div>
+          )}
+        </div>
+
             <div className="flex items-center border rounded-md px-3 focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary transition-all">
               <Search className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
               <input
