@@ -284,7 +284,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/messages/send", requireAuth, async (req, res) => {
     try {
       const { recipientId, content, requestId } = req.body;
-      logger.info("Received message request:", { recipientId, requestId });
+      logger.info("Received message request:", { 
+        recipientId, 
+        requestId,
+        content: content?.substring(0, 20), // Log just the start of content for privacy
+        senderId: req.user?.id
+      });
+
+      // Validate recipient exists
+      const recipient = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, recipientId))
+        .limit(1);
+
+      if (!recipient.length) {
+        logger.error("Invalid recipient:", { recipientId });
+        return res.status(400).json({ error: "Invalid recipient" });
+      }
 
       const parseResult = insertMessageSchema.safeParse({
         senderId: req.user?.id,
@@ -294,6 +311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!parseResult.success) {
+        logger.error("Message validation failed:", parseResult.error);
         return res.status(400).json(parseResult.error);
       }
 
@@ -941,8 +959,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const proposedWindows = validatedWindows.map((window, index) => ({
-        ...window,
-        order: index,
+        ...window,        order: index,
       }));
 
       logger.debug("Validated windows:", proposedWindows);
@@ -956,7 +973,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.items.id, itemId));
 
-      awaitdb
+      await db
         .update(schema.itemRequests)
         .set({ status: REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
         .where(eq(schema.itemRequests.id, activeRequest.id));

@@ -88,10 +88,16 @@ export function MessageDialog({
         throw new Error("Message cannot be empty");
       }
 
+      console.log('Sending message with data:', {
+        recipientId: otherPartyId,
+        requestId,
+        content: data.content.substring(0, 20)
+      });
+
       // Ensure we're sending to the correct recipient
       const response = await apiRequest('POST', '/api/messages/send', {
         content: data.content,
-        recipientId: otherPartyId, // Use otherPartyId from props
+        recipientId: recipientId, // Use recipientId from props directly
         requestId: requestId,
         senderId: currentUserId
       });
