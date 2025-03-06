@@ -769,11 +769,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         requestCount: requests.length,
         ownerId: item.userId,
         requesterId: req.user.id,
-        requests: requests.map(r => ({
-          id: r.id,
-          status: r.status,
-          requesterId: r.requesterId
-        }))
       });
 
       res.json(requests);
@@ -959,7 +954,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           if (isAfter(endDate, addHours(startDate, 1))) {
-            returnres
+            return res
               .status(400)
               .json({ error: "Pickup window cannot exceed 1 hour" });
           }

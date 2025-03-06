@@ -37,27 +37,9 @@ export default function OwnerListingView({
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  // Debug log the requests
-  console.log('OwnerListingView - Requests:', {
-    itemId: item.id,
-    requestsCount: requests.length,
-    requests: requests.map(r => ({
-      id: r.id,
-      status: r.status,
-      userId: r.userId
-    }))
-  });
-
   const activeRequest = requests.find(r =>
     ["pending", "accepted", "awaiting_pickup_confirmation", "scheduled"].includes(r.status)
   );
-
-  console.log('OwnerListingView - Active Request:', {
-    requesterId: activeRequest?.userId,
-    itemOwner: item.userId,
-    currentUser: currentUserId,
-    activeRequestStatus: activeRequest?.status
-  });
 
   const showPickupScheduler = item.isGift && ['requested', 'scheduling', 'scheduled'].includes(item.status || '');
   const showMessageAndCancel = ['scheduling', 'scheduled'].includes(item.status || '') && activeRequest;
@@ -188,7 +170,7 @@ export default function OwnerListingView({
         )}
 
         {/* Message and Cancel Section */}
-        {item.isGift && showMessageAndCancel && activeRequest?.userId && (
+        {item.isGift && showMessageAndCancel && (
           <div className={SECTION_CLASS}>
             <div className="flex items-center gap-4">
               <CancelButton
@@ -199,8 +181,8 @@ export default function OwnerListingView({
               <MessageDialog
                 requestId={activeRequest.id}
                 currentUserId={currentUserId}
-                otherPartyId={activeRequest.userId}
-                recipientId={activeRequest.userId}
+                otherPartyId={activeRequest.userId ?? 0}
+                recipientId={activeRequest.userId ?? 0}
                 isOpen={messageDialogOpen}
                 onOpenChange={setMessageDialogOpen}
                 trigger={

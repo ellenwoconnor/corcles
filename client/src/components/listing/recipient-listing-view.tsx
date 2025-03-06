@@ -44,12 +44,7 @@ export default function RecipientListingView({
 
   // Ensure we have valid IDs for messaging
   const itemOwnerId = item.userId || 0;
-
-  console.log('RecipientListingView - Message Dialog Props:', {
-    itemOwnerId,
-    currentUserId,
-    requestId: request.id
-  });
+  const recipientId = request.requesterId || currentUserId;
 
   return (
     <div className="grid md:grid-cols-2 gap-8">
@@ -156,7 +151,7 @@ export default function RecipientListingView({
                 requestId={request.id}
                 currentUserId={currentUserId}
                 otherPartyId={itemOwnerId}
-                recipientId={itemOwnerId}
+                recipientId={recipientId}
                 isOpen={messageDialogOpen}
                 onOpenChange={setMessageDialogOpen}
                 trigger={<Button variant="outline">Message</Button>}
