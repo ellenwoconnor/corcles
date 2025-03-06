@@ -18,6 +18,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import logger from "./logger";
+import { generateCommunityInviteEmail } from "./utils/mail";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
