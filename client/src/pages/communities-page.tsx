@@ -280,14 +280,24 @@ export default function CommunitiesPage() {
                         <DialogTitle>
                           Invite to {selectedCommunity?.name}
                         </DialogTitle>
-                        <DialogDescription>
-                          Send an invitation to join this community. They'll
-                          receive an email with instructions.
-                        </DialogDescription>
-                        <DialogDescription>
-                          {selectedCommunity?.isCustom
-                            ? ""
-                            : "Note: This community is limited to addresses in your zip code."}
+                        <DialogDescription className="mb-4">
+                          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mt-3">
+                            <p className="font-medium text-foreground mb-2">
+                              {selectedCommunity?.isCustom 
+                                ? "Share the community spirit!" 
+                                : "Invite neighbors to your local circle!"}
+                            </p>
+                            <p className="text-muted-foreground">
+                              {selectedCommunity?.isCustom
+                                ? "Your friend will receive an email with instructions on how to join this custom community."
+                                : "Neighbors with matching zip codes can join this community. They'll receive an email with setup instructions."}
+                            </p>
+                            {!selectedCommunity?.isCustom && (
+                              <p className="mt-2 text-sm text-amber-600 flex items-center">
+                                <span className="mr-1">⚠️</span> This community is limited to addresses in your zip code area.
+                              </p>
+                            )}
+                          </div>
                         </DialogDescription>
                       </DialogHeader>
                       <div className="py-4">
