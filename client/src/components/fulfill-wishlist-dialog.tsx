@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -10,10 +9,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "./ui/dialog";
-import { Button } from "./ui/button";
-import { Loader2 } from "lucide-react";
 import { ListingForm } from "./listing/listing-form";
 
 interface FulfillWishlistDialogProps {
@@ -30,7 +26,6 @@ export default function FulfillWishlistDialog({
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [createItemDialogOpen, setCreateItemDialogOpen] = useState(false);
 
   const { data: userCommunities = [] } = useQuery<any[]>({
     queryKey: ["/api/user/communities"],
@@ -66,13 +61,6 @@ export default function FulfillWishlistDialog({
     },
   });
 
-  // Auto-open item creation dialog on component mount
-  useEffect(() => {
-    if (open && wishlist) {
-      setCreateItemDialogOpen(true);
-    }
-  }, [open, wishlist]);
-
   // This handles when a new item is created
   const handleItemCreated = (newItemId: number) => {
     if (wishlist && wishlist.userId) {
@@ -84,62 +72,26 @@ export default function FulfillWishlistDialog({
   };
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Fulfill Wishlist</DialogTitle>
-            <DialogDescription>
-              Do you want to fulfill this wishlist item?
-              {wishlist && (
-                <div className="mt-2">
-                  <strong>{wishlist.title}</strong>
-                  <p className="text-sm text-muted-foreground">{wishlist.description}</p>
-                </div>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex justify-end gap-2 mt-4">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button onClick={() => setCreateItemDialogOpen(true)} disabled={setRecipient.isPending}>
-              {setRecipient.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Fulfilling...
-                </>
-              ) : (
-                "Create Item"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Use the Create Listing Dialog when we need to create a new item */}
-      <Dialog open={createItemDialogOpen} onOpenChange={setCreateItemDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Create New Item</DialogTitle>
-            <DialogDescription>
-              Create an item to fulfill the wishlist
-            </DialogDescription>
-          </DialogHeader>
-          <ListingForm
-            mode="create"
-            communities={userCommunities}
-            onSuccess={(newItem) => {
-              setCreateItemDialogOpen(false);
-              // Get the newly created item ID and set the recipient
-              if (newItem && newItem.id && wishlist && wishlist.userId) {
-                handleItemCreated(newItem.id);
-              }
-            }}
-            buttonText="Create Item"
-          />
-        </DialogContent>
-      </Dialog>
-    </>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px] max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create Item for Wishlist</DialogTitle>
+          <DialogDescription>
+            Create an item to fulfill "{wishlist?.title}"
+          </DialogDescription>
+        </DialogHeader>
+        <ListingForm
+          mode="create"
+          communities={userCommunities}
+          onSuccess={(newItem) => {
+            // Get the newly created item ID and set the recipient
+            if (newItem && newItem.id && wishlist && wishlist.userId) {
+              handleItemCreated(newItem.id);
+            }
+          }}
+          buttonText="Create Item"
+        />
+      </DialogContent>
+    </Dialog>
   );
 }
