@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import React, { useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import CommunityWishlists from "@/components/community-wishlists";
+import { Input } from "@/components/ui/input"; // Added import for Input component
+import {Checkbox} from "@/components/ui/checkbox"; // Added import for Checkbox component
 
 // Add 'use client' directive for Next.js strict mode
 ("use client");
