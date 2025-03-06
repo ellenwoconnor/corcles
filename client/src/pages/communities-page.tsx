@@ -1,11 +1,38 @@
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { insertCommunitySchema, type Community, type InsertCommunity } from "@shared/schema";
+import {
+  insertCommunitySchema,
+  type Community,
+  type InsertCommunity,
+} from "@shared/schema";
 import Navbar from "@/components/navbar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Loader2, Plus, UserPlus, Users } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,17 +44,20 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import { z } from "zod";
 // Import the new component
-import CommunityInviteForm from '@/components/community-invite-form';
-
+import CommunityInviteForm from "@/components/community-invite-form";
 
 export default function CommunitiesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
+  const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(
+    null,
+  );
 
-  const { data: communities, isLoading } = useQuery<(Community & { role: string; memberCount: number })[]>({
+  const { data: communities, isLoading } = useQuery<
+    (Community & { role: string; memberCount: number })[]
+  >({
     queryKey: ["/api/user/communities"],
     enabled: !!user,
   });
@@ -38,21 +68,20 @@ export default function CommunitiesPage() {
       name: "",
       description: "",
       createdBy: user?.id,
-      isCustom: true
+      isCustom: true,
     },
   });
-
 
   const createCommunityMutation = useMutation({
     mutationFn: async (data: InsertCommunity) => {
       const response = await apiRequest("POST", "/api/communities", {
         ...data,
         createdBy: user?.id,
-        isCustom: true
+        isCustom: true,
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to create community');
+        throw new Error(error.error || "Failed to create community");
       }
       return response.json();
     },
@@ -74,11 +103,9 @@ export default function CommunitiesPage() {
     },
   });
 
-
   const onSubmit = (data: InsertCommunity) => {
     createCommunityMutation.mutate(data);
   };
-
 
   if (!user) {
     return (
@@ -120,7 +147,8 @@ export default function CommunitiesPage() {
                   <DialogHeader>
                     <DialogTitle>Create a New Community</DialogTitle>
                     <DialogDescription>
-                      Create a custom community to share items with a specific group.
+                      Create a custom community to share items with a specific
+                      group.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
@@ -131,7 +159,10 @@ export default function CommunitiesPage() {
                         <FormItem>
                           <FormLabel>Community Name</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="Enter community name" />
+                            <Input
+                              {...field}
+                              placeholder="Enter community name"
+                            />
                           </FormControl>
                           <FormDescription>
                             Choose a unique name for your community
@@ -147,7 +178,10 @@ export default function CommunitiesPage() {
                         <FormItem>
                           <FormLabel>Description</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="Enter community description" />
+                            <Input
+                              {...field}
+                              placeholder="Enter community description"
+                            />
                           </FormControl>
                           <FormDescription>
                             Briefly describe the purpose of this community
@@ -183,7 +217,8 @@ export default function CommunitiesPage() {
             <CardHeader>
               <CardTitle>No Communities</CardTitle>
               <CardDescription>
-                You haven't joined any communities yet. Create one to get started!
+                You haven't joined any communities yet. Create one to get
+                started!
               </CardDescription>
             </CardHeader>
           </Card>
@@ -195,58 +230,77 @@ export default function CommunitiesPage() {
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="text-base truncate">{community.name}</CardTitle>
-                        <Badge variant={community.role === 'admin' ? 'default' : 'secondary'}>
+                        <CardTitle className="text-base truncate">
+                          {community.name}
+                        </CardTitle>
+                        <Badge
+                          variant={
+                            community.role === "admin" ? "default" : "secondary"
+                          }
+                        >
                           {community.role}
                         </Badge>
                       </div>
-                      <CardDescription className="line-clamp-1">{community.description}</CardDescription>
+                      <CardDescription className="line-clamp-1">
+                        {community.description}
+                      </CardDescription>
                       <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                         <div className="flex items-center">
                           <Users className="h-4 w-4 mr-1" />
                           <span>{community.memberCount} members</span>
                         </div>
                         <div>
-                          Created {format(new Date(community.createdAt), 'PP')}
+                          Created {format(new Date(community.createdAt), "PP")}
                         </div>
                       </div>
                     </div>
                   </div>
                 </CardHeader>
                 <CardFooter>
-                    <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="ml-2"
-                          onClick={() => {
-                            setSelectedCommunity(community);
-                            setInviteDialogOpen(true);
-                          }}
-                        >
-                          <UserPlus className="h-4 w-4 mr-1" />
-                          Invite
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
+                  <Dialog
+                    open={inviteDialogOpen}
+                    onOpenChange={setInviteDialogOpen}
+                  >
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="ml-2"
+                        onClick={() => {
+                          setSelectedCommunity(community);
+                          setInviteDialogOpen(true);
+                        }}
+                      >
+                        <UserPlus className="h-4 w-4 mr-1" />
+                        Invite
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Invite to {selectedCommunity?.name}</DialogTitle>
+                        <DialogTitle>
+                          Invite to {selectedCommunity?.name}
+                        </DialogTitle>
                         <DialogDescription>
-                          Send an invitation to join this community. They'll receive an email with instructions.
+                          Send an invitation to join this community. They'll
+                          receive an email with instructions.
+                        </DialogDescription>
+                        <DialogDescription>
+                          {selectedCommunity?.isCustom
+                            ? ""
+                            : "Note: This community is limited to addresses in your zip code."}
                         </DialogDescription>
                       </DialogHeader>
                       <div className="py-4">
                         {selectedCommunity && (
-                          <CommunityInviteForm 
-                            community={selectedCommunity} 
+                          <CommunityInviteForm
+                            community={selectedCommunity}
                             onSuccess={() => setInviteDialogOpen(false)}
                           />
                         )}
                       </div>
-                      </DialogContent>
-                    </Dialog>
-                  </CardFooter>
+                    </DialogContent>
+                  </Dialog>
+                </CardFooter>
               </Card>
             ))}
           </div>
