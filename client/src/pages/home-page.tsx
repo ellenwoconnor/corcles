@@ -19,6 +19,7 @@ export default function HomePage() {
   const [searchValue, setSearchValue] = useState("");
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+  const debouncedSearchValue = useDebounce(searchValue, 300);
   const { data: userCommunities = [] } = useQuery<
     (Community & { role: string; memberCount: number })[]
   >({
@@ -29,14 +30,14 @@ export default function HomePage() {
   const communityIds = userCommunities.map((c) => c.id);
 
   const { data: items = [], isLoading } = useQuery<Item[]>({
-    queryKey: ["/api/items", communityIds, searchValue, showFreeOnly],
+    queryKey: ["/api/items", communityIds, debouncedSearchValue, showFreeOnly],
     queryFn: async () => {
       if (communityIds.length === 0) return [];
       const params = new URLSearchParams();
       params.append("communities", communityIds.join(","));
 
-      if (searchValue.trim()) {
-        params.append("search", searchValue.trim());
+      if (debouncedSearchValue.trim()) {
+        params.append("search", debouncedSearchValue.trim());
       }
 
       if (showFreeOnly) {
@@ -70,29 +71,53 @@ export default function HomePage() {
         </div>
 
         <div className="space-y-4 mb-8">
-          {/* Basic input for testing */}
-          <input
-            type="text"
-            value={searchValue}
-            onChange={(e) => {
-              const newValue = e.target.value;
-              setSearchValue(newValue);
-            }}
-            placeholder="Search items..."
-            className="w-full p-2 border rounded"
-          />
+          <div className="relative">
+            <div className="flex items-center border rounded-md px-3 focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary transition-all">
+              <Search className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+              <input
+                type="text"
+                value={searchValue}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  setSearchValue(newValue);
+                }}
+                placeholder="Search items..."
+                className="w-full py-2 bg-transparent border-0 outline-none text-sm placeholder:text-muted-foreground"
+              />
+              {searchValue && (
+                <button
+                  onClick={() => setSearchValue("")}
+                  className="text-muted-foreground hover:text-foreground"
+                  aria-label="Clear search"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-4 w-4"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
 
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="free-only"
-              checked={showFreeOnly}
-              onChange={(e) => setShowFreeOnly(e.target.checked)}
-            />
-            <Label htmlFor="free-only" className="flex items-center gap-2">
-              <Gift className="h-4 w-4" />
-              Show only free items
-            </Label>
+          <div className="flex items-center space-x-2 bg-background border rounded-md px-3 py-2 text-sm">
+            <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setShowFreeOnly(!showFreeOnly)}>
+              <div className={`w-4 h-4 rounded border flex items-center justify-center ${showFreeOnly ? 'bg-primary border-primary' : 'border-input'}`}>
+                {showFreeOnly && <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 text-primary-foreground"><polyline points="20 6 9 17 4 12"></polyline></svg>}
+              </div>
+              <Label htmlFor="free-only" className="flex items-center gap-2 cursor-pointer">
+                <Gift className="h-4 w-4" />
+                Show only free items
+              </Label>
+            </div>
           </div>
         </div>
 
@@ -101,17 +126,28 @@ export default function HomePage() {
             <Loader2 className="h-8 w-8 animate-spin text-border" />
           </div>
         ) : !items || items.length === 0 ? (
-          <div className="text-center py-12">
-            <h2 className="text-xl font-semibold mb-2">No items found</h2>
-            <p className="text-muted-foreground">
-              {searchValue
-                ? "Try adjusting your search terms"
+          <div className="text-center py-12 space-y-3">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-full border bg-background">
+              <Search className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h2 className="text-xl font-semibold">No items found</h2>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              {debouncedSearchValue
+                ? `No results found for "${debouncedSearchValue}". Try different keywords or browse all items.`
                 : showFreeOnly
-                  ? "No free items available in your communities yet"
+                  ? "No free items available in your communities yet. Check back later or browse all items."
                   : communityIds.length === 0
-                    ? "Join a community to see items"
-                    : "Be the first to list an item in your communities"}
+                    ? "Join a community to see items available for sharing or sale."
+                    : "Be the first to list an item in your communities."}
             </p>
+            {debouncedSearchValue && (
+              <button 
+                onClick={() => setSearchValue("")} 
+                className="mt-2 inline-flex items-center text-primary hover:underline"
+              >
+                Clear search
+              </button>
+            )}
           </div>
         ) : (
           <ItemGrid items={items} />

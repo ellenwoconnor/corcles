@@ -3,7 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Item, ItemRequest, ItemBid } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Package, Gift, Tag, Clock } from "lucide-react";
@@ -19,19 +25,27 @@ export default function ProfilePage() {
     enabled: !!user,
   });
 
-  const { data: userRequests, isLoading: requestsLoading } = useQuery<(ItemRequest & { item: Item })[]>({
+  const { data: userRequests, isLoading: requestsLoading } = useQuery<
+    (ItemRequest & { item: Item })[]
+  >({
     queryKey: ["/api/user/requests"],
     enabled: !!user,
   });
 
-  const { data: userBids, isLoading: bidsLoading } = useQuery<(ItemBid & { item: Item })[]>({
+  const { data: userBids, isLoading: bidsLoading } = useQuery<
+    (ItemBid & { item: Item })[]
+  >({
     queryKey: ["/api/user/bids"],
     enabled: !!user,
   });
 
-  const pendingConfirmations = userRequests?.filter(
-    r => r.status === "awaiting_pickup_confirmation"
-  ) || [];
+  const pendingConfirmations =
+    userRequests?.filter((r) => r.status === "awaiting_pickup_confirmation") ||
+    [];
+
+  const requestedItems = userItems?.filter(
+    (item) => item.status === "requested" && !item.pickupStart,
+  );
 
   if (!user) {
     return (
@@ -64,7 +78,9 @@ export default function ProfilePage() {
         <div className="mb-8 space-y-4">
           <div className="space-y-4">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight mb-2">{user.username}</h1>
+              <h1 className="text-3xl font-bold tracking-tight mb-2">
+                {user.username}
+              </h1>
               <div className="text-sm">
                 <span className="font-medium">Address: </span>
                 <span className="text-muted-foreground">{user.address}</span>
@@ -77,11 +93,17 @@ export default function ProfilePage() {
           <TabsList className="mb-4">
             <TabsTrigger value="listings" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
-              My Listings
+              My Listings{" "}
+              {requestedItems.length > 0 && (
+                <Badge variant="default" className="ml-2">
+                  {requestedItems.length}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="requests" className="flex items-center gap-2">
               <Gift className="h-4 w-4" />
-              My Requests {pendingConfirmations.length > 0 && (
+              My Requests{" "}
+              {pendingConfirmations.length > 0 && (
                 <Badge variant="default" className="ml-2">
                   {pendingConfirmations.length}
                 </Badge>
@@ -95,15 +117,6 @@ export default function ProfilePage() {
 
           <TabsContent value="listings">
             <div className="grid gap-4">
-              {userItems?.some(item => item.recipientId && !item.pickupStart) && (
-                <Alert className="mb-4">
-                  <Clock className="h-4 w-4" />
-                  <AlertTitle>Action Needed</AlertTitle>
-                  <AlertDescription>
-                    Visit your listings to schedule pickup windows
-                  </AlertDescription>
-                </Alert>
-              )}
               {!userItems || userItems.length === 0 ? (
                 <Card>
                   <CardHeader className="py-3">
@@ -119,31 +132,51 @@ export default function ProfilePage() {
                     <Card key={item.id}>
                       <CardHeader className="py-3">
                         <div className="flex items-center gap-3">
-                          <img src={item.imageUrl} alt={item.title} className="w-12 h-12 rounded object-cover" />
+                          <img
+                            src={item.imageUrl}
+                            alt={item.title}
+                            className="w-12 h-12 rounded object-cover"
+                          />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2">
                               <CardTitle className="text-base truncate">
-                                <Link href={`/item/${item.id}`} className="hover:underline">
+                                <Link
+                                  href={`/item/${item.id}`}
+                                  className="hover:underline"
+                                >
                                   {item.title}
                                 </Link>
                               </CardTitle>
                               <Badge
                                 variant={
-                                  item.status === "completed" ? "outline" :
-                                  item.status === "pending_pickup" ? "secondary" :
-                                  "secondary"
+                                  item.status === "completed"
+                                    ? "outline"
+                                    : item.status === "pending_pickup"
+                                      ? "secondary"
+                                      : "secondary"
                                 }
-                                className={item.status === "pending_pickup" ? "bg-background text-foreground border" : ""}
+                                className={
+                                  item.status === "pending_pickup"
+                                    ? "bg-background text-foreground border"
+                                    : ""
+                                }
                               >
-                                {item.status === "completed" ? "Pickup Complete" :
-                                 item.status === "scheduled" ? "Pickup Scheduled" :
-                                 item.status === "scheduling" ? "Setting Pickup Time" :
-                                 item.status === "requested" ? "Requests Received" :
-                                 "Available"}
+                                {item.status === "completed"
+                                  ? "Pickup Complete"
+                                  : item.status === "scheduled"
+                                    ? "Pickup Scheduled"
+                                    : item.status === "scheduling"
+                                      ? "Setting Pickup Time"
+                                      : item.status === "requested"
+                                        ? "Requests Received"
+                                        : "Available"}
                               </Badge>
                             </div>
                             <CardDescription className="text-sm">
-                              Listed {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
+                              Listed{" "}
+                              {formatDistanceToNow(new Date(item.createdAt), {
+                                addSuffix: true,
+                              })}
                             </CardDescription>
                           </div>
                         </div>
@@ -151,11 +184,16 @@ export default function ProfilePage() {
                       <CardContent>
                         {item.pickupStart && (
                           <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
-                            <h3 className="font-medium mb-2">Pickup Scheduled</h3>
+                            <h3 className="font-medium mb-2">
+                              Pickup Scheduled
+                            </h3>
                             <p className="text-sm text-muted-foreground">
-                              {format(new Date(item.pickupStart), "EEEE, MMMM d")} at{" "}
-                              {format(new Date(item.pickupStart), "h:mm a")} -{" "}
-                              {format(new Date(item.pickupEnd!), "h:mm a")}
+                              {format(
+                                new Date(item.pickupStart),
+                                "EEEE, MMMM d",
+                              )}{" "}
+                              at {format(new Date(item.pickupStart), "h:mm a")}{" "}
+                              - {format(new Date(item.pickupEnd!), "h:mm a")}
                             </p>
                           </div>
                         )}
@@ -174,7 +212,9 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-2 text-sm text-primary">
                     <Clock className="h-3.5 w-3.5" />
                     <span>
-                      {pendingConfirmations.length} pickup {pendingConfirmations.length === 1 ? 'time' : 'times'} to confirm
+                      {pendingConfirmations.length} pickup{" "}
+                      {pendingConfirmations.length === 1 ? "time" : "times"} to
+                      confirm
                     </span>
                   </div>
                 </div>
@@ -193,35 +233,50 @@ export default function ProfilePage() {
                   <Card key={request.id}>
                     <CardHeader className="py-3">
                       <div className="flex items-center gap-3">
-                        <img src={request.item.imageUrl} alt={request.item.title} className="w-12 h-12 rounded object-cover" />
+                        <img
+                          src={request.item.imageUrl}
+                          alt={request.item.title}
+                          className="w-12 h-12 rounded object-cover"
+                        />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
                             <CardTitle className="text-base truncate">
-                              <Link href={`/item/${request.item.id}`} className="hover:underline">
+                              <Link
+                                href={`/item/${request.item.id}`}
+                                className="hover:underline"
+                              >
                                 {request.item.title}
                               </Link>
                             </CardTitle>
                             <Badge
                               variant={
-                                request.status === "awaiting_pickup_confirmation"
+                                request.status ===
+                                "awaiting_pickup_confirmation"
                                   ? "default"
                                   : request.status === "accepted"
-                                  ? "secondary"
-                                  : request.status === "pending"
-                                  ? "secondary"
-                                  : "destructive"
+                                    ? "secondary"
+                                    : request.status === "pending"
+                                      ? "secondary"
+                                      : "destructive"
                               }
-                              className={request.status === "accepted" ? "bg-background text-foreground border" : ""}
+                              className={
+                                request.status === "accepted"
+                                  ? "bg-background text-foreground border"
+                                  : ""
+                              }
                             >
                               {request.status === "awaiting_pickup_confirmation"
                                 ? "Confirm Pickup"
                                 : request.status === "accepted"
-                                ? "Pickup Scheduled"
-                                : request.status}
+                                  ? "Pickup Scheduled"
+                                  : request.status}
                             </Badge>
                           </div>
                           <CardDescription className="text-sm">
-                            Requested {formatDistanceToNow(new Date(request.createdAt), { addSuffix: true })}
+                            Requested{" "}
+                            {formatDistanceToNow(new Date(request.createdAt), {
+                              addSuffix: true,
+                            })}
                           </CardDescription>
                         </div>
                       </div>
@@ -229,7 +284,10 @@ export default function ProfilePage() {
                     <CardContent>
                       {request.status === "awaiting_pickup_confirmation" && (
                         <div className="mt-2">
-                          <Link href={`/item/${request.item.id}`} className="inline-block">
+                          <Link
+                            href={`/item/${request.item.id}`}
+                            className="inline-block"
+                          >
                             <div className="text-sm text-primary hover:text-primary/90 flex items-center gap-1.5 font-medium">
                               <Clock className="h-3.5 w-3.5" />
                               Select pickup time
@@ -237,16 +295,30 @@ export default function ProfilePage() {
                           </Link>
                         </div>
                       )}
-                      {request.status === "accepted" && request.item.pickupStart && (
-                        <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
-                          <h3 className="font-medium mb-2">Pickup Scheduled</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(request.item.pickupStart), "EEEE, MMMM d")} at{" "}
-                            {format(new Date(request.item.pickupStart), "h:mm a")} -{" "}
-                            {format(new Date(request.item.pickupEnd!), "h:mm a")}
-                          </p>
-                        </div>
-                      )}
+                      {request.status === "accepted" &&
+                        request.item.pickupStart && (
+                          <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                            <h3 className="font-medium mb-2">
+                              Pickup Scheduled
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {format(
+                                new Date(request.item.pickupStart),
+                                "EEEE, MMMM d",
+                              )}{" "}
+                              at{" "}
+                              {format(
+                                new Date(request.item.pickupStart),
+                                "h:mm a",
+                              )}{" "}
+                              -{" "}
+                              {format(
+                                new Date(request.item.pickupEnd!),
+                                "h:mm a",
+                              )}
+                            </p>
+                          </div>
+                        )}
                     </CardContent>
                   </Card>
                 ))
@@ -270,11 +342,18 @@ export default function ProfilePage() {
                   <Card key={bid.id}>
                     <CardHeader className="py-3">
                       <div className="flex items-center gap-3">
-                        <img src={bid.item.imageUrl} alt={bid.item.title} className="w-12 h-12 rounded object-cover" />
+                        <img
+                          src={bid.item.imageUrl}
+                          alt={bid.item.title}
+                          className="w-12 h-12 rounded object-cover"
+                        />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2">
                             <CardTitle className="text-base truncate">
-                              <Link href={`/item/${bid.item.id}`} className="hover:underline">
+                              <Link
+                                href={`/item/${bid.item.id}`}
+                                className="hover:underline"
+                              >
                                 {bid.item.title}
                               </Link>
                             </CardTitle>
@@ -283,17 +362,22 @@ export default function ProfilePage() {
                                 bid.status === "pending"
                                   ? "secondary"
                                   : bid.status === "accepted"
-                                  ? "default"
-                                  : "destructive"
+                                    ? "default"
+                                    : "destructive"
                               }
                             >
                               {bid.status}
                             </Badge>
                           </div>
                           <CardDescription className="text-sm">
-                            Bid placed {formatDistanceToNow(new Date(bid.createdAt), { addSuffix: true })}
+                            Bid placed{" "}
+                            {formatDistanceToNow(new Date(bid.createdAt), {
+                              addSuffix: true,
+                            })}
                           </CardDescription>
-                          <div className="mt-1 font-medium text-sm">${bid.amount}</div>
+                          <div className="mt-1 font-medium text-sm">
+                            ${bid.amount}
+                          </div>
                         </div>
                       </div>
                     </CardHeader>

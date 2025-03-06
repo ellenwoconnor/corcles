@@ -39,7 +39,7 @@ try {
 }
 
 const logger = winston.createLogger({
-  level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
+  level: process.env.LOG_LEVEL || 'info', // Default to info level regardless of environment
   format: customFormat,
   transports: [
     // Write all logs with importance level of 'error' or less to 'error.log'
@@ -58,7 +58,7 @@ const logger = winston.createLogger({
     // Console transport with custom format
     new winston.transports.Console({
       format: consoleFormat,
-      level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',
+      level: process.env.LOG_LEVEL || 'info', // Consistent level for console
     }),
   ],
 });
@@ -68,34 +68,30 @@ export const requestLogger = (req: any, res: any, next: any) => {
   // Log all requests in production, not just API requests
   const start = Date.now();
 
-  // Log request details
-  logger.debug('Incoming request:', {
-    method: req.method,
-    url: req.url,
-    query: req.query,
-    body: req.method !== 'GET' ? req.body : undefined,
-    headers: {
-      'user-agent': req.headers['user-agent'],
-      'content-type': req.headers['content-type'],
-      'accept': req.headers['accept']
-    },
-    env: process.env.NODE_ENV
-  });
+  // Only log debug details if explicitly set to debug level
+  if (logger.level === 'debug') {
+    logger.debug('Incoming request:', {
+      method: req.method,
+      url: req.url,
+      query: Object.keys(req.query).length > 0 ? req.query : undefined,
+      body: req.method !== 'GET' ? req.body : undefined,
+    });
+  }
 
   // Log response details
   res.on('finish', () => {
     const duration = Date.now() - start;
     const level = res.statusCode >= 400 ? 'error' : 'info';
 
-    logger[level]('Request completed:', {
-      method: req.method,
-      url: req.url,
-      status: res.statusCode,
-      duration: `${duration}ms`,
-      contentLength: res.getHeader('content-length'),
-      authenticated: req.isAuthenticated?.() || false,
-      env: process.env.NODE_ENV
-    });
+    // Only log requests that are important (errors) or API endpoints
+    if (res.statusCode >= 400 || req.url.startsWith('/api')) {
+      logger[level]('Request:', {
+        method: req.method,
+        url: req.url,
+        status: res.statusCode,
+        duration: `${duration}ms`,
+      });
+    }
   });
 
   next();
