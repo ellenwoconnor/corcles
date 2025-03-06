@@ -1,7 +1,19 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,14 +49,14 @@ interface MessageDialogProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-export function MessageDialog({ 
-  requestId, 
-  currentUserId, 
-  otherPartyId, 
+export function MessageDialog({
+  requestId,
+  currentUserId,
+  otherPartyId,
   recipientId,
   trigger,
   isOpen: controlledIsOpen,
-  onOpenChange: controlledOnOpenChange 
+  onOpenChange: controlledOnOpenChange,
 }: MessageDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledIsOpen ?? internalOpen;
@@ -56,34 +68,42 @@ export function MessageDialog({
   // Use SSE instead of WebSocket
   const { isConnected } = useServerEvents({
     enabled: open, // Only connect when dialog is open
-    endpoint: '/api/events'
+    endpoint: "/api/events",
   });
 
   const form = useForm<MessageFormValues>({
     resolver: zodResolver(
       insertMessageSchema.extend({
-        recipientId: z.number().min(1, "Invalid recipient")
-      })
+        recipientId: z.number().min(1, "Invalid recipient"),
+      }),
     ),
     defaultValues: {
       content: "",
       senderId: currentUserId,
       recipientId: recipientId, // Use recipientId from props
-      requestId
-    }
+      requestId,
+    },
   });
 
   const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
     queryKey: ['/api/messages', otherPartyId, requestId],
     queryFn: async () => {
+      console.log('Fetching messages:', {
+        otherPartyId,
+        requestId,
+        currentUserId
+      });
+
       const response = await apiRequest('GET', `/api/messages/${otherPartyId}/${requestId}`);
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to fetch messages');
       }
-      return response.json();
+      const data = await response.json();
+      console.log('Fetched messages:', data.length);
+      return data;
     },
-    enabled: open
+    enabled: open && !!otherPartyId && !!requestId
   });
 
   const sendMessageMutation = useMutation({
@@ -118,9 +138,12 @@ export function MessageDialog({
     },
     onSuccess: () => {
       form.reset();
-      queryClient.invalidateQueries({ queryKey: ['/api/messages', otherPartyId, requestId] });
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/messages', otherPartyId, requestId]
+      });
     },
     onError: (error: Error) => {
+      console.error('Message send error:', error);
       toast({
         title: "Failed to send message",
         description: error.message || "There was an error sending your message.",
@@ -139,9 +162,7 @@ export function MessageDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        {trigger}
-      </DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Messages</DialogTitle>
@@ -165,11 +186,13 @@ export function MessageDialog({
                     style={{ maxWidth: "80%" }}
                   >
                     <span className="text-xs font-semibold mb-1">
-                      {message.senderId === currentUserId ? "You" : message.senderName}
+                      {message.senderId === currentUserId
+                        ? "You"
+                        : message.senderName}
                     </span>
                     <p className="text-sm">{message.content}</p>
                     <span className="text-xs opacity-70">
-                      {format(new Date(message.createdAt), 'MMM d, h:mm a')}
+                      {format(new Date(message.createdAt), "MMM d, h:mm a")}
                     </span>
                   </div>
                 ))}
@@ -188,18 +211,15 @@ export function MessageDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormControl>
-                      <Textarea
-                        placeholder="Type your message..."
-                        {...field}
-                      />
+                      <Textarea placeholder="Type your message..." {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button 
-                type="submit" 
-                className="w-full" 
+              <Button
+                type="submit"
+                className="w-full"
                 disabled={sendMessageMutation.isPending || !isConnected}
               >
                 {sendMessageMutation.isPending ? (

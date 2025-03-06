@@ -338,6 +338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all messages between these two users for this request
   app.get("/api/messages/:userId/:requestId", requireAuth, async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
@@ -388,7 +389,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         itemId: item.id,
         itemOwner: item.userId,
         requester: itemRequest.requesterId,
-        messageCount: messages.length
+        messageCount: messages.length,
+        currentUser: req.user.id
       });
 
       res.json(messages);
