@@ -75,16 +75,30 @@ export default function FulfillWishlistDialog({
 
   // This handles when a new item is created
   const handleItemCreated = (newItemId: number) => {
-    if (wishlist && wishlist.userId) {
+    try {
+      if (!newItemId || typeof newItemId !== 'number') {
+        throw new Error(`Invalid item ID: ${newItemId}`);
+      }
+      
+      if (!wishlist) {
+        throw new Error("Wishlist data is missing");
+      }
+      
+      if (!wishlist.userId || typeof wishlist.userId !== 'number') {
+        throw new Error(`Invalid wishlist user ID: ${wishlist?.userId}`);
+      }
+      
       console.log("Setting recipient:", { itemId: newItemId, recipientId: wishlist.userId });
       setRecipient.mutate({
         itemId: newItemId,
         recipientId: wishlist.userId,
       });
-    } else {
-      console.error("Cannot set recipient - missing wishlist user ID", { 
-        wishlistExists: !!wishlist,
-        wishlistUserId: wishlist?.userId 
+    } catch (error) {
+      console.error("Error setting recipient:", error);
+      toast({
+        title: "Error fulfilling wishlist",
+        description: error.message || "Could not set recipient for the created item",
+        variant: "destructive",
       });
       onClose(); // Close dialog even if we can't set recipient
     }
@@ -104,14 +118,28 @@ export default function FulfillWishlistDialog({
           communities={userCommunities}
           onSuccess={(newItem) => {
             // Get the newly created item ID and set the recipient
-            if (newItem && newItem.id) {
-              console.log("Item created successfully:", newItem);
+            try {
+              console.log("Item creation response:", newItem);
+              
+              if (!newItem) {
+                throw new Error("No item data returned");
+              }
+              
+              if (typeof newItem !== 'object') {
+                throw new Error(`Invalid item data type: ${typeof newItem}`);
+              }
+              
+              if (!newItem.id || typeof newItem.id !== 'number') {
+                throw new Error(`Invalid item ID: ${JSON.stringify(newItem)}`);
+              }
+              
+              console.log("Item created successfully with ID:", newItem.id);
               handleItemCreated(newItem.id);
-            } else {
-              console.error("Item creation returned invalid data");
+            } catch (error) {
+              console.error("Error processing created item:", error);
               toast({
                 title: "Error creating item",
-                description: "Could not create the item properly",
+                description: error.message || "Could not process the created item properly",
                 variant: "destructive",
               });
               onClose();
