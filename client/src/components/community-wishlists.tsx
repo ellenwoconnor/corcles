@@ -18,6 +18,7 @@ import FulfillWishlistDialog from "./fulfill-wishlist-dialog"; // Added import f
 // Import Slick CSS in your component
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import FulfillWishlistDialog from "./fulfill-wishlist-dialog";
 
 // Format time ago function
 function formatTimeAgo(date: Date): string {
