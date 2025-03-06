@@ -950,7 +950,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
 
           if (isAfter(startDate, twoWeeksFromNow)) {
-            return res
+            returnres
               .status(400)
               .json({ error: "Pickup must be within the next two weeks" });
           }
@@ -1148,7 +1148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           price: z.number().optional(),
           isGift: z.boolean().optional(),
           imageUrl: z.string().optional(),
-          community: z.string().optional(),
+          communityId: z.number().optional(),
           pickupLocation: z.string().nullable().optional(), //Added pickupLocation
         });
 
