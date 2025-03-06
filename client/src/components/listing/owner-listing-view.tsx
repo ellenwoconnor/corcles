@@ -41,6 +41,12 @@ export default function OwnerListingView({
     ["pending", "accepted", "awaiting_pickup_confirmation", "scheduled"].includes(r.status)
   );
 
+  console.log('OwnerListingView - Active Request:', {
+    requesterId: activeRequest?.userId,
+    itemOwner: item.userId,
+    currentUser: currentUserId
+  });
+
   const showPickupScheduler = item.isGift && ['requested', 'scheduling', 'scheduled'].includes(item.status || '');
   const showMessageAndCancel = ['scheduling', 'scheduled'].includes(item.status || '') && activeRequest;
 
@@ -170,7 +176,7 @@ export default function OwnerListingView({
         )}
 
         {/* Message and Cancel Section */}
-        {item.isGift && showMessageAndCancel && (
+        {item.isGift && showMessageAndCancel && activeRequest?.userId && (
           <div className={SECTION_CLASS}>
             <div className="flex items-center gap-4">
               <CancelButton
@@ -181,8 +187,8 @@ export default function OwnerListingView({
               <MessageDialog
                 requestId={activeRequest.id}
                 currentUserId={currentUserId}
-                otherPartyId={activeRequest.userId ?? 0}
-                recipientId={activeRequest.userId ?? 0}
+                otherPartyId={activeRequest.userId}
+                recipientId={activeRequest.userId}
                 isOpen={messageDialogOpen}
                 onOpenChange={setMessageDialogOpen}
                 trigger={
