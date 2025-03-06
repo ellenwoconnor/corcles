@@ -40,6 +40,17 @@ export default function OwnerListingView({
   const activeRequest = requests.find(r =>
     ["pending", "accepted", "awaiting_pickup_confirmation", "scheduled"].includes(r.status)
   );
+  
+  // Debug log to see what properties are available on activeRequest
+  if (activeRequest) {
+    console.log('Active request properties:', {
+      id: activeRequest.id,
+      requesterId: activeRequest.requesterId,
+      userId: activeRequest.userId, 
+      status: activeRequest.status,
+      allProperties: {...activeRequest}
+    });
+  }
 
   const showPickupScheduler = item.isGift && ['requested', 'scheduling', 'scheduled'].includes(item.status || '');
   const showMessageAndCancel = ['scheduling', 'scheduled'].includes(item.status || '') && activeRequest;
@@ -181,7 +192,7 @@ export default function OwnerListingView({
               <MessageDialog
                 requestId={activeRequest.id}
                 currentUserId={currentUserId}
-                recipientId={activeRequest.requesterId ?? activeRequest.userId ?? 0}
+                recipientId={activeRequest.requesterId}
                 isOpen={messageDialogOpen}
                 onOpenChange={setMessageDialogOpen}
                 trigger={
