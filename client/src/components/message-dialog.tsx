@@ -130,6 +130,10 @@ export function MessageDialog({
   });
 
   const handleSubmit = form.handleSubmit((values) => {
+    console.log('Submitting form with values:', {
+      ...values,
+      content: values.content.substring(0, 20) // Log just the start for privacy
+    });
     sendMessageMutation.mutate(values);
   });
 
