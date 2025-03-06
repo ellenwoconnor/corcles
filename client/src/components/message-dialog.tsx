@@ -65,6 +65,15 @@ export function MessageDialog({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // Debug log the props
+  console.log('MessageDialog mounted with props:', {
+    requestId,
+    currentUserId,
+    otherPartyId,
+    recipientId,
+    open
+  });
+
   // Use SSE instead of WebSocket
   const { isConnected } = useServerEvents({
     enabled: open, // Only connect when dialog is open
@@ -91,7 +100,11 @@ export function MessageDialog({
       console.log('Fetching messages:', {
         otherPartyId,
         requestId,
-        currentUserId
+        currentUserId,
+        enabled: open && !!otherPartyId && !!requestId,
+        open,
+        hasOtherPartyId: !!otherPartyId,
+        hasRequestId: !!requestId
       });
 
       const response = await apiRequest('GET', `/api/messages/${otherPartyId}/${requestId}`);
