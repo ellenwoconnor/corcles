@@ -618,7 +618,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateItem(id: number, item: Partial<InsertItem> & { recipientId?: number }): Promise<Item> {
+  async updateItem(id: number, item: Partial<InsertItem>): Promise<Item> {
     try {
       const [updatedItem] = await db
         .update(items)
