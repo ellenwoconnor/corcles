@@ -1,6 +1,6 @@
-import { Item, ItemRequest } from "@shared/schema";
+import { ItemRequest } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
-import { formatDistanceToNow, format } from "date-fns";
+import { format } from "date-fns";
 import { Clock, Pencil, MapPin } from "lucide-react";
 import { EditListingDialog } from "@/components/edit-listing-dialog";
 import RequestsList from "@/components/requests-list";
