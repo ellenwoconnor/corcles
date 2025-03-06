@@ -1376,6 +1376,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: "Not authorized to invite to this community" });
       }
 
+      // Check if this is a default community (zip code based)
+      const community = await storage.getCommunity(communityId);
+      if (community && !community.isCustom) {
+        // For default communities, we'll still allow the invite, but we'll add a note
+        // that it will only work for users with the matching zip code
+        logger.info("Zip code community invite:", {
+          communityId,
+          communityName: community.name,
+          isDefault: !community.isCustom,
+          zipCode: community.name.replace('Community ', '')
+        });
+      }
+
       const parseResult = insertCommunityInviteSchema.safeParse({
         invitedEmail: req.body.invitedEmail,
         communityId,
