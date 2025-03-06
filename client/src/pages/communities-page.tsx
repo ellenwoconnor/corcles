@@ -4,7 +4,7 @@ import { insertCommunitySchema, type Community, type InsertCommunity } from "@sh
 import Navbar from "@/components/navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Loader2, Plus, UserPlus, Users } from "lucide-react";
@@ -16,6 +16,9 @@ import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import { z } from "zod";
+// Import the new component
+import CommunityInviteForm from './community-invite-form';
+
 
 export default function CommunitiesPage() {
   const { user } = useAuth();
@@ -39,14 +42,6 @@ export default function CommunitiesPage() {
     },
   });
 
-  const inviteForm = useForm({
-    resolver: zodResolver(z.object({
-      invitedEmail: z.string().email("Please enter a valid email address"),
-    })),
-    defaultValues: {
-      invitedEmail: "",
-    },
-  });
 
   const createCommunityMutation = useMutation({
     mutationFn: async (data: InsertCommunity) => {
@@ -79,42 +74,11 @@ export default function CommunitiesPage() {
     },
   });
 
-  const inviteMutation = useMutation({
-    mutationFn: async ({ invitedEmail, communityId }: { invitedEmail: string; communityId: number }) => {
-      const response = await apiRequest("POST", `/api/communities/${communityId}/invite`, { invitedEmail });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to send invitation');
-      }
-      return response.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: data.autoEnrolled ? "User enrolled" : "Invitation sent",
-        description: data.autoEnrolled 
-          ? "The user has been automatically enrolled in the community."
-          : "The invitation has been sent successfully.",
-      });
-      setInviteDialogOpen(false);
-      inviteForm.reset();
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to send invitation",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
   const onSubmit = (data: InsertCommunity) => {
     createCommunityMutation.mutate(data);
   };
 
-  const onInvite = (data: { invitedEmail: string }) => {
-    if (!selectedCommunity) return;
-    inviteMutation.mutate({ invitedEmail: data.invitedEmail, communityId: selectedCommunity.id });
-  };
 
   if (!user) {
     return (
@@ -266,42 +230,20 @@ export default function CommunitiesPage() {
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
-                        <Form {...inviteForm}>
-                          <form onSubmit={inviteForm.handleSubmit(onInvite)}>
-                            <DialogHeader>
-                              <DialogTitle>Invite to {community.name}</DialogTitle>
-                              <DialogDescription>
-                                Send an invitation to join this community. If the user already exists, they will be automatically enrolled.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
-                              <FormField
-                                control={inviteForm.control}
-                                name="invitedEmail"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Email Address</FormLabel>
-                                    <FormControl>
-                                      <Input {...field} type="email" placeholder="Enter email address" />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                            <DialogFooter>
-                              <Button
-                                type="submit"
-                                disabled={inviteMutation.isPending}
-                              >
-                                {inviteMutation.isPending && (
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                )}
-                                Send Invitation
-                              </Button>
-                            </DialogFooter>
-                          </form>
-                        </Form>
+                      <DialogHeader>
+                        <DialogTitle>Invite to {selectedCommunity?.name}</DialogTitle>
+                        <DialogDescription>
+                          Send an invitation to join this community. They'll receive an email with instructions.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="py-4">
+                        {selectedCommunity && (
+                          <CommunityInviteForm 
+                            community={selectedCommunity} 
+                            onSuccess={() => setInviteDialogOpen(false)}
+                          />
+                        )}
+                      </div>
                       </DialogContent>
                     </Dialog>
                   </CardFooter>
