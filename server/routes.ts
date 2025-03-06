@@ -1553,6 +1553,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
               continue;
             }
+            
+            // Skip non-custom (zip code) communities
+            if (!community.isCustom) {
+              logger.warn("Skipping invite - non-custom community:", {
+                inviteId: invite.id,
+                communityId: invite.communityId,
+                communityName: community.name,
+              });
+              continue;
+            }
 
             await tx
               .insert(schema.userCommunities)
