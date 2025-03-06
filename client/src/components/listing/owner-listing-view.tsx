@@ -37,6 +37,17 @@ export default function OwnerListingView({
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
+  // Debug log the requests
+  console.log('OwnerListingView - Requests:', {
+    itemId: item.id,
+    requestsCount: requests.length,
+    requests: requests.map(r => ({
+      id: r.id,
+      status: r.status,
+      userId: r.userId
+    }))
+  });
+
   const activeRequest = requests.find(r =>
     ["pending", "accepted", "awaiting_pickup_confirmation", "scheduled"].includes(r.status)
   );
@@ -44,7 +55,8 @@ export default function OwnerListingView({
   console.log('OwnerListingView - Active Request:', {
     requesterId: activeRequest?.userId,
     itemOwner: item.userId,
-    currentUser: currentUserId
+    currentUser: currentUserId,
+    activeRequestStatus: activeRequest?.status
   });
 
   const showPickupScheduler = item.isGift && ['requested', 'scheduling', 'scheduled'].includes(item.status || '');
