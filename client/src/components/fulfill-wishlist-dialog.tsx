@@ -128,11 +128,12 @@ export default function FulfillWishlistDialog({
           <ListingForm
             mode="create"
             communities={userCommunities}
-            onSuccess={() => {
+            onSuccess={(newItem) => {
               setCreateItemDialogOpen(false);
-              // In a real implementation, we'd need to get the newly created item ID here
-              // and pass it to handleItemCreated
-              // handleItemCreated(newItemId);
+              // Get the newly created item ID and set the recipient
+              if (newItem && newItem.id && wishlist && wishlist.userId) {
+                handleItemCreated(newItem.id);
+              }
             }}
             buttonText="Create Item"
           />
