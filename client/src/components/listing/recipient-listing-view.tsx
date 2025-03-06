@@ -43,8 +43,7 @@ export default function RecipientListingView({
   }
 
   // Ensure we have valid IDs for messaging
-  const itemOwnerId = item.userId || 0;
-  const recipientId = request.requesterId || currentUserId;
+  const itemOwnerId = item.userId;
 
   return (
     <div className="grid md:grid-cols-2 gap-8">
@@ -127,7 +126,7 @@ export default function RecipientListingView({
             <div className="space-y-4">
               <PickupTimeSelector
                 itemId={item.id}
-                itemOwnerId={item.userId}
+                itemOwnerId={itemOwnerId}
                 currentUserId={currentUserId}
                 requestId={request.id}
                 windows={item.proposedPickupWindows}
@@ -150,8 +149,7 @@ export default function RecipientListingView({
               <MessageDialog
                 requestId={request.id}
                 currentUserId={currentUserId}
-                otherPartyId={itemOwnerId}
-                recipientId={recipientId}
+                recipientId={itemOwnerId}
                 isOpen={messageDialogOpen}
                 onOpenChange={setMessageDialogOpen}
                 trigger={<Button variant="outline">Message</Button>}

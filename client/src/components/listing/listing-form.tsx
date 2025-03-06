@@ -54,7 +54,7 @@ export const editItemSchema = z.object({
 export type FormData = z.infer<typeof createItemSchema>;
 
 interface ListingFormProps {
-  mode: 'create' | 'edit';
+  mode: "create" | "edit";
   itemId?: number;
   communities?: Array<{
     id: number;
@@ -82,18 +82,20 @@ export function ListingForm({
   const queryClient = useQueryClient();
   const [imageFile, setImageFile] = useState<File | null>(null);
 
-  const schema = mode === 'create' ? createItemSchema : editItemSchema;
+  const schema = mode === "create" ? createItemSchema : editItemSchema;
 
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      title: '',
-      description: '',
+      title: "",
+      description: "",
       price: 0,
       isGift: true,
-      imageUrl: '',
+      imageUrl: "",
       userId: user?.id,
-      communityId: defaultValues.communityId || (communities.length > 0 ? communities[0].id : undefined),
+      communityId:
+        defaultValues.communityId ||
+        (communities.length > 0 ? communities[0].id : undefined),
       pickupLocation: defaultValues.pickupLocation || user?.address || "",
       ...defaultValues,
     },
@@ -111,7 +113,7 @@ export function ListingForm({
         throw new Error("Title is required");
       }
 
-      if (mode === 'create' && !data.communityId) {
+      if (mode === "create" && !data.communityId) {
         throw new Error("Community selection is required");
       }
 
@@ -121,13 +123,14 @@ export function ListingForm({
       formData.append("price", data.isGift ? "0" : String(data.price || 0));
       formData.append("userId", String(user.id));
 
-      if (mode === 'create') {
+      if (mode === "create") {
         formData.append("communityId", String(data.communityId));
       }
 
       formData.append(
         "imageUrl",
-        data.imageUrl || "https://images.unsplash.com/photo-1737282836845-555d9214dfe4"
+        data.imageUrl ||
+          "https://images.unsplash.com/photo-1737282836845-555d9214dfe4",
       );
       formData.append("pickupLocation", data.pickupLocation);
 
@@ -135,8 +138,9 @@ export function ListingForm({
         formData.append("imageFile", imageFile);
       }
 
-      const method = mode === 'create' ? 'POST' : 'PATCH';
-      const endpoint = mode === 'create' ? '/api/items' : `/api/items/${itemId}`;
+      const method = mode === "create" ? "POST" : "PATCH";
+      const endpoint =
+        mode === "create" ? "/api/items" : `/api/items/${itemId}`;
 
       const response = await apiRequest(method, endpoint, formData);
 
@@ -156,7 +160,7 @@ export function ListingForm({
 
       toast({
         title: "Success!",
-        description: `Your listing has been ${mode === 'create' ? 'created' : 'updated'}.`,
+        description: `Your listing has been ${mode === "create" ? "created" : "updated"}.`,
       });
 
       onSuccess?.();
@@ -170,7 +174,7 @@ export function ListingForm({
     },
   });
 
-  const watchIsGift = form.watch('isGift');
+  const watchIsGift = form.watch("isGift");
 
   const handleSubmit = (data: FormData) => {
     mutation.mutate(data);
@@ -188,7 +192,9 @@ export function ListingForm({
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Title <span className="text-red-500">*</span></FormLabel>
+              <FormLabel>
+                Title <span className="text-red-500">*</span>
+              </FormLabel>
               <FormControl>
                 <Input {...field} required placeholder="Enter item title" />
               </FormControl>
@@ -197,6 +203,23 @@ export function ListingForm({
           )}
         />
 
+        <FormField
+          control={form.control}
+          name="imageUrl"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Image</FormLabel>
+              <FormControl>
+                <ImageUpload
+                  value={field.value}
+                  onChange={(url) => field.onChange(url)}
+                  onFileChange={handleImageChange}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="description"
@@ -210,8 +233,45 @@ export function ListingForm({
             </FormItem>
           )}
         />
+        <FormField
+          control={form.control}
+          name="isGift"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div className="space-y-0.5">
+                <FormLabel className="text-base">Free item</FormLabel>
+              </div>
+              <FormControl>
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
 
-        {mode === 'create' && (
+        {!watchIsGift && (
+          <FormField
+            control={form.control}
+            name="price"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Price</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    {...field}
+                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
+        {mode === "create" && (
           <FormField
             control={form.control}
             name="communityId"
@@ -246,68 +306,12 @@ export function ListingForm({
 
         <FormField
           control={form.control}
-          name="isGift"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-              <div className="space-y-0.5">
-                <FormLabel className="text-base">Free item</FormLabel>
-                <FormDescription>
-                  Switch on if you're giving this away for free
-                </FormDescription>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
-        {!watchIsGift && (
-          <FormField
-            control={form.control}
-            name="price"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Price</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    {...field}
-                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-
-        <FormField
-          control={form.control}
-          name="imageUrl"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Image</FormLabel>
-              <FormControl>
-                <ImageUpload
-                  value={field.value}
-                  onChange={(url) => field.onChange(url)}
-                  onFileChange={handleImageChange}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
           name="pickupLocation"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Pickup Location <span className="text-red-500">*</span></FormLabel>
+              <FormLabel>
+                Pickup Location <span className="text-red-500">*</span>
+              </FormLabel>
               <FormControl>
                 <PickupLocationInput {...field} />
               </FormControl>
@@ -316,9 +320,9 @@ export function ListingForm({
           )}
         />
 
-        <Button 
-          type="submit" 
-          disabled={mutation.isPending || externalLoading} 
+        <Button
+          type="submit"
+          disabled={mutation.isPending || externalLoading}
           className="w-full"
         >
           {mutation.isPending || externalLoading ? "Loading..." : buttonText}
