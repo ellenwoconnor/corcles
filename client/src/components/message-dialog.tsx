@@ -60,11 +60,15 @@ export function MessageDialog({
   });
 
   const form = useForm<MessageFormValues>({
-    resolver: zodResolver(insertMessageSchema),
+    resolver: zodResolver(
+      insertMessageSchema.extend({
+        recipientId: z.number().min(1, "Invalid recipient")
+      })
+    ),
     defaultValues: {
       content: "",
       senderId: currentUserId,
-      recipientId: otherPartyId, // Use otherPartyId instead of hardcoding
+      recipientId: recipientId, // Use recipientId from props
       requestId
     }
   });
@@ -88,16 +92,19 @@ export function MessageDialog({
         throw new Error("Message cannot be empty");
       }
 
+      if (!data.recipientId || data.recipientId < 1) {
+        throw new Error("Invalid recipient ID");
+      }
+
       console.log('Sending message with data:', {
-        recipientId: otherPartyId,
+        recipientId: data.recipientId,
         requestId,
-        content: data.content.substring(0, 20)
+        content: data.content.substring(0, 20) // Log just the start for privacy
       });
 
-      // Ensure we're sending to the correct recipient
       const response = await apiRequest('POST', '/api/messages/send', {
         content: data.content,
-        recipientId: recipientId, // Use recipientId from props directly
+        recipientId: data.recipientId,
         requestId: requestId,
         senderId: currentUserId
       });
