@@ -60,9 +60,12 @@ function sendSSEMessage(userId: number, data: any) {
   if (client) {
     try {
       client.write(`data: ${JSON.stringify(data)}\n\n`);
-      logger.debug('SSE message sent successfully:', { userId, messageType: data.type });
+      logger.debug("SSE message sent successfully:", {
+        userId,
+        messageType: data.type,
+      });
     } catch (error) {
-      logger.error('Failed to send SSE message:', { userId, error });
+      logger.error("Failed to send SSE message:", { userId, error });
       // Remove failed connection
       sseClients.delete(userId);
     }
@@ -94,17 +97,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/events", requireAuth, (req, res) => {
     const userId = req.user?.id;
     if (!userId) {
-      logger.warn('SSE connection attempt without user ID');
+      logger.warn("SSE connection attempt without user ID");
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    logger.info('New SSE connection established:', { userId });
+    logger.info("New SSE connection established:", { userId });
 
     // Set headers for SSE
     res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive'
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
     });
 
     // Send initial connection message
@@ -114,15 +117,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     sseClients.set(userId, res);
 
     // Remove client on connection close
-    req.on('close', () => {
-      logger.info('SSE connection closed:', { userId });
+    req.on("close", () => {
+      logger.info("SSE connection closed:", { userId });
       sseClients.delete(userId);
       res.end();
     });
 
     // Handle errors
-    res.on('error', (error) => {
-      logger.error('SSE connection error:', { userId, error });
+    res.on("error", (error) => {
+      logger.error("SSE connection error:", { userId, error });
       sseClients.delete(userId);
       res.end();
     });
@@ -286,11 +289,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/messages/send", requireAuth, async (req, res) => {
     try {
       const { recipientId, content, requestId } = req.body;
-      logger.info("Received message request:", { 
-        recipientId, 
+      logger.info("Received message request:", {
+        recipientId,
         requestId,
         content: content?.substring(0, 20), // Log just the start of content for privacy
-        senderId: req.user?.id
+        senderId: req.user?.id,
       });
 
       // Validate recipient exists
@@ -392,7 +395,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         itemOwner: item.userId,
         requester: itemRequest.requesterId,
         messageCount: messages.length,
-        currentUser: req.user.id
+        currentUser: req.user.id,
       });
 
       res.json(messages);
@@ -451,7 +454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (searchTerm) {
         logger.info("Search request:", {
           term: searchTerm,
-          communityIds: communities.join(','),
+          communityIds: communities.join(","),
           freeOnly: freeOnly === "true" ? true : false,
         });
       }
@@ -478,7 +481,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       // Only log item fetches with search terms or if explicitly debugging
-      if (searchTerm && logger.level === 'debug') {
+      if (searchTerm && logger.level === "debug") {
         logger.debug("Items fetched:", {
           searchTerm,
           itemCount: items.length,
@@ -963,7 +966,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           validatedWindows.push({
             pickupStart: startDate.toISOString(),
-            pickupEnd: endDate.toISOString(),          });
+            pickupEnd: endDate.toISOString(),
+          });
         } catch (error) {
           logger.error("Date validation error:", error);
           return res
@@ -973,7 +977,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const proposedWindows = validatedWindows.map((window, index) => ({
-        ...window,        order: index,
+        ...window,
+        order: index,
       }));
 
       logger.debug("Validated windows:", proposedWindows);
@@ -1374,19 +1379,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res
           .status(403)
           .json({ error: "Not authorized to invite to this community" });
-      }
-
-      // Check if this is a default community (zip code based)
-      const community = await storage.getCommunity(communityId);
-      if (community && !community.isCustom) {
-        // For default communities, we'll still allow the invite, but we'll add a note
-        // that it will only work for users with the matching zip code
-        logger.info("Zip code community invite:", {
-          communityId,
-          communityName: community.name,
-          isDefault: !community.isCustom,
-          zipCode: community.name.replace('Community ', '')
-        });
       }
 
       const parseResult = insertCommunityInviteSchema.safeParse({
