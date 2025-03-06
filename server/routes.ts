@@ -1150,7 +1150,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isGift: z.boolean().optional(),
           imageUrl: z.string().optional(),
           community: z.string().optional(),
-          pickupLocation: z.string().nullable().optional(), //Added pickupLocation
+          pickupLocation: z.string().nullable().optional(),
+          recipientId: z.number().optional(),
         });
 
         const data = {
@@ -1159,6 +1160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isGift:
             typeof req.body.isGift === "boolean" ? req.body.isGift : undefined,
           imageUrl: imageUrl,
+          recipientId: req.body.recipientId ? parseInt(req.body.recipientId) : undefined,
         };
 
         const parseResult = partialItemSchema.safeParse(data);

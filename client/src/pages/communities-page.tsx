@@ -45,6 +45,16 @@ import { useState } from "react";
 import { z } from "zod";
 // Import the new component
 import CommunityInviteForm from "@/components/community-invite-form";
+import { PageHeader } from "@/components/page-header";
+import CommunitySelector from "@/components/community-selector";
+import ItemGrid from "@/components/item-grid";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import CreateListingPanel from "@/components/create-listing-panel";
+import { useStore } from "@/lib/state-store";
+import WishlistGrid from "@/components/wishlist-grid";
+
 
 export default function CommunitiesPage() {
   const { user } = useAuth();
@@ -54,6 +64,11 @@ export default function CommunitiesPage() {
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(
     null,
   );
+  const [searchTerm, setSearchTerm] = useState("");
+  const [freeOnly, setFreeOnly] = useState(false);
+  const [activeTab, setActiveTab] = useState("available");
+
+  const selectedCommunityIds = useStore((state) => state.selectedCommunityIds);
 
   const { data: communities, isLoading } = useQuery<
     (Community & { role: string; memberCount: number })[]
@@ -107,6 +122,93 @@ export default function CommunitiesPage() {
     createCommunityMutation.mutate(data);
   };
 
+  // Query items
+  const communityParam = selectedCommunityIds.join(",");
+  const { data: items, refetch: refetchItems } = useQuery({
+    queryKey: [`/api/items?communities=${communityParam}`, searchTerm, freeOnly],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams();
+      if (selectedCommunityIds.length > 0) {
+        searchParams.append("communities", selectedCommunityIds.join(","));
+      }
+      if (searchTerm) {
+        searchParams.append("search", searchTerm);
+      }
+      if (freeOnly) {
+        searchParams.append("freeOnly", "true");
+      }
+
+      const response = await fetch(`/api/items?${searchParams.toString()}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch items");
+      }
+      return response.json();
+    },
+    enabled: selectedCommunityIds.length > 0,
+  });
+
+  // Query user's items
+  const { data: userItems } = useQuery({
+    queryKey: ["/api/user/items"],
+    queryFn: async () => {
+      const response = await fetch("/api/user/items");
+      if (!response.ok) {
+        throw new Error("Failed to fetch user items");
+      }
+      return response.json();
+    },
+    enabled: !!user && activeTab === "my-listings",
+  });
+
+  // Query user's requests
+  const { data: userRequests } = useQuery({
+    queryKey: ["/api/user/requests"],
+    queryFn: async () => {
+      const response = await fetch("/api/user/requests");
+      if (!response.ok) {
+        throw new Error("Failed to fetch user requests");
+      }
+      return response.json();
+    },
+    enabled: !!user && activeTab === "my-requests",
+  });
+
+  // Query community wishlists
+  const { data: wishlists } = useQuery({
+    queryKey: ["/api/communities/wishlists"],
+    queryFn: async () => {
+      const response = await fetch("/api/communities/wishlists");
+      if (!response.ok) {
+        throw new Error("Failed to fetch wishlists");
+      }
+      return response.json();
+    },
+    enabled: !!user && activeTab === "wishlists",
+  });
+
+  // Memoize the filtered items for the "My Requests" tab
+  const myRequestedItems = useMemo(() => {
+    if (!userRequests) return [];
+    return userRequests.map((request: any) => ({
+      ...request.item,
+      requestStatus: request.status,
+      requestId: request.id,
+    }));
+  }, [userRequests]);
+
+  // Helper to find community name by ID
+  const getCommunityName = (id: number) => {
+    if (!communities) return "Loading...";
+    const community = communities.find((c: Community) => c.id === id);
+    return community ? community.name : "Unknown Community";
+  };
+
+  useEffect(() => {
+    if (searchTerm || freeOnly) {
+      refetchItems();
+    }
+  }, [searchTerm, freeOnly, refetchItems]);
+
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
@@ -126,195 +228,86 @@ export default function CommunitiesPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="container py-12">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight">Communities</h1>
-            <p className="text-muted-foreground">
-              Manage your communities and invitations
-            </p>
-          </div>
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Community
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)}>
-                  <DialogHeader>
-                    <DialogTitle>Create a New Community</DialogTitle>
-                    <DialogDescription>
-                      Create a custom community to share items with a specific
-                      group.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Community Name</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              placeholder="Enter community name"
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Choose a unique name for your community
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Description</FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              placeholder="Enter community description"
-                            />
-                          </FormControl>
-                          <FormDescription>
-                            Briefly describe the purpose of this community
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      type="submit"
-                      disabled={createCommunityMutation.isPending}
-                    >
-                      {createCommunityMutation.isPending && (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      )}
-                      Create Community
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
-        </div>
+      <main className="container py-8">
+        <PageHeader
+          heading="Marketplace"
+          text="Browse, buy, gift, and request items in your communities."
+        />
 
-        {isLoading ? (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <Loader2 className="h-8 w-8 animate-spin text-border" />
+        <CommunitySelector />
+
+        <Tabs
+          defaultValue="available"
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="mt-6"
+        >
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+            <TabsList>
+              <TabsTrigger value="available">Available Items</TabsTrigger>
+              <TabsTrigger value="my-listings">My Listings</TabsTrigger>
+              <TabsTrigger value="my-requests">My Requests</TabsTrigger>
+              <TabsTrigger value="wishlists">Wishlists</TabsTrigger>
+            </TabsList>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Input
+                placeholder="Search items..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full sm:w-60"
+              />
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="free-only"
+                  checked={freeOnly}
+                  onCheckedChange={(checked) => setFreeOnly(!!checked)}
+                />
+                <Label htmlFor="free-only">Free Only</Label>
+              </div>
+            </div>
           </div>
-        ) : !communities?.length ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>No Communities</CardTitle>
-              <CardDescription>
-                You haven't joined any communities yet. Create one to get
-                started!
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {communities.map((community) => (
-              <Card key={community.id}>
-                <CardHeader className="py-3">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="text-base truncate">
-                          {community.name}
-                        </CardTitle>
-                        <Badge
-                          variant={
-                            community.role === "admin" ? "default" : "secondary"
-                          }
-                        >
-                          {community.role}
-                        </Badge>
-                      </div>
-                      <CardDescription className="line-clamp-1">
-                        {community.description}
-                      </CardDescription>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                        <div className="flex items-center">
-                          <Users className="h-4 w-4 mr-1" />
-                          <span>{community.memberCount} members</span>
-                        </div>
-                        <div>
-                          Created {format(new Date(community.createdAt), "PP")}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardFooter>
-                  <Dialog
-                    open={inviteDialogOpen}
-                    onOpenChange={setInviteDialogOpen}
-                  >
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="ml-2"
-                        onClick={() => {
-                          setSelectedCommunity(community);
-                          setInviteDialogOpen(true);
-                        }}
-                      >
-                        <UserPlus className="h-4 w-4 mr-1" />
-                        Invite
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>
-                          Invite to {selectedCommunity?.name}
-                        </DialogTitle>
-                        <DialogDescription className="mb-4">
-                          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mt-3">
-                            <p className="font-medium text-foreground mb-2">
-                              {selectedCommunity?.isCustom 
-                                ? "Share the community spirit!" 
-                                : "Invite neighbors to your local circle!"}
-                            </p>
-                            <p className="text-muted-foreground">
-                              {selectedCommunity?.isCustom
-                                ? "Your friend will receive an email with instructions on how to join this custom community."
-                                : "Neighbors with matching zip codes can join this community. They'll receive an email with setup instructions."}
-                            </p>
-                            {!selectedCommunity?.isCustom && (
-                              <p className="mt-2 text-sm text-amber-600 flex items-center">
-                                <span className="mr-1">⚠️</span> This community is limited to addresses in your zip code area.
-                              </p>
-                            )}
-                          </div>
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="py-4">
-                        {selectedCommunity && (
-                          <CommunityInviteForm
-                            community={selectedCommunity}
-                            onSuccess={() => setInviteDialogOpen(false)}
-                          />
-                        )}
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        )}
+
+          <TabsContent value="available" className="mt-2">
+            <ItemGrid
+              items={items || []}
+              getCommunityName={getCommunityName}
+              emptyMessage={
+                selectedCommunityIds.length === 0
+                  ? "Please select at least one community to see items."
+                  : "No items found. Try changing your search or selecting different communities."
+              }
+            />
+          </TabsContent>
+
+          <TabsContent value="my-listings" className="mt-2">
+            <div className="flex justify-end mb-4">
+              <CreateListingPanel />
+            </div>
+            <ItemGrid
+              items={userItems || []}
+              getCommunityName={getCommunityName}
+              emptyMessage="You haven't listed any items yet."
+              hideFavoriteButton
+            />
+          </TabsContent>
+
+          <TabsContent value="my-requests" className="mt-2">
+            <ItemGrid
+              items={myRequestedItems}
+              getCommunityName={getCommunityName}
+              emptyMessage="You haven't requested any items yet."
+              showRequestStatus
+            />
+          </TabsContent>
+
+          <TabsContent value="wishlists" className="mt-2">
+            <WishlistGrid
+              wishlists={wishlists || []}
+              emptyMessage="No wishlist items found in your communities."
+            />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
