@@ -103,7 +103,7 @@ export default function FulfillWishlistDialog({
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={handleFulfill} disabled={setRecipient.isPending}>
+            <Button onClick={() => setCreateItemDialogOpen(true)} disabled={setRecipient.isPending}>
               {setRecipient.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
