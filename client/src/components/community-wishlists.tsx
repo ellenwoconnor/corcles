@@ -10,10 +10,16 @@ import {
 } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Lock, Eye, Loader2, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Lock,
+  Eye,
+  Loader2,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import Slider from "react-slick";
 import { useRef, useEffect, useState } from "react";
-import FulfillWishlistDialog from "./fulfill-wishlist-dialog"; // Added import for the dialog
 
 // Import Slick CSS in your component
 import "slick-carousel/slick/slick.css";
@@ -26,31 +32,31 @@ function formatTimeAgo(date: Date): string {
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
   if (diffInSeconds < 60) {
-    return 'just now';
+    return "just now";
   }
 
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 60) {
-    return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`;
+    return `${diffInMinutes} ${diffInMinutes === 1 ? "minute" : "minutes"} ago`;
   }
 
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) {
-    return `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`;
+    return `${diffInHours} ${diffInHours === 1 ? "hour" : "hours"} ago`;
   }
 
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 30) {
-    return `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`;
+    return `${diffInDays} ${diffInDays === 1 ? "day" : "days"} ago`;
   }
 
   const diffInMonths = Math.floor(diffInDays / 30);
   if (diffInMonths < 12) {
-    return `${diffInMonths} ${diffInMonths === 1 ? 'month' : 'months'} ago`;
+    return `${diffInMonths} ${diffInMonths === 1 ? "month" : "months"} ago`;
   }
 
   const diffInYears = Math.floor(diffInMonths / 12);
-  return `${diffInYears} ${diffInYears === 1 ? 'year' : 'years'} ago`;
+  return `${diffInYears} ${diffInYears === 1 ? "year" : "years"} ago`;
 }
 
 export default function CommunityWishlists() {
@@ -58,9 +64,13 @@ export default function CommunityWishlists() {
   const sliderRef = useRef<Slider>(null);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [fulfillDialogOpen, setFulfillDialogOpen] = useState(false); // Added state for dialog
-  const [selectedWishlist, setSelectedWishlist] = useState<Wishlist | undefined>(undefined); // Added state for selected wishlist
+  const [selectedWishlist, setSelectedWishlist] = useState<
+    Wishlist | undefined
+  >(undefined); // Added state for selected wishlist
 
-  const { data: communityWishlists = [], isLoading } = useQuery<(Wishlist & { communityName?: string })[]>({
+  const { data: communityWishlists = [], isLoading } = useQuery<
+    (Wishlist & { communityName?: string })[]
+  >({
     queryKey: ["/api/communities/wishlists"],
     enabled: !!user,
   });
@@ -73,16 +83,16 @@ export default function CommunityWishlists() {
   // Handle window resize to adjust carousel settings
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Associate community names with wishlists
-  const wishlistsWithCommunityNames = communityWishlists.map(wishlist => {
-    const community = communities.find(c => c.id === wishlist.communityId);
+  const wishlistsWithCommunityNames = communityWishlists.map((wishlist) => {
+    const community = communities.find((c) => c.id === wishlist.communityId);
     return {
       ...wishlist,
-      communityName: community?.name || "Unknown Community"
+      communityName: community?.name || "Unknown Community",
     };
   });
 
@@ -107,23 +117,23 @@ export default function CommunityWishlists() {
         settings: {
           slidesToShow: 2,
           slidesToScroll: 1,
-        }
+        },
       },
       {
         breakpoint: 640,
         settings: {
           slidesToShow: 1,
-          slidesToScroll: 1
-        }
-      }
-    ]
+          slidesToScroll: 1,
+        },
+      },
+    ],
   };
 
-  const onFulfillWishlist = (wishlist: Wishlist) => { // Added function to handle fulfillment
+  const onFulfillWishlist = (wishlist: Wishlist) => {
+    // Added function to handle fulfillment
     setSelectedWishlist(wishlist);
     setFulfillDialogOpen(true);
   };
-
 
   if (isLoading) {
     return (
@@ -148,9 +158,9 @@ export default function CommunityWishlists() {
     <div className="relative">
       <div className="mb-6">
         <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
-          <Button 
-            variant="outline" 
-            size="icon" 
+          <Button
+            variant="outline"
+            size="icon"
             className="rounded-full shadow-md"
             onClick={() => sliderRef.current?.slickPrev()}
           >
@@ -174,19 +184,27 @@ export default function CommunityWishlists() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2 mb-2">
-                      <Badge variant="outline" className="flex items-center gap-1">
+                      <Badge
+                        variant="outline"
+                        className="flex items-center gap-1"
+                      >
                         <Users className="h-3 w-3" /> {wishlist.communityName}
                       </Badge>
                     </div>
                     <div className="flex flex-wrap gap-2 mb-2">
                       {wishlist.budget && (
-                        <Badge variant="secondary">Budget: ${wishlist.budget}</Badge>
+                        <Badge variant="secondary">
+                          Budget: ${wishlist.budget}
+                        </Badge>
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Posted {formatTimeAgo(new Date(wishlist.createdAt))}
                     </div>
-                    <Button onClick={() => onFulfillWishlist(wishlist)}>Fulfill</Button> {/* Added fulfill button */}
+                    <Button onClick={() => onFulfillWishlist(wishlist)}>
+                      Fulfill
+                    </Button>{" "}
+                    {/* Added fulfill button */}
                   </CardContent>
                 </Card>
               </div>
@@ -195,9 +213,9 @@ export default function CommunityWishlists() {
         </div>
 
         <div className="absolute right-0 top-1/2 -translate-y-1/2 z-10">
-          <Button 
-            variant="outline" 
-            size="icon" 
+          <Button
+            variant="outline"
+            size="icon"
             className="rounded-full shadow-md"
             onClick={() => sliderRef.current?.slickNext()}
           >
@@ -205,7 +223,12 @@ export default function CommunityWishlists() {
           </Button>
         </div>
       </div>
-      <FulfillWishlistDialog open={fulfillDialogOpen} onClose={() => setFulfillDialogOpen(false)} wishlist={selectedWishlist} /> {/* Added dialog */}
+      <FulfillWishlistDialog
+        open={fulfillDialogOpen}
+        onClose={() => setFulfillDialogOpen(false)}
+        wishlist={selectedWishlist}
+      />{" "}
+      {/* Added dialog */}
     </div>
   );
 }
