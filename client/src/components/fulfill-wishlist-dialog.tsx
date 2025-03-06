@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -66,11 +66,12 @@ export default function FulfillWishlistDialog({
     },
   });
 
-  // When the user confirms they want to fulfill the wishlist
-  const handleFulfill = () => {
-    // We'll open the create listing form
-    setCreateItemDialogOpen(true);
-  };
+  // Auto-open item creation dialog on component mount
+  useEffect(() => {
+    if (open && wishlist) {
+      setCreateItemDialogOpen(true);
+    }
+  }, [open, wishlist]);
 
   // This handles when a new item is created
   const handleItemCreated = (newItemId: number) => {

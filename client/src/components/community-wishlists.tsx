@@ -63,10 +63,11 @@ export default function CommunityWishlists() {
   const { user } = useAuth();
   const sliderRef = useRef<Slider>(null);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-  const [fulfillDialogOpen, setFulfillDialogOpen] = useState(false); // Added state for dialog
+  const [fulfillDialogOpen, setFulfillDialogOpen] = useState(false);
+  const [createItemDialogOpen, setCreateItemDialogOpen] = useState(false);
   const [selectedWishlist, setSelectedWishlist] = useState<
     Wishlist | undefined
-  >(undefined); // Added state for selected wishlist
+  >(undefined);
 
   const { data: communityWishlists = [], isLoading } = useQuery<
     (Wishlist & { communityName?: string })[]
@@ -130,9 +131,9 @@ export default function CommunityWishlists() {
   };
 
   const onFulfillWishlist = (wishlist: Wishlist) => {
-    // Added function to handle fulfillment
+    // Skip confirmation dialog and go straight to item creation
     setSelectedWishlist(wishlist);
-    setFulfillDialogOpen(true);
+    setCreateItemDialogOpen(true);
   };
 
   if (isLoading) {
@@ -224,11 +225,10 @@ export default function CommunityWishlists() {
         </div>
       </div>
       <FulfillWishlistDialog
-        open={fulfillDialogOpen}
-        onClose={() => setFulfillDialogOpen(false)}
+        open={createItemDialogOpen}
+        onClose={() => setCreateItemDialogOpen(false)}
         wishlist={selectedWishlist}
-      />{" "}
-      {/* Added dialog */}
+      />
     </div>
   );
 }
