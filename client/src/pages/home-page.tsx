@@ -132,6 +132,7 @@ export default function HomePage() {
           </div>
           <CommunityWishlists />
         </div>
+        </div>
       </main>
     </div>
   );
