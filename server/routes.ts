@@ -1083,6 +1083,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to confirm pickup" });
     }
   });
+  
+  // Endpoint to set a recipient for an item (for wishlist fulfillment)
+  app.post("/api/items/:id/set-recipient", requireAuth, async (req, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const { recipientId } = req.body;
+      if (!recipientId || isNaN(parseInt(recipientId.toString()))) {
+        return res.status(400).json({ error: "Valid recipient ID is required" });
+      }
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      // Check if the current user is the owner of the item
+      if (item.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized to set recipient for this item" });
+      }
+
+      // Create a request first
+      const [request] = await db
+        .insert(schema.itemRequests)
+        .values({
+          itemId,
+          requesterId: recipientId,
+          status: REQUEST_STATUS.ACCEPTED,
+          message: "Wishlist fulfillment",
+        })
+        .returning();
+
+      logger.info("Created item request for wishlist fulfillment:", {
+        itemId,
+        requesterId: recipientId,
+        requestId: request.id,
+      });
+
+      // Update the item with the recipient
+      await db
+        .update(schema.items)
+        .set({
+          recipientId: recipientId,
+          status: ITEM_STATUS.SCHEDULED,
+        })
+        .where(eq(schema.items.id, itemId));
+
+      logger.info("Set recipient for item:", {
+        itemId,
+        recipientId,
+        userId: req.user.id,
+      });
+
+      // Notify the recipient
+      const notificationPayload = {
+        type: "wishlist_fulfilled",
+        data: {
+          itemId,
+          requestId: request.id,
+        },
+      };
+
+      sendSSEMessage(recipientId, notificationPayload);
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Error setting recipient:", error);
+      res.status(500).json({ error: "Failed to set recipient" });
+    }
+  });
 
   app.patch(
     "/api/items/:id",

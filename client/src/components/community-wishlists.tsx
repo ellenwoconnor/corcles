@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { type Wishlist } from "@shared/schema";
@@ -14,6 +13,7 @@ import { Button } from "./ui/button";
 import { Lock, Eye, Loader2, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import Slider from "react-slick";
 import { useRef, useEffect, useState } from "react";
+import FulfillWishlistDialog from "./fulfill-wishlist-dialog"; // Added import for the dialog
 
 // Import Slick CSS in your component
 import "slick-carousel/slick/slick.css";
@@ -23,31 +23,31 @@ import "slick-carousel/slick/slick-theme.css";
 function formatTimeAgo(date: Date): string {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
+
   if (diffInSeconds < 60) {
     return 'just now';
   }
-  
+
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 60) {
     return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`;
   }
-  
+
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) {
     return `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`;
   }
-  
+
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 30) {
     return `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`;
   }
-  
+
   const diffInMonths = Math.floor(diffInDays / 30);
   if (diffInMonths < 12) {
     return `${diffInMonths} ${diffInMonths === 1 ? 'month' : 'months'} ago`;
   }
-  
+
   const diffInYears = Math.floor(diffInMonths / 12);
   return `${diffInYears} ${diffInYears === 1 ? 'year' : 'years'} ago`;
 }
@@ -56,6 +56,8 @@ export default function CommunityWishlists() {
   const { user } = useAuth();
   const sliderRef = useRef<Slider>(null);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [fulfillDialogOpen, setFulfillDialogOpen] = useState(false); // Added state for dialog
+  const [selectedWishlist, setSelectedWishlist] = useState<Wishlist | undefined>(undefined); // Added state for selected wishlist
 
   const { data: communityWishlists = [], isLoading } = useQuery<(Wishlist & { communityName?: string })[]>({
     queryKey: ["/api/communities/wishlists"],
@@ -116,6 +118,12 @@ export default function CommunityWishlists() {
     ]
   };
 
+  const onFulfillWishlist = (wishlist: Wishlist) => { // Added function to handle fulfillment
+    setSelectedWishlist(wishlist);
+    setFulfillDialogOpen(true);
+  };
+
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
@@ -148,7 +156,7 @@ export default function CommunityWishlists() {
             <ChevronLeft className="h-5 w-5" />
           </Button>
         </div>
-        
+
         <div className="px-10">
           <Slider ref={sliderRef} {...settings}>
             {wishlistsWithCommunityNames.map((wishlist) => (
@@ -177,13 +185,14 @@ export default function CommunityWishlists() {
                     <div className="text-xs text-muted-foreground">
                       Posted {formatTimeAgo(new Date(wishlist.createdAt))}
                     </div>
+                    <Button onClick={() => onFulfillWishlist(wishlist)}>Fulfill</Button> {/* Added fulfill button */}
                   </CardContent>
                 </Card>
               </div>
             ))}
           </Slider>
         </div>
-        
+
         <div className="absolute right-0 top-1/2 -translate-y-1/2 z-10">
           <Button 
             variant="outline" 
@@ -195,6 +204,7 @@ export default function CommunityWishlists() {
           </Button>
         </div>
       </div>
+      <FulfillWishlistDialog open={fulfillDialogOpen} onClose={() => setFulfillDialogOpen(false)} wishlist={selectedWishlist} /> {/* Added dialog */}
     </div>
   );
 }
