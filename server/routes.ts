@@ -14,6 +14,7 @@ import {
   insertItemSchema,
   insertMessageSchema,
   insertWishlistSchema,
+  insertCommunityInviteSchema,
 } from "@shared/schema";
 import { db } from "./db";
 import logger from "./logger";
