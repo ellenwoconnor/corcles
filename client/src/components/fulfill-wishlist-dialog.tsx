@@ -26,6 +26,18 @@ export default function FulfillWishlistDialog({
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Validate wishlist on mount
+  React.useEffect(() => {
+    if (open && (!wishlist || !wishlist.userId)) {
+      console.error("Invalid wishlist or missing userId:", wishlist);
+      toast({
+        title: "Error",
+        description: "Invalid wishlist data",
+        variant: "destructive",
+      });
+    }
+  }, [open, wishlist, toast]);
 
   const { data: userCommunities = [] } = useQuery<any[]>({
     queryKey: ["/api/user/communities"],
@@ -64,10 +76,17 @@ export default function FulfillWishlistDialog({
   // This handles when a new item is created
   const handleItemCreated = (newItemId: number) => {
     if (wishlist && wishlist.userId) {
+      console.log("Setting recipient:", { itemId: newItemId, recipientId: wishlist.userId });
       setRecipient.mutate({
         itemId: newItemId,
         recipientId: wishlist.userId,
       });
+    } else {
+      console.error("Cannot set recipient - missing wishlist user ID", { 
+        wishlistExists: !!wishlist,
+        wishlistUserId: wishlist?.userId 
+      });
+      onClose(); // Close dialog even if we can't set recipient
     }
   };
 
@@ -86,6 +105,7 @@ export default function FulfillWishlistDialog({
           onSuccess={(newItem) => {
             // Get the newly created item ID and set the recipient
             if (newItem && newItem.id) {
+              console.log("Item created successfully:", newItem);
               handleItemCreated(newItem.id);
             } else {
               console.error("Item creation returned invalid data");
