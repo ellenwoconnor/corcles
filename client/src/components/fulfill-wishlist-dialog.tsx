@@ -85,8 +85,16 @@ export default function FulfillWishlistDialog({
           communities={userCommunities}
           onSuccess={(newItem) => {
             // Get the newly created item ID and set the recipient
-            if (newItem && newItem.id && wishlist && wishlist.userId) {
+            if (newItem && newItem.id) {
               handleItemCreated(newItem.id);
+            } else {
+              console.error("Item creation returned invalid data");
+              toast({
+                title: "Error creating item",
+                description: "Could not create the item properly",
+                variant: "destructive",
+              });
+              onClose();
             }
           }}
           buttonText="Create Item"
