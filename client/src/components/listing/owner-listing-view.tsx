@@ -32,28 +32,26 @@ export default function OwnerListingView({
   item,
   requests,
   bids,
-  currentUserId
+  currentUserId,
 }: OwnerListingViewProps) {
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  const activeRequest = requests.find(r =>
-    ["pending", "accepted", "awaiting_pickup_confirmation", "scheduled"].includes(r.status)
+  const activeRequest = requests.find((r) =>
+    [
+      "pending",
+      "accepted",
+      "awaiting_pickup_confirmation",
+      "scheduled",
+    ].includes(r.status),
   );
-  
-  // Debug log to see what properties are available on activeRequest
-  if (activeRequest) {
-    console.log('Active request properties:', {
-      id: activeRequest.id,
-      requesterId: activeRequest.requesterId,
-      userId: activeRequest.userId, 
-      status: activeRequest.status,
-      allProperties: {...activeRequest}
-    });
-  }
 
-  const showPickupScheduler = item.isGift && ['requested', 'scheduling', 'scheduled'].includes(item.status || '');
-  const showMessageAndCancel = ['scheduling', 'scheduled'].includes(item.status || '') && activeRequest;
+  const showPickupScheduler = ["requested", "scheduling", "scheduled"].includes(
+    item.status || "",
+  );
+  const showMessageAndCancel = ["scheduling", "scheduled"].includes(
+    item.status || "",
+  );
 
   return (
     <div className="grid md:grid-cols-2 gap-8">
@@ -79,9 +77,7 @@ export default function OwnerListingView({
                 Free
               </div>
             ) : (
-              <p className="text-2xl font-bold text-primary">
-                ${item.price}
-              </p>
+              <p className="text-2xl font-bold text-primary">${item.price}</p>
             )}
             <EditListingDialog
               item={item}
@@ -110,17 +106,15 @@ export default function OwnerListingView({
             </h3>
             {item.isGift && requests.length > 0 && (
               <Badge variant="secondary">
-                {requests.length} {requests.length === 1 ? "request" : "requests"}
+                {requests.length}{" "}
+                {requests.length === 1 ? "request" : "requests"}
               </Badge>
             )}
           </div>
 
           <div>
             {item.isGift ? (
-              <RequestsList
-                requests={requests}
-                currentUserId={currentUserId}
-              />
+              <RequestsList requests={requests} currentUserId={currentUserId} />
             ) : (
               <BidsList bids={bids || []} />
             )}
@@ -145,36 +139,49 @@ export default function OwnerListingView({
         )}
 
         {/* Pickup Scheduling Section */}
-        {showPickupScheduler && activeRequest && (
+        {showPickupScheduler && (
           <div className={SECTION_CLASS}>
             <h3 className="text-base font-medium">Pickup Scheduling</h3>
 
-            {item.proposedPickupWindows && item.proposedPickupWindows.length > 0 && (
-              <div className="mb-4">
-                <h4 className="text-sm font-medium mb-2">Proposed Pickup Times</h4>
-                <div className="space-y-2">
-                  {(item.proposedPickupWindows as PickupWindow[]).map((window, index) => (
-                    <div key={index} className={TIME_DISPLAY_CLASS}>
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span className="text-sm">
-                          {format(new Date(window.pickupStart), "EEE, MMM d")} at{" "}
-                          {format(new Date(window.pickupStart), "h:mm a")} -{" "}
-                          {format(new Date(window.pickupEnd), "h:mm a")}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+            {item.proposedPickupWindows &&
+              item.proposedPickupWindows.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium mb-2">
+                    Proposed Pickup Times
+                  </h4>
+                  <div className="space-y-2">
+                    {(item.proposedPickupWindows as PickupWindow[]).map(
+                      (window, index) => (
+                        <div key={index} className={TIME_DISPLAY_CLASS}>
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span className="text-sm">
+                              {format(
+                                new Date(window.pickupStart),
+                                "EEE, MMM d",
+                              )}{" "}
+                              at{" "}
+                              {format(new Date(window.pickupStart), "h:mm a")} -{" "}
+                              {format(new Date(window.pickupEnd), "h:mm a")}
+                            </span>
+                          </div>
+                        </div>
+                      ),
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             <PickupScheduler
               itemId={item.id}
-              itemStatus={item.status || ''}
+              itemStatus={item.status || ""}
               onScheduled={() => {
-                queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}`] });
-                queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}/requests`] });
+                queryClient.invalidateQueries({
+                  queryKey: [`/api/items/${item.id}`],
+                });
+                queryClient.invalidateQueries({
+                  queryKey: [`/api/items/${item.id}/requests`],
+                });
               }}
             />
           </div>
@@ -192,14 +199,10 @@ export default function OwnerListingView({
               <MessageDialog
                 requestId={activeRequest.id}
                 currentUserId={currentUserId}
-                recipientId={activeRequest.requesterId}
+                recipientId={item.recipientId}
                 isOpen={messageDialogOpen}
                 onOpenChange={setMessageDialogOpen}
-                trigger={
-                  <Button variant="outline">
-                    Message
-                  </Button>
-                }
+                trigger={<Button variant="outline">Message</Button>}
               />
             </div>
           </div>
