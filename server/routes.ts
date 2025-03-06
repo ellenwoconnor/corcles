@@ -364,6 +364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Item not found" });
       }
 
+      // Check if the current user is either the item owner or requester
       const canAccess =
         req.user.id === item.userId || req.user.id === itemRequest.requesterId;
       if (!canAccess) {
@@ -372,13 +373,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: "You cannot view these messages" });
       }
 
+      // Get all messages between these two users for this request
       const messages = await storage.getConversation(
         item.userId,
         itemRequest.requesterId,
         requestId,
       );
 
+      // Mark messages as read
       await storage.markMessagesAsRead(req.user.id, userId, requestId);
+
+      logger.debug("Fetched messages:", {
+        requestId,
+        itemId: item.id,
+        itemOwner: item.userId,
+        requester: itemRequest.requesterId,
+        messageCount: messages.length
+      });
 
       res.json(messages);
     } catch (error) {
@@ -948,8 +959,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           validatedWindows.push({
             pickupStart: startDate.toISOString(),
-            pickupEnd: endDate.toISOString(),
-          });
+            pickupEnd: endDate.toISOString(),          });
         } catch (error) {
           logger.error("Date validation error:", error);
           return res

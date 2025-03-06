@@ -74,9 +74,9 @@ export function MessageDialog({
   });
 
   const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
-    queryKey: ['/api/messages', currentUserId, requestId],
+    queryKey: ['/api/messages', otherPartyId, requestId],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/messages/${currentUserId}/${requestId}`);
+      const response = await apiRequest('GET', `/api/messages/${otherPartyId}/${requestId}`);
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to fetch messages');
@@ -118,7 +118,7 @@ export function MessageDialog({
     },
     onSuccess: () => {
       form.reset();
-      queryClient.invalidateQueries({ queryKey: ['/api/messages', currentUserId, requestId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/messages', otherPartyId, requestId] });
     },
     onError: (error: Error) => {
       toast({
