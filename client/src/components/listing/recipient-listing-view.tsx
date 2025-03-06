@@ -150,8 +150,7 @@ export default function RecipientListingView({
               <MessageDialog
                 requestId={request.id}
                 currentUserId={currentUserId}
-                otherPartyId={itemOwnerId}
-                recipientId={recipientId}
+                recipientId={itemOwnerId}
                 isOpen={messageDialogOpen}
                 onOpenChange={setMessageDialogOpen}
                 trigger={<Button variant="outline">Message</Button>}

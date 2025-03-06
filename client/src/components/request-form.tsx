@@ -124,7 +124,6 @@ export default function RequestForm({
                   recipientId={itemOwnerId}
                   requestId={currentRequest.id}
                   currentUserId={user.id}
-                  otherPartyId={itemOwnerId}
                 />
               )}
             </div>

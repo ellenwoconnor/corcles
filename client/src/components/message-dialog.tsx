@@ -42,7 +42,6 @@ type MessageFormValues = z.infer<typeof insertMessageSchema>;
 interface MessageDialogProps {
   requestId: number;
   currentUserId: number;
-  otherPartyId: number;
   recipientId: number;
   trigger?: React.ReactNode;
   isOpen?: boolean;
@@ -52,7 +51,6 @@ interface MessageDialogProps {
 export function MessageDialog({
   requestId,
   currentUserId,
-  otherPartyId,
   recipientId,
   trigger,
   isOpen: controlledIsOpen,
@@ -69,7 +67,6 @@ export function MessageDialog({
   console.log('MessageDialog mounted with props:', {
     requestId,
     currentUserId,
-    otherPartyId,
     recipientId,
     open
   });
@@ -95,19 +92,19 @@ export function MessageDialog({
   });
 
   const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
-    queryKey: ['/api/messages', otherPartyId, requestId],
+    queryKey: ['/api/messages', recipientId, requestId],
     queryFn: async () => {
       console.log('Fetching messages:', {
-        otherPartyId,
+        recipientId,
         requestId,
         currentUserId,
-        enabled: open && !!otherPartyId && !!requestId,
+        enabled: open && !!recipientId && !!requestId,
         open,
-        hasOtherPartyId: !!otherPartyId,
+        hasRecipientId: !!recipientId,
         hasRequestId: !!requestId
       });
 
-      const response = await apiRequest('GET', `/api/messages/${otherPartyId}/${requestId}`);
+      const response = await apiRequest('GET', `/api/messages/${recipientId}/${requestId}`);
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to fetch messages');
@@ -116,7 +113,7 @@ export function MessageDialog({
       console.log('Fetched messages:', data.length);
       return data;
     },
-    enabled: open && !!otherPartyId && !!requestId
+    enabled: open && !!recipientId && !!requestId
   });
 
   const sendMessageMutation = useMutation({
@@ -152,7 +149,7 @@ export function MessageDialog({
     onSuccess: () => {
       form.reset();
       queryClient.invalidateQueries({ 
-        queryKey: ['/api/messages', otherPartyId, requestId]
+        queryKey: ['/api/messages', recipientId, requestId]
       });
     },
     onError: (error: Error) => {

@@ -181,7 +181,6 @@ export default function OwnerListingView({
               <MessageDialog
                 requestId={activeRequest.id}
                 currentUserId={currentUserId}
-                otherPartyId={activeRequest.userId ?? 0}
                 recipientId={activeRequest.userId ?? 0}
                 isOpen={messageDialogOpen}
                 onOpenChange={setMessageDialogOpen}
