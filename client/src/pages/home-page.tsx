@@ -10,8 +10,12 @@ import { Label } from "@/components/ui/label";
 import React, { useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import CommunityWishlists from "@/components/community-wishlists";
-import { Input } from "@/components/ui/input"; // Added import for Input component
-import {Checkbox} from "@/components/ui/checkbox"; // Added import for Checkbox component
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
+import ItemCard from "@/components/item-card";
 
 // Add 'use client' directive for Next.js strict mode
 ("use client");
