@@ -89,6 +89,16 @@ export default function CommunityWishlists() {
   
   // Filter items that were created to fulfill wishlists (those with recipients)
   const fulfilledWishlistItems = userItems.filter(item => item.recipientId);
+  
+  // Function to navigate to the item that was offered for a wishlist
+  const navigateToOfferedItem = (wishlist: Wishlist) => {
+    // Find the item that was offered for this wishlist
+    const offeredItem = fulfilledWishlistItems.find(item => item.recipientId === wishlist.userId);
+    if (offeredItem) {
+      // Navigate to the item page
+      window.location.href = `/item/${offeredItem.id}`;
+    }
+  };
 
   // Handle window resize to adjust carousel settings
   useEffect(() => {
@@ -216,6 +226,23 @@ export default function CommunityWishlists() {
                     <div className="text-xs text-muted-foreground">
                       Posted {formatTimeAgo(new Date(wishlist.createdAt))}
                     </div>
+                    
+                    {/* Show fulfilled badge if this wishlist has been fulfilled by anyone */}
+                    {fulfilledWishlistItems.some(item => item.recipientId === wishlist.userId) && (
+                      <div className="flex items-center gap-2 mb-2 mt-1">
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          Fulfilled
+                        </Badge>
+                        <Button 
+                          variant="link" 
+                          className="h-auto p-0 text-xs text-muted-foreground" 
+                          onClick={() => navigateToOfferedItem(wishlist)}
+                        >
+                          View Offered Item
+                        </Button>
+                      </div>
+                    )}
+                    
                     {hasUserFulfilledWishlist(wishlist.userId) ? (
                       <Button variant="outline" disabled className="mt-2">
                         Already Fulfilled
