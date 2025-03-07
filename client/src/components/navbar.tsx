@@ -11,6 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { LogOut, Users, Gift } from "lucide-react";
 import { getInitials } from "@/lib/utils";
 import { Button as Button2 } from "./ui/button"; //This import might need adjustment depending on the project structure.
 import CorclesLogo from "./corcles-logo"; //This import assumes CorclesLogo is in the same directory. Adjust path as needed.
