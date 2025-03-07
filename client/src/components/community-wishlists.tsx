@@ -187,44 +187,50 @@ export default function CommunityWishlists() {
           <Slider ref={sliderRef} {...settings}>
             {wishlistsWithCommunityNames.map((wishlist) => (
               <div key={wishlist.id} className="px-2">
-                <Card className="h-full">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                <Card className="h-[300px] flex flex-col">
+                  <CardHeader className="flex-shrink-0">
+                    <CardTitle className="flex items-center gap-2 text-lg line-clamp-1">
                       {wishlist.title}
                       {wishlist.isPrivate && (
-                        <Lock className="h-4 w-4 text-muted-foreground" />
+                        <Lock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                       )}
                     </CardTitle>
-                    <CardDescription>{wishlist.description}</CardDescription>
+                    <CardDescription className="line-clamp-2 h-10">
+                      {wishlist.description}
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      <Badge
-                        variant="outline"
-                        className="flex items-center gap-1"
-                      >
-                        <Users className="h-3 w-3" /> {wishlist.communityName}
-                      </Badge>
-                    </div>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {wishlist.budget && (
-                        <Badge variant="secondary">
-                          Budget: ${wishlist.budget}
+                  <CardContent className="flex flex-col flex-grow justify-between">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap gap-2">
+                        <Badge
+                          variant="outline"
+                          className="flex items-center gap-1"
+                        >
+                          <Users className="h-3 w-3" /> {wishlist.communityName}
                         </Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {wishlist.budget && (
+                          <Badge variant="secondary">
+                            Budget: ${wishlist.budget}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-auto">
+                      <div className="text-xs text-muted-foreground mb-2">
+                        Posted {formatTimeAgo(new Date(wishlist.createdAt))}
+                      </div>
+                      {hasUserFulfilledWishlist(wishlist.userId) ? (
+                        <Button variant="outline" disabled className="w-full">
+                          Already Fulfilled
+                        </Button>
+                      ) : (
+                        <Button onClick={() => onFulfillWishlist(wishlist)} className="w-full">
+                          Fulfill
+                        </Button>
                       )}
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      Posted {formatTimeAgo(new Date(wishlist.createdAt))}
-                    </div>
-                    {hasUserFulfilledWishlist(wishlist.userId) ? (
-                      <Button variant="outline" disabled className="mt-2">
-                        Already Fulfilled
-                      </Button>
-                    ) : (
-                      <Button onClick={() => onFulfillWishlist(wishlist)} className="mt-2">
-                        Fulfill
-                      </Button>
-                    )}
                   </CardContent>
                 </Card>
               </div>
