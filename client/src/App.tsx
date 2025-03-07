@@ -75,9 +75,24 @@ function App() {
       }
 
       // In production, use window.env
-      if (typeof window === 'undefined' || !window.env?.GOOGLE_CLIENT_ID) {
-        throw new Error('Google Client ID not found in production environment');
+      if (typeof window === 'undefined') {
+        throw new Error('Window is undefined');
       }
+
+      // Initialize window.env if it doesn't exist
+      if (!window.env) {
+        console.warn('window.env is undefined in production. This may happen if:');
+        console.warn('1. The HTML injection script hasn\'t run yet');
+        console.warn('2. There was an error in the server-side HTML injection');
+        window.env = {};
+      }
+
+      if (!window.env.GOOGLE_CLIENT_ID) {
+        console.error('Google Client ID not found in production environment');
+        // Instead of throwing, we could return a fallback or null
+        return null; // Will display the configuration error UI
+      }
+
       return window.env.GOOGLE_CLIENT_ID;
     } catch (error) {
       console.error('OAuth Configuration Error:', error);

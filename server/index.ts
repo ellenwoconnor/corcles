@@ -125,11 +125,10 @@ async function startServer() {
         html = html.replace(
           "</head>",
           `<script>
-            // Initialize environment configuration
-            window.env = {
-              GOOGLE_CLIENT_ID: "${safeClientId}",
-              NODE_ENV: "${process.env.NODE_ENV}"
-            };
+            // Always initialize environment configuration
+            window.env = window.env || {};
+            window.env.GOOGLE_CLIENT_ID = "${safeClientId}";
+            window.env.NODE_ENV = "${process.env.NODE_ENV}";
 
             // Enhanced error tracking
             window.onerror = function(msg, url, line, col, error) {
