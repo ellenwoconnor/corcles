@@ -15,6 +15,7 @@ import S3TestComponent from "@/components/admin/s3-test";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AddressCompletionDialog } from "./components/address-completion-dialog";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import ListingsPage from "./pages/listings-page"; // Added import for ListingsPage
 
 // Configuration error component
 function ConfigurationError({ message }: { message: string }) {
@@ -35,6 +36,7 @@ function Router() {
       <ProtectedRoute path="/item/:id" component={ListingPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/communities" component={CommunitiesPage} />
+      <ProtectedRoute path="/listings" component={ListingsPage} /> {/* Added Listings route */}
       <ProtectedRoute path="/wishlists" component={WishlistsPage} />
       <Route path="/auth" component={AuthPage} />
       <ProtectedRoute path="/admin/s3-test" component={S3TestComponent} />
