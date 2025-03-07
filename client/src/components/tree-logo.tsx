@@ -17,11 +17,27 @@ export default function TreeLogo() {
         repeatType: "reverse",
       }}
     >
-      {/* Trunk circle */}
+      {/* Trunk */}
+      <motion.rect
+        x="55"
+        y="80"
+        width="10"
+        height="25"
+        fill="#8B4513"
+        initial={{ y: 0 }}
+        animate={{ y: -1 }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          repeatType: "reverse",
+        }}
+      />
+      
+      {/* Bottom circle (main canopy) */}
       <motion.circle
         cx="60"
-        cy="80"
-        r="18"
+        cy="65"
+        r="20"
         fill="#6ABF69"
         initial={{ y: 0 }}
         animate={{ y: -2 }}
@@ -32,11 +48,11 @@ export default function TreeLogo() {
         }}
       />
       
-      {/* Left bottom circle */}
+      {/* Left middle circle */}
       <motion.circle
-        cx="40"
-        cy="60"
-        r="16"
+        cx="45"
+        cy="50"
+        r="15"
         fill="#6ABF69"
         initial={{ x: 0, y: 0 }}
         animate={{ x: -1, y: -1 }}
@@ -47,11 +63,11 @@ export default function TreeLogo() {
         }}
       />
       
-      {/* Right bottom circle */}
+      {/* Right middle circle */}
       <motion.circle
-        cx="80"
-        cy="60"
-        r="16"
+        cx="75"
+        cy="50"
+        r="15"
         fill="#6ABF69"
         initial={{ x: 0, y: 0 }}
         animate={{ x: 1, y: -1 }}
@@ -62,14 +78,14 @@ export default function TreeLogo() {
         }}
       />
       
-      {/* Left top circle */}
+      {/* Top circle */}
       <motion.circle
-        cx="50"
-        cy="40"
+        cx="60"
+        cy="35"
         r="14"
         fill="#6ABF69"
-        initial={{ x: 0, y: 0 }}
-        animate={{ x: -2, y: -2 }}
+        initial={{ y: 0 }}
+        animate={{ y: -2 }}
         transition={{
           duration: 1.5,
           repeat: Infinity,
@@ -77,14 +93,29 @@ export default function TreeLogo() {
         }}
       />
       
-      {/* Right top circle */}
+      {/* Left top small circle */}
       <motion.circle
-        cx="70"
-        cy="40"
-        r="14"
+        cx="45"
+        cy="30"
+        r="10"
         fill="#6ABF69"
         initial={{ x: 0, y: 0 }}
-        animate={{ x: 2, y: -2 }}
+        animate={{ x: -1, y: -1 }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+          repeatType: "reverse",
+        }}
+      />
+      
+      {/* Right top small circle */}
+      <motion.circle
+        cx="75"
+        cy="30"
+        r="10"
+        fill="#6ABF69"
+        initial={{ x: 0, y: 0 }}
+        animate={{ x: 1, y: -1 }}
         transition={{
           duration: 1.5,
           repeat: Infinity,
