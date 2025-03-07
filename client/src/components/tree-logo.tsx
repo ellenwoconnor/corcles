@@ -1,111 +1,73 @@
-import { motion } from "framer-motion";
+import React from "react";
 
 export default function TreeLogo() {
   return (
-    <motion.svg
+    <svg
       width="64"
       height="64"
       viewBox="0 0 120 120"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      initial={{ scale: 0.8 }}
-      animate={{ scale: 1 }}
-      transition={{
-        duration: 2,
-        repeat: Infinity,
-        repeatType: "reverse",
-      }}
     >
       {/* Tree trunk */}
-      <motion.rect
+      <rect
         x="55"
         y="75"
         width="10"
         height="30"
-        fill="#8B4513"
-        initial={{ y: 0 }}
-        animate={{ y: -1 }}
-        transition={{
-          duration: 2,
-          repeat: Infinity,
-          repeatType: "reverse",
-        }}
+        fill="#000000"
       />
 
+      {/* Five circles outlined in green of different sizes */}
       {/* Bottom center circle */}
-      <motion.circle
+      <circle
         cx="60"
-        cy="60"
-        r="14"
-        fill="#6ABF69"
-        initial={{ y: 0 }}
-        animate={{ y: -2 }}
-        transition={{
-          duration: 2,
-          repeat: Infinity,
-          repeatType: "reverse",
-        }}
+        cy="65"
+        r="18"
+        stroke="#6ABF69"
+        strokeWidth="2"
+        fill="none"
       />
 
       {/* Left bottom circle */}
-      <motion.circle
+      <circle
         cx="40"
-        cy="62"
-        r="12"
-        fill="#6ABF69"
-        initial={{ x: 0, y: 0 }}
-        animate={{ x: -1, y: -1 }}
-        transition={{
-          duration: 1.8,
-          repeat: Infinity,
-          repeatType: "reverse",
-        }}
+        cy="65"
+        r="14"
+        stroke="#6ABF69"
+        strokeWidth="2"
+        fill="none"
       />
 
       {/* Right bottom circle */}
-      <motion.circle
+      <circle
         cx="80"
-        cy="62"
-        r="12"
-        fill="#6ABF69"
-        initial={{ x: 0, y: 0 }}
-        animate={{ x: 1, y: -1 }}
-        transition={{
-          duration: 1.8,
-          repeat: Infinity,
-          repeatType: "reverse",
-        }}
+        cy="65"
+        r="14"
+        stroke="#6ABF69"
+        strokeWidth="2"
+        fill="none"
       />
 
       {/* Left top circle */}
-      <motion.circle
+      <circle
         cx="45"
         cy="40"
         r="12"
-        fill="#6ABF69"
-        initial={{ x: 0, y: 0 }}
-        animate={{ x: -1, y: -1 }}
-        transition={{
-          duration: 1.5,
-          repeat: Infinity,
-          repeatType: "reverse",
-        }}
+        stroke="#6ABF69"
+        strokeWidth="2"
+        fill="none"
       />
 
       {/* Right top circle */}
-      <motion.circle
+      <circle
         cx="75"
         cy="40"
         r="12"
-        fill="#6ABF69"
-        initial={{ x: 0, y: 0 }}
-        animate={{ x: 1, y: -1 }}
-        transition={{
-          duration: 1.5,
-          repeat: Infinity,
-          repeatType: "reverse",
-        }}
+        stroke="#6ABF69"
+        strokeWidth="2"
+        fill="none"
       />
-    </motion.svg>
+    </svg>
   );
 }
