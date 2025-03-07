@@ -80,6 +80,15 @@ export default function CommunityWishlists() {
     queryKey: ["/api/user/communities"],
     enabled: !!user,
   });
+  
+  // Get user items to check if they've already fulfilled wishlists
+  const { data: userItems = [] } = useQuery<any[]>({
+    queryKey: ["/api/user/items"],
+    enabled: !!user,
+  });
+  
+  // Filter items that were created to fulfill wishlists (those with recipients)
+  const fulfilledWishlistItems = userItems.filter(item => item.recipientId);
 
   // Handle window resize to adjust carousel settings
   useEffect(() => {
@@ -128,6 +137,11 @@ export default function CommunityWishlists() {
         },
       },
     ],
+  };
+
+  // Check if wishlist has already been fulfilled by the current user
+  const hasUserFulfilledWishlist = (wishlistUserId: number) => {
+    return fulfilledWishlistItems.some(item => item.recipientId === wishlistUserId);
   };
 
   const onFulfillWishlist = (wishlist: Wishlist) => {
@@ -202,10 +216,15 @@ export default function CommunityWishlists() {
                     <div className="text-xs text-muted-foreground">
                       Posted {formatTimeAgo(new Date(wishlist.createdAt))}
                     </div>
-                    <Button onClick={() => onFulfillWishlist(wishlist)}>
-                      Fulfill
-                    </Button>{" "}
-                    {/* Added fulfill button */}
+                    {hasUserFulfilledWishlist(wishlist.userId) ? (
+                      <Button variant="outline" disabled className="mt-2">
+                        Already Fulfilled
+                      </Button>
+                    ) : (
+                      <Button onClick={() => onFulfillWishlist(wishlist)} className="mt-2">
+                        Fulfill
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               </div>
