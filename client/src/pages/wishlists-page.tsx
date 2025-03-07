@@ -5,7 +5,8 @@ import Navbar from "@/components/navbar";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import CreateWishlistDialog from "@/components/create-wishlist-dialog";
-import { Loader2, Lock, Eye } from "lucide-react";
+import { Loader2, Lock, Eye, Gift, ExternalLink } from "lucide-react";
+import { useLocation } from "wouter";
 
 // Format time ago function
 function formatTimeAgo(date: Date): string {
@@ -52,12 +53,32 @@ import { Badge } from "@/components/ui/badge";
 export default function WishlistsPage() {
   const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [, setLocation] = useLocation();
 
   const { data: userWishlists = [], isLoading: isLoadingUserWishlists } =
     useQuery<Wishlist[]>({
       queryKey: ["/api/user/wishlists"],
       enabled: !!user,
     });
+    
+  // Get user items to check if any fulfill the user's wishlists
+  const { data: allItems = [] } = useQuery<any[]>({
+    queryKey: ["/api/items"],
+    enabled: !!user,
+  });
+  
+  // Filter items that were created to fulfill user's wishlists
+  const getFulfillmentItemsForWishlist = (wishlistUserId: number) => {
+    return allItems.filter(item => item.recipientId === wishlistUserId);
+  };
+  
+  // Navigate to the listing that fulfills the wishlist
+  const viewFulfillmentListing = (wishlistUserId: number) => {
+    const fulfillmentItems = getFulfillmentItemsForWishlist(wishlistUserId);
+    if (fulfillmentItems.length > 0) {
+      setLocation(`/item/${fulfillmentItems[0].id}`);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -106,10 +127,33 @@ export default function WishlistsPage() {
                         Budget: ${wishlist.budget}
                       </Badge>
                     )}
+                    
+                    {/* Check if this wishlist has fulfillment offers */}
+                    {getFulfillmentItemsForWishlist(wishlist.userId).length > 0 && (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
+                        <Gift className="h-3 w-3" />
+                        Fulfilled
+                      </Badge>
+                    )}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     Posted {formatTimeAgo(new Date(wishlist.createdAt))}
                   </div>
+                  
+                  {/* Show view button for fulfilled wishlists */}
+                  {getFulfillmentItemsForWishlist(wishlist.userId).length > 0 && (
+                    <div className="mt-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-xs flex items-center gap-1"
+                        onClick={() => viewFulfillmentListing(wishlist.userId)}
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        View Offered Item
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
