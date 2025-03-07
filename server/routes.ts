@@ -60,9 +60,12 @@ function sendSSEMessage(userId: number, data: any) {
   if (client) {
     try {
       client.write(`data: ${JSON.stringify(data)}\n\n`);
-      logger.debug('SSE message sent successfully:', { userId, messageType: data.type });
+      logger.debug("SSE message sent successfully:", {
+        userId,
+        messageType: data.type,
+      });
     } catch (error) {
-      logger.error('Failed to send SSE message:', { userId, error });
+      logger.error("Failed to send SSE message:", { userId, error });
       // Remove failed connection
       sseClients.delete(userId);
     }
@@ -94,17 +97,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/events", requireAuth, (req, res) => {
     const userId = req.user?.id;
     if (!userId) {
-      logger.warn('SSE connection attempt without user ID');
+      logger.warn("SSE connection attempt without user ID");
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    logger.info('New SSE connection established:', { userId });
+    logger.info("New SSE connection established:", { userId });
 
     // Set headers for SSE
     res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive'
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
     });
 
     // Send initial connection message
@@ -114,15 +117,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     sseClients.set(userId, res);
 
     // Remove client on connection close
-    req.on('close', () => {
-      logger.info('SSE connection closed:', { userId });
+    req.on("close", () => {
+      logger.info("SSE connection closed:", { userId });
       sseClients.delete(userId);
       res.end();
     });
 
     // Handle errors
-    res.on('error', (error) => {
-      logger.error('SSE connection error:', { userId, error });
+    res.on("error", (error) => {
+      logger.error("SSE connection error:", { userId, error });
       sseClients.delete(userId);
       res.end();
     });
@@ -286,11 +289,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/messages/send", requireAuth, async (req, res) => {
     try {
       const { recipientId, content, requestId } = req.body;
-      logger.info("Received message request:", { 
-        recipientId, 
+      logger.info("Received message request:", {
+        recipientId,
         requestId,
         content: content?.substring(0, 20), // Log just the start of content for privacy
-        senderId: req.user?.id
+        senderId: req.user?.id,
       });
 
       // Validate recipient exists
@@ -442,7 +445,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (searchTerm) {
         logger.info("Search request:", {
           term: searchTerm,
-          communityIds: communities.join(','),
+          communityIds: communities.join(","),
           freeOnly: freeOnly === "true" ? true : false,
         });
       }
@@ -466,11 +469,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         searchTerm,
         false,
         freeOnly === "true",
-        true // Exclude items with recipients
+        true, // Exclude items with recipients
       );
 
       // Only log item fetches with search terms or if explicitly debugging
-      if (searchTerm && logger.level === 'debug') {
+      if (searchTerm && logger.level === "debug") {
         logger.debug("Items fetched:", {
           searchTerm,
           itemCount: items.length,
@@ -955,7 +958,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           validatedWindows.push({
             pickupStart: startDate.toISOString(),
-            pickupEnd: endDate.toISOString(),          });
+            pickupEnd: endDate.toISOString(),
+          });
         } catch (error) {
           logger.error("Date validation error:", error);
           return res
@@ -965,7 +969,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const proposedWindows = validatedWindows.map((window, index) => ({
-        ...window,        order: index,
+        ...window,
+        order: index,
       }));
 
       logger.debug("Validated windows:", proposedWindows);
@@ -1074,7 +1079,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to confirm pickup" });
     }
   });
-  
+
   // Endpoint to set a recipient for an item (for wishlist fulfillment)
   app.post("/api/items/:id/set-recipient", requireAuth, async (req, res) => {
     try {
@@ -1085,7 +1090,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { recipientId } = req.body;
       if (!recipientId || isNaN(parseInt(recipientId.toString()))) {
-        return res.status(400).json({ error: "Valid recipient ID is required" });
+        return res
+          .status(400)
+          .json({ error: "Valid recipient ID is required" });
       }
 
       const item = await storage.getItem(itemId);
@@ -1095,32 +1102,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if the current user is the owner of the item
       if (item.userId !== req.user.id) {
-        return res.status(403).json({ error: "Not authorized to set recipient for this item" });
+        return res
+          .status(403)
+          .json({ error: "Not authorized to set recipient for this item" });
       }
-
-      // Create a request first
-      const [request] = await db
-        .insert(schema.itemRequests)
-        .values({
-          itemId,
-          requesterId: recipientId,
-          status: REQUEST_STATUS.ACCEPTED,
-          message: "Wishlist fulfillment",
-        })
-        .returning();
-
-      logger.info("Created item request for wishlist fulfillment:", {
-        itemId,
-        requesterId: recipientId,
-        requestId: request.id,
-      });
 
       // Update the item with the recipient
       await db
         .update(schema.items)
         .set({
           recipientId: recipientId,
-          status: ITEM_STATUS.SCHEDULED,
         })
         .where(eq(schema.items.id, itemId));
 
@@ -1129,17 +1120,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         recipientId,
         userId: req.user.id,
       });
-
-      // Notify the recipient
-      const notificationPayload = {
-        type: "wishlist_fulfilled",
-        data: {
-          itemId,
-          requestId: request.id,
-        },
-      };
-
-      sendSSEMessage(recipientId, notificationPayload);
 
       res.json({ success: true });
     } catch (error) {
@@ -1618,7 +1598,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
               continue;
             }
-            
+
             // Skip non-custom (zip code) communities
             if (!community.isCustom) {
               logger.warn("Skipping invite - non-custom community:", {
