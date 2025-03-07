@@ -92,6 +92,21 @@ async function startServer() {
       logger.info("Setting up production environment");
       const staticDir = path.resolve(process.cwd(), "dist/public");
 
+      // Check if static directory exists, otherwise create it
+      if (!fs.existsSync(staticDir)) {
+        logger.warn("Static directory does not exist, creating it:", {
+          staticDir
+        });
+        try {
+          fs.mkdirSync(staticDir, { recursive: true });
+        } catch (error) {
+          logger.error("Error creating static directory:", {
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+          });
+        }
+      }
+      
       logger.info("Static files directory:", {
         staticDir,
         exists: fs.existsSync(staticDir),
@@ -101,7 +116,7 @@ async function startServer() {
       // Serve static files
       app.use(express.static(staticDir));
 
-      // For all routes, serve the static HTML
+      // For all routes, serve the static HTML or fallback to a simple message
       app.get("*", (req, res) => {
         const indexPath = path.resolve(staticDir, "index.html");
         
@@ -115,7 +130,12 @@ async function startServer() {
           isProduction: process.env.NODE_ENV === "production",
         });
 
-        res.sendFile(indexPath);
+        if (fs.existsSync(indexPath)) {
+          res.sendFile(indexPath);
+        } else {
+          logger.warn("index.html not found, sending fallback response");
+          res.status(200).send("Server is running, but client files are not available.");
+        }
       });
     }
 
@@ -123,25 +143,33 @@ async function startServer() {
     const PORT = Number(process.env.PORT || 5000);
 
     await new Promise<void>((resolve, reject) => {
-      server.listen(PORT, "0.0.0.0", () => {
-        const address = server.address();
-        logger.info("Server started successfully:", {
-          port: PORT,
-          env: process.env.NODE_ENV,
-          address:
-            typeof address === "string" ? address : JSON.stringify(address),
+      try {
+        server.listen(PORT, "0.0.0.0", () => {
+          const address = server.address();
+          logger.info("Server started successfully:", {
+            port: PORT,
+            env: process.env.NODE_ENV,
+            address:
+              typeof address === "string" ? address : JSON.stringify(address),
+          });
+          resolve();
         });
-        resolve();
-      });
 
-      server.on("error", (error: any) => {
-        logger.error("Server startup error:", {
-          code: error.code,
-          message: error.message,
-          stack: error.stack,
+        server.on("error", (error: any) => {
+          logger.error("Server startup error:", {
+            code: error.code,
+            message: error.message,
+            stack: error.stack,
+          });
+          reject(error);
+        });
+      } catch (error) {
+        logger.error("Unexpected error during server.listen:", {
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
         });
         reject(error);
-      });
+      }
     });
   } catch (error) {
     logger.error("Fatal error during server startup:", {
