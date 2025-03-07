@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 
 export default function TreeLogo() {
@@ -17,12 +16,12 @@ export default function TreeLogo() {
         repeatType: "reverse",
       }}
     >
-      {/* Trunk */}
+      {/* Tree trunk */}
       <motion.rect
         x="55"
-        y="80"
+        y="75"
         width="10"
-        height="25"
+        height="30"
         fill="#8B4513"
         initial={{ y: 0 }}
         animate={{ y: -1 }}
@@ -32,12 +31,12 @@ export default function TreeLogo() {
           repeatType: "reverse",
         }}
       />
-      
-      {/* Bottom circle (main canopy) */}
+
+      {/* Bottom center circle */}
       <motion.circle
         cx="60"
-        cy="65"
-        r="20"
+        cy="60"
+        r="14"
         fill="#6ABF69"
         initial={{ y: 0 }}
         animate={{ y: -2 }}
@@ -47,12 +46,12 @@ export default function TreeLogo() {
           repeatType: "reverse",
         }}
       />
-      
-      {/* Left middle circle */}
+
+      {/* Left bottom circle */}
       <motion.circle
-        cx="45"
-        cy="50"
-        r="15"
+        cx="40"
+        cy="62"
+        r="12"
         fill="#6ABF69"
         initial={{ x: 0, y: 0 }}
         animate={{ x: -1, y: -1 }}
@@ -62,12 +61,12 @@ export default function TreeLogo() {
           repeatType: "reverse",
         }}
       />
-      
-      {/* Right middle circle */}
+
+      {/* Right bottom circle */}
       <motion.circle
-        cx="75"
-        cy="50"
-        r="15"
+        cx="80"
+        cy="62"
+        r="12"
         fill="#6ABF69"
         initial={{ x: 0, y: 0 }}
         animate={{ x: 1, y: -1 }}
@@ -77,27 +76,12 @@ export default function TreeLogo() {
           repeatType: "reverse",
         }}
       />
-      
-      {/* Top circle */}
-      <motion.circle
-        cx="60"
-        cy="35"
-        r="14"
-        fill="#6ABF69"
-        initial={{ y: 0 }}
-        animate={{ y: -2 }}
-        transition={{
-          duration: 1.5,
-          repeat: Infinity,
-          repeatType: "reverse",
-        }}
-      />
-      
-      {/* Left top small circle */}
+
+      {/* Left top circle */}
       <motion.circle
         cx="45"
-        cy="30"
-        r="10"
+        cy="40"
+        r="12"
         fill="#6ABF69"
         initial={{ x: 0, y: 0 }}
         animate={{ x: -1, y: -1 }}
@@ -107,12 +91,12 @@ export default function TreeLogo() {
           repeatType: "reverse",
         }}
       />
-      
-      {/* Right top small circle */}
+
+      {/* Right top circle */}
       <motion.circle
         cx="75"
-        cy="30"
-        r="10"
+        cy="40"
+        r="12"
         fill="#6ABF69"
         initial={{ x: 0, y: 0 }}
         animate={{ x: 1, y: -1 }}
