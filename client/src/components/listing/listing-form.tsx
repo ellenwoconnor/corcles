@@ -63,7 +63,7 @@ interface ListingFormProps {
     memberCount: number;
   }>;
   defaultValues?: any;
-  onSuccess?: () => void;
+  onSuccess?: (data: any) => void; // Added data type to onSuccess
   isLoading?: boolean;
   buttonText: string;
 }
@@ -151,19 +151,16 @@ export function ListingForm({
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
-      if (itemId) {
-        queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
-      }
-      queryClient.invalidateQueries({ queryKey: ["/api/user/items"] });
-
       toast({
-        title: "Success!",
-        description: `Your listing has been ${mode === "create" ? "created" : "updated"}.`,
+        title: "Success",
+        description: `Item ${mode === "create" ? "created" : "updated"} successfully.`,
       });
-
-      onSuccess?.();
+      if (onSuccess) {
+        // Pass the created/updated item to the callback
+        onSuccess(data);
+      }
     },
     onError: (error: Error) => {
       toast({
