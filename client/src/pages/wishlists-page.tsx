@@ -68,13 +68,21 @@ export default function WishlistsPage() {
   });
   
   // Filter items that were created to fulfill user's wishlists
-  const getFulfillmentItemsForWishlist = (wishlistUserId: number) => {
-    return allItems.filter(item => item.recipientId === wishlistUserId);
+  const getFulfillmentItemsForWishlist = (wishlistId: number) => {
+    // First, check if the wishlist creator is a recipient of any items
+    // This is a temporary solution until wishlist-specific tracking is implemented
+    const wishlist = userWishlists.find(w => w.id === wishlistId);
+    if (!wishlist) return [];
+    
+    return allItems.filter(item => 
+      // Check if this item is being given to the wishlist creator
+      item.recipientId === wishlist.userId
+    );
   };
   
   // Navigate to the listing that fulfills the wishlist
-  const viewFulfillmentListing = (wishlistUserId: number) => {
-    const fulfillmentItems = getFulfillmentItemsForWishlist(wishlistUserId);
+  const viewFulfillmentListing = (wishlistId: number) => {
+    const fulfillmentItems = getFulfillmentItemsForWishlist(wishlistId);
     if (fulfillmentItems.length > 0) {
       setLocation(`/item/${fulfillmentItems[0].id}`);
     }
@@ -129,7 +137,7 @@ export default function WishlistsPage() {
                     )}
                     
                     {/* Check if this wishlist has fulfillment offers */}
-                    {getFulfillmentItemsForWishlist(wishlist.userId).length > 0 && (
+                    {getFulfillmentItemsForWishlist(wishlist.id).length > 0 && (
                       <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
                         <Gift className="h-3 w-3" />
                         Fulfilled
@@ -141,13 +149,13 @@ export default function WishlistsPage() {
                   </div>
                   
                   {/* Show view button for fulfilled wishlists */}
-                  {getFulfillmentItemsForWishlist(wishlist.userId).length > 0 && (
+                  {getFulfillmentItemsForWishlist(wishlist.id).length > 0 && (
                     <div className="mt-2">
                       <Button 
                         variant="outline" 
                         size="sm" 
                         className="text-xs flex items-center gap-1"
-                        onClick={() => viewFulfillmentListing(wishlist.userId)}
+                        onClick={() => viewFulfillmentListing(wishlist.id)}
                       >
                         <ExternalLink className="h-3 w-3" />
                         View Offered Item
