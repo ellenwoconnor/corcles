@@ -1,5 +1,5 @@
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import TreeLogo from "@/components/tree-logo";
+import GrowthLogo from "@/components/growth-logo";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,7 +21,7 @@ export default function Navbar() {
         <div className="mr-4">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <span className="text-2xl font-bold uppercase tracking-wide">C<span className="text-[#6ABF69]">O</span>RCLES</span>
-            <TreeLogo />
+            <GrowthLogo />
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
