@@ -101,12 +101,11 @@ async function startServer() {
       // Serve static files
       app.use(express.static(staticDir));
 
-      // For all routes, read and modify the HTML to inject environment variables
+      // For all routes, serve the static HTML
       app.get("*", (req, res) => {
         const indexPath = path.resolve(staticDir, "index.html");
-        let html = fs.readFileSync(indexPath, "utf8");
-
-        // Debug environment variables
+        
+        // Debug environment variables without exposing them
         logger.info("Environment configuration status:", {
           hasGoogleClientId: !!process.env.GOOGLE_CLIENT_ID,
           googleClientIdLength: process.env.GOOGLE_CLIENT_ID
@@ -116,44 +115,7 @@ async function startServer() {
           isProduction: process.env.NODE_ENV === "production",
         });
 
-        // Safely escape the client ID to prevent XSS
-        const safeClientId = process.env.GOOGLE_CLIENT_ID
-          ? JSON.stringify(process.env.GOOGLE_CLIENT_ID).slice(1, -1)
-          : "";
-
-        // Inject environment variables into the HTML with enhanced error tracking
-        html = html.replace(
-          "</head>",
-          `<script>
-            // Always initialize environment configuration
-            window.env = window.env || {};
-            window.env.GOOGLE_CLIENT_ID = "${safeClientId}";
-            window.env.NODE_ENV = "${process.env.NODE_ENV}";
-
-            // Enhanced error tracking
-            window.onerror = function(msg, url, line, col, error) {
-              console.error('Global error:', {
-                message: msg,
-                location: url + ':' + line + ':' + col,
-                error: error?.stack,
-                googleAuthStatus: {
-                  hasClientId: !!window.env?.GOOGLE_CLIENT_ID,
-                  environment: window.env?.NODE_ENV
-                }
-              });
-              return false;
-            };
-
-            // Log OAuth configuration status
-            console.log("OAuth Configuration Status:", {
-              hasClientId: !!window.env?.GOOGLE_CLIENT_ID,
-              environment: window.env?.NODE_ENV,
-              clientIdLength: (window.env?.GOOGLE_CLIENT_ID || '').length
-            });
-          </script></head>`,
-        );
-
-        res.send(html);
+        res.sendFile(indexPath);
       });
     }
 

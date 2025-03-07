@@ -29,6 +29,7 @@ import {
   isS3Configured,
   uploadFileToDigitalOcean,
 } from "./storage-do";
+import configRoutes from "./routes/config";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -79,6 +80,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(passport.session());
 
   setupAuth(app);
+  
+  // Register config routes
+  app.use(configRoutes);
 
   // Middleware to check authentication
   const requireAuth = (req: Request, res: Response, next: NextFunction) => {
