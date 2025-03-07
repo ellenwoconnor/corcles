@@ -1,0 +1,3 @@
+export default function CommunityWishlists() {
+  // Component logic here...
+}
