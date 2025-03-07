@@ -7,42 +7,49 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Menu, User, Users, Gift } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { getInitials } from "@/lib/utils";
+import { Button as Button2 } from "./ui/button"; //This import might need adjustment depending on the project structure.
+import CorclesLogo from "./corcles-logo"; //This import assumes CorclesLogo is in the same directory. Adjust path as needed.
+
 
 export default function Navbar() {
-  const { user, logoutMutation } = useAuth();
+  const { user, logout } = useAuth();
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-24 items-center px-8">
         <div className="mr-4">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <span className="text-2xl font-bold uppercase tracking-wide">C<span className="text-[#6ABF69]">O</span>RCLES</span>
+            <div className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              <CorclesLogo width={40} height={40} />
+              <span className="text-2xl font-bold uppercase tracking-wide">C<span className="text-[#6ABF69]">O</span>RCLES</span>
+            </div>
             <RobotLogo />
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
           <div className="hidden md:flex md:items-center md:space-x-4">
             <Link href="/communities">
-              <Button variant="ghost" className="flex items-center space-x-2">
+              <Button2 variant="ghost" className="flex items-center space-x-2">
                 <Users className="h-4 w-4" />
                 <span>Communities</span>
-              </Button>
+              </Button2>
             </Link>
             <Link href="/wishlists">
-              <Button variant="ghost" className="flex items-center space-x-2">
+              <Button2 variant="ghost" className="flex items-center space-x-2">
                 <Gift className="h-4 w-4" />
                 <span>Wishlists</span>
-              </Button>
+              </Button2>
             </Link>
           </div>
           <nav className="flex items-center space-x-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
+                <Button2
                   variant="ghost"
                   className="relative h-8 w-8 rounded-full"
                 >
@@ -55,7 +62,7 @@ export default function Navbar() {
                       {user?.displayName?.[0]?.toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
-                </Button>
+                </Button2>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuItem asChild>
@@ -76,7 +83,7 @@ export default function Navbar() {
                     <span>Wishlists</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
+                <DropdownMenuItem onClick={() => logout()}>
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
