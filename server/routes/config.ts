@@ -1,4 +1,3 @@
-
 import { Router } from "express";
 import logger from "../logger";
 
@@ -6,18 +5,35 @@ const router = Router();
 
 router.get("/api/config", (req, res) => {
   try {
-    logger.debug("Serving client configuration");
-    
-    // Only expose specific environment variables needed by the client
+    // Debug: Log the actual client ID (first 8 chars only for security)
+    const googleClientId = process.env.GOOGLE_CLIENT_ID || "";
+    logger.info("Google Client ID check:", {
+      value: googleClientId ? `${googleClientId.substring(0, 8)}...` : "missing",
+      isString: typeof googleClientId === "string",
+      length: googleClientId.length,
+      envVars: Object.keys(process.env).filter(key => key.includes("GOOGLE")),
+    });
+
+    // Only expose non-sensitive environment variables
     const clientConfig = {
-      googleClientId: process.env.GOOGLE_CLIENT_ID || '',
-      environment: process.env.NODE_ENV || 'development'
+      googleClientId: googleClientId,
+      environment: process.env.NODE_ENV,
     };
-    
+
+    logger.info("Serving client configuration", {
+      configProvided: {
+        hasGoogleClientId: !!clientConfig.googleClientId,
+        googleClientIdLength: clientConfig.googleClientId ? clientConfig.googleClientId.length : 0,
+        environment: clientConfig.environment,
+      },
+    });
+
     res.json(clientConfig);
   } catch (error) {
-    logger.error("Error serving config:", error);
-    res.status(500).json({ error: "Failed to retrieve configuration" });
+    logger.error("Error serving client configuration", {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    res.status(500).json({ error: "Failed to load configuration" });
   }
 });
 
