@@ -50,7 +50,9 @@ export interface IStorage {
     communities: number[],
     userId?: number,
     search?: string,
-    userItemsOnly?: boolean
+    userItemsOnly?: boolean,
+    freeOnly?: boolean,
+    excludeItemsWithRecipients?: boolean
   ): Promise<(Item & { userHasFavorited: boolean })[]>;
   getItem(
     id: number,
@@ -321,8 +323,10 @@ export class DatabaseStorage implements IStorage {
       // Build query conditions
       const conditions = [];
 
-      // Don't show completed items
-      conditions.push(notInArray(items.status, ['completed']));
+      // Don't show completed or delisted items unless viewing own items
+      if (!userItemsOnly) {
+        conditions.push(notInArray(items.status, ['completed', 'delisted']));
+      }
 
       // Exclude items with recipients if requested
       if (excludeItemsWithRecipients) {

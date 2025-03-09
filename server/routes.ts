@@ -80,7 +80,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(passport.session());
 
   setupAuth(app);
-  
+
   // Register config routes
   app.use(configRoutes);
 
@@ -1744,6 +1744,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add SSE endpoint
   //This line was already in the edited code, no need to add it again
+
+  app.delete("/api/items/:id", requireAuth, async (req, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      // Get the item to verify ownership
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      // Verify ownership
+      if (item.userId !== req.user?.id) {
+        return res.status(403).json({ error: "Not authorized to delete this item" });
+      }
+
+      // Delete related records first
+      await db.delete(schema.messages)
+        .where(
+          inArray(
+            schema.messages.requestId,
+            db.select({ id: schema.itemRequests.id })
+              .from(schema.itemRequests)
+              .where(eq(schema.itemRequests.itemId, itemId))
+          )
+        );
+
+      // Delete requests
+      await db.delete(schema.itemRequests)
+        .where(eq(schema.itemRequests.itemId, itemId));
+
+      // Delete bids
+      await db.delete(schema.itemBids)
+        .where(eq(schema.itemBids.itemId, itemId));
+
+      // Finally delete the item
+      await db.delete(schema.items)
+        .where(eq(schema.items.id, itemId));
+
+      logger.info('Item deleted successfully:', { itemId, userId: req.user?.id });
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Error deleting item:", error);
+      res.status(500).json({ error: "Failed to delete item" });
+    }
+  });
+
+  app.post("/api/items/:id/delist", requireAuth, async (req, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      // Get the item to verify ownership
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      // Verify ownership
+      if (item.userId !== req.user?.id) {
+        return res.status(403).json({ error: "Not authorized to delist this item" });
+      }
+
+      // Update item status to delisted
+      await db.update(schema.items)
+        .set({ status: "delisted" })
+        .where(eq(schema.items.id, itemId));
+
+      logger.info('Item delisted successfully:', { itemId, userId: req.user?.id });
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Error delisting item:", error);
+      res.status(500).json({ error: "Failed to delist item" });
+    }
+  });
 
   const server = createServer(app);
   return server;
