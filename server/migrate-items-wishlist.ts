@@ -4,7 +4,7 @@ import logger from './logger';
 
 async function migrateItemsWishlist() {
   try {
-    logger.info('Starting items wishlistId migration');
+    logger.info('Starting database migration');
     
     // Check if the column exists first
     const checkColumnQuery = `
@@ -34,8 +34,11 @@ async function migrateItemsWishlist() {
   }
 }
 
-// Execute migration if this file is run directly
-if (require.main === module) {
+// Self-invoking function to execute the migration
+// This replaces the CommonJS require.main === module check
+const isDirectlyExecuted = import.meta.url === `file://${process.argv[1]}`;
+
+if (isDirectlyExecuted) {
   migrateItemsWishlist()
     .then(() => {
       logger.info('Items wishlistId migration completed successfully');
@@ -46,3 +49,5 @@ if (require.main === module) {
       process.exit(1);
     });
 }
+
+export { migrateItemsWishlist };
