@@ -61,10 +61,23 @@ export default function WishlistsPage() {
       enabled: !!user,
     });
     
+  // Get communities first to properly fetch items
+  const { data: userCommunities = [] } = useQuery({
+    queryKey: ["/api/user/communities"],
+    enabled: !!user,
+  });
+  
   // Get user items to check if any fulfill the user's wishlists
   const { data: allItems = [] } = useQuery<any[]>({
-    queryKey: ["/api/items"],
-    enabled: !!user,
+    queryKey: ["/api/items", userCommunities],
+    enabled: !!user && userCommunities.length > 0,
+    queryFn: async () => {
+      if (!userCommunities.length) return [];
+      const communityIds = userCommunities.map(c => c.id).join(',');
+      const response = await fetch(`/api/items?communities=${communityIds}`);
+      if (!response.ok) return [];
+      return response.json();
+    }
   });
   
   // Filter items that were created to fulfill user's wishlists
