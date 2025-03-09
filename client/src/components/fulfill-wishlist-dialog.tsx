@@ -26,7 +26,7 @@ export default function FulfillWishlistDialog({
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // Validate wishlist on mount
   React.useEffect(() => {
     if (open && (!wishlist || !wishlist.userId)) {
@@ -46,9 +46,10 @@ export default function FulfillWishlistDialog({
 
   // Mutation to set a recipient for an item
   const setRecipient = useMutation({
-    mutationFn: async ({ itemId, recipientId }: { itemId: number; recipientId: number }) => {
+    mutationFn: async ({ itemId, recipientId, wishlistId }: { itemId: number; recipientId: number; wishlistId: number }) => {
       const res = await apiRequest("POST", `/api/items/${itemId}/set-recipient`, {
         recipientId,
+        wishlistId,
       });
       if (!res.ok) {
         const error = await res.json();
@@ -79,19 +80,20 @@ export default function FulfillWishlistDialog({
       if (!newItemId || typeof newItemId !== 'number') {
         throw new Error(`Invalid item ID: ${newItemId}`);
       }
-      
+
       if (!wishlist) {
         throw new Error("Wishlist data is missing");
       }
-      
+
       if (!wishlist.userId || typeof wishlist.userId !== 'number') {
         throw new Error(`Invalid wishlist user ID: ${wishlist?.userId}`);
       }
-      
+
       console.log("Setting recipient:", { itemId: newItemId, recipientId: wishlist.userId });
       setRecipient.mutate({
         itemId: newItemId,
         recipientId: wishlist.userId,
+        wishlistId: wishlist.id
       });
     } catch (error) {
       console.error("Error setting recipient:", error);
@@ -120,19 +122,19 @@ export default function FulfillWishlistDialog({
             // Get the newly created item ID and set the recipient
             try {
               console.log("Item creation response:", newItem);
-              
+
               if (!newItem) {
                 throw new Error("No item data returned");
               }
-              
+
               if (typeof newItem !== 'object') {
                 throw new Error(`Invalid item data type: ${typeof newItem}`);
               }
-              
+
               if (!newItem.id || typeof newItem.id !== 'number') {
                 throw new Error(`Invalid item ID: ${JSON.stringify(newItem)}`);
               }
-              
+
               console.log("Item created successfully with ID:", newItem.id);
               handleItemCreated(newItem.id);
             } catch (error) {

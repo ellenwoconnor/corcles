@@ -1092,7 +1092,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid item ID" });
       }
 
-      const { recipientId } = req.body;
+      const { recipientId, wishlistId } = req.body;
       if (!recipientId || isNaN(parseInt(recipientId.toString()))) {
         return res
           .status(400)
@@ -1111,17 +1111,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: "Not authorized to set recipient for this item" });
       }
 
-      // Update the item with the recipient
+      // If wishlistId is provided, validate it
+      let validWishlistId = null;
+      if (wishlistId && !isNaN(parseInt(wishlistId.toString()))) {
+        const wishlist = await db
+          .select()
+          .from(schema.wishlists)
+          .where(eq(schema.wishlists.id, parseInt(wishlistId.toString())))
+          .limit(1);
+        
+        if (wishlist.length > 0) {
+          validWishlistId = parseInt(wishlistId.toString());
+        }
+      }
+
+      // Update the item with the recipient and wishlist info
       await db
         .update(schema.items)
         .set({
           recipientId: recipientId,
+          wishlistId: validWishlistId,
         })
         .where(eq(schema.items.id, itemId));
 
       logger.info("Set recipient for item:", {
         itemId,
         recipientId,
+        wishlistId: validWishlistId,
         userId: req.user.id,
       });
 
