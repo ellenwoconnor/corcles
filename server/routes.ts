@@ -1812,12 +1812,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to delist this item" });
       }
 
+      // Update all associated item requests to canceled status
+      await db.update(schema.itemRequests)
+        .set({ 
+          status: REQUEST_STATUS.CANCELED,
+          cancellationInfo: JSON.stringify({
+            canceledBy: req.user.id,
+            canceledAt: new Date().toISOString(),
+            reason: "Item was delisted by owner"
+          })
+        })
+        .where(eq(schema.itemRequests.itemId, itemId));
+
       // Update item status to delisted
       await db.update(schema.items)
         .set({ status: "delisted" })
         .where(eq(schema.items.id, itemId));
 
-      logger.info('Item delisted successfully:', { itemId, userId: req.user?.id });
+      logger.info('Item delisted successfully and requests canceled:', { 
+        itemId, 
+        userId: req.user?.id 
+      });
+      
       res.json({ success: true });
     } catch (error) {
       logger.error("Error delisting item:", error);

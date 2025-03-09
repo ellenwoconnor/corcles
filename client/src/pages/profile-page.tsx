@@ -47,13 +47,14 @@ export default function ProfilePage() {
     (item) => item.status === "requested" && !item.pickupStart,
   );
 
-  const status_text = {
+  const statusText = {
     completed: "Pickup Complete",
     scheduled: "Pickup Scheduled",
     scheduling: "Setting Pickup Time",
     requested: "Requests Received",
     available: "Available",
     delisted: "Delisted",
+    pending_pickup: "Pending Pickup",
   };
 
   if (!user) {
@@ -170,7 +171,7 @@ export default function ProfilePage() {
                                     : ""
                                 }
                               >
-                                {status_text[item.status]}
+                                {statusText[item.status]}
                               </Badge>
                             </div>
                             <CardDescription className="text-sm">
