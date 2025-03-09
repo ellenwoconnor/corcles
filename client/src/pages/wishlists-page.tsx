@@ -82,15 +82,13 @@ export default function WishlistsPage() {
 
   // Filter items that were created to fulfill user's wishlists
   const getFulfillmentItemsForWishlist = (wishlistId: number) => {
-    // First, check if the wishlist creator is a recipient of any items
-    // This is a temporary solution until wishlist-specific tracking is implemented
-    const wishlist = userWishlists.find((w) => w.id === wishlistId);
-    if (!wishlist) return [];
-
+    // Return items that specifically fulfill this wishlist ID
     return allItems.filter(
       (item) =>
-        // Check if this item is being given to the wishlist creator
-        item.recipientId === wishlist.userId,
+        // Check if this item is explicitly linked to this wishlist
+        item.wishlistId === wishlistId &&
+        // And check if the user is the recipient
+        item.recipientId === user?.id
     );
   };
 
