@@ -1031,7 +1031,7 @@ export class DatabaseStorage implements IStorage {
 
   async getUserRole(userId: number, communityId: number): Promise<string | undefined> {
     try {
-      const [membership] = awaitdb
+      const [membership] = await db
         .select()
         .from(userCommunities)
         .where(
@@ -1043,11 +1043,7 @@ export class DatabaseStorage implements IStorage {
 
       return membership?.role;
     } catch (error) {
-      logger.error('Error getting user role:', {
-        error,
-        userId,
-        communityId
-      });
+      logger.error('Error getting user role:', { error, userId, communityId });
       throw error;
     }
   }

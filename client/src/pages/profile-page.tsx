@@ -170,7 +170,7 @@ export default function ProfilePage() {
                                     : ""
                                 }
                               >
-                                {status_text[status_textitem.status]}
+                                {status_text[item.status]}
                               </Badge>
                             </div>
                             <CardDescription className="text-sm">
