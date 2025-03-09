@@ -434,7 +434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/items", requireAuth, async (req, res) => {
     try {
-      const { search, communities: communityParam, freeOnly } = req.query;
+      const { search, communities: communityParam, freeOnly, includeWithRecipients } = req.query;
       const searchTerm = typeof search === "string" ? search.trim() : undefined;
 
       let communities: number[] = [];
@@ -451,6 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           term: searchTerm,
           communityIds: communities.join(","),
           freeOnly: freeOnly === "true" ? true : false,
+          includeWithRecipients: includeWithRecipients === "true"
         });
       }
 
@@ -473,7 +474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         searchTerm,
         false,
         freeOnly === "true",
-        true, // Exclude items with recipients
+        includeWithRecipients !== "true", // Only exclude items with recipients if not explicitly including them
       );
 
       // Only log item fetches with search terms or if explicitly debugging

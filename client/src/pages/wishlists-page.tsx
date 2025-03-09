@@ -74,7 +74,8 @@ export default function WishlistsPage() {
     queryFn: async () => {
       if (!userCommunities.length) return [];
       const communityIds = userCommunities.map((c) => c.id).join(",");
-      const response = await fetch(`/api/items?communities=${communityIds}`);
+      // Add includeWithRecipients=true parameter to include items that have recipients
+      const response = await fetch(`/api/items?communities=${communityIds}&includeWithRecipients=true`);
       if (!response.ok) return [];
       return response.json();
     },
