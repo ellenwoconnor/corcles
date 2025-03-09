@@ -10,7 +10,6 @@ import OwnerListingView from "@/components/listing/owner-listing-view";
 import RecipientListingView from "@/components/listing/recipient-listing-view";
 import DelistedListingView from "@/components/listing/delisted-listing-view"; // Added import
 
-
 interface PickupWindow {
   pickupStart: string;
   pickupEnd: string;
@@ -49,8 +48,10 @@ export default function ListingPage() {
           pickupEnd: transformDate(data.pickupEnd),
           proposedPickupWindows: Array.isArray(data.proposedPickupWindows)
             ? data.proposedPickupWindows.map((window: any) => ({
-                pickupStart: transformDate(window.pickupStart) || new Date().toISOString(),
-                pickupEnd: transformDate(window.pickupEnd) || new Date().toISOString(),
+                pickupStart:
+                  transformDate(window.pickupStart) || new Date().toISOString(),
+                pickupEnd:
+                  transformDate(window.pickupEnd) || new Date().toISOString(),
               }))
             : [],
         };
@@ -67,31 +68,27 @@ export default function ListingPage() {
 
   const isOwner = Boolean(user?.id === item?.userId);
   const hasAcceptedRequest = Boolean(
-    user?.id === item?.recipientId && 
-    item?.status && 
-    ['scheduling', 'scheduled', 'pending_pickup'].includes(item.status)
+    user?.id === item?.recipientId &&
+      item?.status &&
+      ["scheduling", "scheduled", "pending_pickup"].includes(item.status),
   );
 
-  const {
-    data: requests = [],
-    isLoading: requestsLoading,
-  } = useQuery<(ItemRequest & { userId?: number })[]>({
+  const { data: requests = [], isLoading: requestsLoading } = useQuery<
+    (ItemRequest & { userId?: number })[]
+  >({
     queryKey: [
       `/api/items/${params?.id}/${isOwner ? "requests" : "my-requests"}`,
     ],
     enabled: !!params?.id && !!user,
   });
 
-  const {
-    data: bids = [],
-    isLoading: bidsLoading,
-  } = useQuery<ItemBid[]>({
+  const { data: bids = [], isLoading: bidsLoading } = useQuery<ItemBid[]>({
     queryKey: [`/api/items/${params?.id}/bids`],
     enabled: !!params?.id && !!user && !item?.isGift,
   });
 
-  const activeRequest = hasAcceptedRequest 
-    ? requests.find(r => r.requesterId === user?.id)
+  const activeRequest = hasAcceptedRequest
+    ? requests.find((r) => r.requesterId === user?.id)
     : undefined;
 
   const hasRequested = requests?.some((r) => r.status === "pending");
@@ -128,10 +125,6 @@ export default function ListingPage() {
       </div>
     );
   }
-
-  // Determine which view to show
-  const isOwner = user?.id === item.userId;
-  const isRecipient = user?.id === item.recipientId;
 
   return (
     <div className="min-h-screen bg-background">
