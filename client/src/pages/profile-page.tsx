@@ -184,7 +184,16 @@ export default function ProfilePage() {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        {item.pickupStart && (
+                        {item.status === "delisted" ? (
+                          <div className="p-4 bg-muted rounded-lg border border-muted-foreground/20">
+                            <h3 className="font-medium mb-2 text-muted-foreground">
+                              This item has been delisted
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              Delisted items cannot be edited or requested by users.
+                            </p>
+                          </div>
+                        ) : item.pickupStart && (
                           <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
                             <h3 className="font-medium mb-2">
                               Pickup Scheduled
