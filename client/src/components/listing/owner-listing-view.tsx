@@ -14,7 +14,7 @@ import { ExtendedItem } from "@/pages/listing-page";
 import { useQueryClient } from "@tanstack/react-query";
 import { DelistButton } from "@/components/delist-button";
 import { useLocation } from "wouter";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -153,8 +153,8 @@ export default function OwnerListingView({
                 {activeRequest
                   ? "Active Request"
                   : hasRequests
-                  ? `Requests (${requests.length})`
-                  : "No Requests Yet"}
+                    ? `Requests (${requests.length})`
+                    : "No Requests Yet"}
               </h3>
             </div>
             <div className="p-4">
