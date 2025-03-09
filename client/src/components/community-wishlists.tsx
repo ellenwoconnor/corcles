@@ -214,7 +214,7 @@ export default function CommunityWishlists() {
                       )}
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      Posted {formatTimeAgo(new Date(wishlist.createdAt))}
+                      Posted by {wishlist.userDisplayName || "Anonymous"} {formatTimeAgo(new Date(wishlist.createdAt))}
                     </div>
                     {hasUserFulfilledWishlist(wishlist.userId) ? (
                       <Button variant="outline" disabled className="mt-2">
