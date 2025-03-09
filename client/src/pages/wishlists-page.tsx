@@ -91,13 +91,26 @@ export default function WishlistsPage() {
         item.recipientId === user?.id
     );
 
+    // Find items with wishlist ID 3 (for debugging)
+    const wishlistItems = allItems.filter(item => item.wishlistId === wishlistId);
+    
     console.log(`Filtering for wishlist ${wishlistId}:`, { 
       totalItems: allItems.length,
-      itemsWithWishlistId: allItems.filter(item => item.wishlistId === wishlistId).length,
+      itemsWithWishlistId: wishlistItems.length,
       itemsWithUserAsRecipient: allItems.filter(item => item.recipientId === user?.id).length,
       matchingBoth: filtered.length,
       userId: user?.id
     });
+    
+    // Log details of items with this wishlist ID
+    if (wishlistId === 3) {
+      console.log(`Items with wishlistId ${wishlistId}:`, wishlistItems.map(item => ({
+        id: item.id,
+        title: item.title,
+        recipientId: item.recipientId,
+        userId: item.userId
+      })));
+    }
 
     return filtered;
   };
