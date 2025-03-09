@@ -261,14 +261,16 @@ export default function ProfilePage() {
                             </CardTitle>
                             <Badge
                               variant={
-                                request.status ===
-                                "awaiting_pickup_confirmation"
-                                  ? "default"
-                                  : request.status === "accepted"
-                                    ? "secondary"
-                                    : request.status === "pending"
+                                request.item.status === "delisted"
+                                  ? "outline"
+                                  : request.status ===
+                                    "awaiting_pickup_confirmation"
+                                    ? "default"
+                                    : request.status === "accepted"
                                       ? "secondary"
-                                      : "destructive"
+                                      : request.status === "pending"
+                                        ? "secondary"
+                                        : "destructive"
                               }
                               className={
                                 request.status === "accepted"
@@ -276,11 +278,13 @@ export default function ProfilePage() {
                                   : ""
                               }
                             >
-                              {request.status === "awaiting_pickup_confirmation"
-                                ? "Confirm Pickup"
-                                : request.status === "accepted"
-                                  ? "Pickup Scheduled"
-                                  : request.status}
+                              {request.item.status === "delisted"
+                                ? "Delisted"
+                                : request.status === "awaiting_pickup_confirmation"
+                                  ? "Confirm Pickup"
+                                  : request.status === "accepted"
+                                    ? "Pickup Scheduled"
+                                    : request.status}
                             </Badge>
                           </div>
                           <CardDescription className="text-sm">
@@ -293,7 +297,16 @@ export default function ProfilePage() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      {request.status === "awaiting_pickup_confirmation" && (
+                      {request.item.status === "delisted" ? (
+                        <div className="p-4 bg-muted rounded-lg border border-muted-foreground/20">
+                            <h3 className="font-medium mb-2 text-muted-foreground">
+                              This item has been delisted
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              Delisted items cannot be edited or requested by users.
+                            </p>
+                          </div>
+                      ) : request.status === "awaiting_pickup_confirmation" ? (
                         <div className="mt-2">
                           <Link
                             href={`/item/${request.item.id}`}
@@ -305,8 +318,7 @@ export default function ProfilePage() {
                             </div>
                           </Link>
                         </div>
-                      )}
-                      {request.status === "accepted" &&
+                      ) : request.status === "accepted" &&
                         request.item.pickupStart && (
                           <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
                             <h3 className="font-medium mb-2">
