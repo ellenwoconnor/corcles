@@ -83,19 +83,19 @@ export default function WishlistsPage() {
   // Filter items that were created to fulfill user's wishlists
   const getFulfillmentItemsForWishlist = (wishlistId: number) => {
     // Return items that specifically fulfill this wishlist ID
+    console.log("Called with data", allItems);
     return allItems.filter(
       (item) =>
         // Check if this item is explicitly linked to this wishlist
         item.wishlistId === wishlistId &&
         // And check if the user is the recipient
-        item.recipientId === user?.id
+        item.recipientId === user?.id,
     );
   };
 
   // Navigate to the listing that fulfills the wishlist
   const viewFulfillmentListing = (wishlistId: number) => {
     const fulfillmentItems = getFulfillmentItemsForWishlist(wishlistId);
-    console.log("?", fulfillmentItems);
     if (fulfillmentItems.length > 0) {
       setLocation(`/item/${fulfillmentItems[0].id}`);
     }
