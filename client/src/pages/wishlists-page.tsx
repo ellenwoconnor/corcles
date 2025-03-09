@@ -162,7 +162,12 @@ export default function WishlistsPage() {
                       <Lock className="h-4 w-4 text-muted-foreground" />
                     )}
                   </CardTitle>
-                  <CardDescription>{wishlist.description}</CardDescription>
+                  <CardDescription className="flex flex-col">
+                    <span className="text-xs text-muted-foreground mb-1">
+                      Posted by {wishlist.userDisplayName || "Anonymous"}
+                    </span>
+                    {wishlist.description}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2 mb-2">
