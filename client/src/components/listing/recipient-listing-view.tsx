@@ -121,8 +121,8 @@ export default function RecipientListingView({
 
         {/* Interactions Section */}
         <div className="border-t border-border pt-4">
-          {/* First show pickup scheduling if needed */}
-          {showPickupScheduler && (
+          {/* Only show pickup scheduler if pickup time is not already confirmed */}
+          {showPickupScheduler && !item.pickupStart && !item.pickupEnd && (
             <div className="space-y-4">
               <PickupTimeSelector
                 itemId={item.id}
