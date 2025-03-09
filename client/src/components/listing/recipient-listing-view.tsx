@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { CancelButton } from "@/components/cancel-button";
+import { useQuery } from "@tanstack/react-query";
 
 interface RecipientListingViewProps {
   item: Item & { userHasFavorited?: boolean };
@@ -49,6 +50,12 @@ export default function RecipientListingView({
 
   // Check if this item is a wishlist fulfillment
   const isWishlistFulfillment = item.wishlistId;
+
+  // Get wishlist information if this item is fulfilling a wishlist
+  const { data: wishlist } = useQuery({
+    queryKey: [`/api/wishlists/${item.wishlistId}`],
+    enabled: !!item.wishlistId,
+  });
 
   return (
     <div className="grid md:grid-cols-2 gap-8">

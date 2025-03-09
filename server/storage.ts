@@ -104,6 +104,7 @@ export interface IStorage {
   getUserWishlists(userId: number): Promise<Wishlist[]>;
   getCommunityWishlists(communityId: number): Promise<Wishlist[]>;
   updateWishlist(id: number, userId: number, updates: Partial<InsertWishlist>): Promise<Wishlist | undefined>;
+  getWishlistFulfillmentItems(wishlistId: number): Promise<Item[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1138,6 +1139,26 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       logger.error('Error updating wishlist:', { error, wishlistId: id, updates });
       throw error;
+    }
+  }
+
+  async getWishlistFulfillmentItems(wishlistId: number): Promise<Item[]> {
+    try {
+      const items = await db
+        .select()
+        .from(items)
+        .where(eq(items.wishlistId, wishlistId));
+
+      return items.map(item => ({
+        ...item,
+        createdAt: item.createdAt.toISOString(),
+      }));
+    } catch (error) {
+      logger.error("Error fetching wishlist fulfillment items:", {
+        wishlistId,
+        error,
+      });
+      return [];
     }
   }
 }

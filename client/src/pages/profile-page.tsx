@@ -46,10 +46,23 @@ export default function ProfilePage() {
     enabled: !!user,
   });
   
-  // Get all items to find wishlist fulfillments
-  const { data: allItems = [] } = useQuery<Item[]>({
-    queryKey: ["/api/items"],
+  // Get communities to properly fetch items 
+  const { data: userCommunities = [] } = useQuery({
+    queryKey: ["/api/user/communities"],
     enabled: !!user,
+  });
+
+  // Get items with community filter to avoid the 400 error
+  const { data: allItems = [] } = useQuery<Item[]>({
+    queryKey: ["/api/items", userCommunities],
+    enabled: !!user && userCommunities.length > 0,
+    queryFn: async () => {
+      if (!userCommunities.length) return [];
+      const communityIds = userCommunities.map(c => c.id).join(',');
+      const response = await fetch(`/api/items?communities=${communityIds}`);
+      if (!response.ok) return [];
+      return response.json();
+    }
   });
 
   const pendingConfirmations =

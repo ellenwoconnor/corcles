@@ -11,12 +11,12 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { CancelButton } from "@/components/cancel-button";
 import { ExtendedItem } from "@/pages/listing-page";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { DelistButton } from "@/components/delist-button";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { UserCheck } from "lucide-react";
+
 
 interface OwnerListingViewProps {
   item: ExtendedItem;
@@ -102,6 +102,14 @@ export default function OwnerListingView({
 
   // Check if this item is a wishlist fulfillment
   const isWishlistFulfillment = item.wishlistId && item.recipientId;
+
+  // Get wishlist information if this item is fulfilling a wishlist
+  const { data: wishlist } = useQuery({
+    queryKey: [`/api/wishlists/${item.wishlistId}`],
+    enabled: !!item.wishlistId,
+  });
+
+  const recipientUsername = "Unknown"; // Placeholder, replace with actual fetching logic
 
   return (
     <div className="grid md:grid-cols-2 gap-8">
@@ -273,6 +281,35 @@ export default function OwnerListingView({
           <div className="flex gap-2 mt-auto pt-4">
             <EditListingDialog item={item} />
             <DelistButton itemId={item.id} />
+          </div>
+        )}
+
+        {item.recipientId && (
+          <div className="border rounded-md p-4 bg-green-50 border-green-200 mb-4">
+            <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-green-600" />
+              <span>Recipient Selected</span>
+            </h2>
+            <p className="text-sm mb-3">
+              This item is being given to{" "}
+              <span className="font-medium">{recipientUsername}</span>
+              {item.wishlistId && wishlist && (
+                <span className="ml-1">
+                  for their wishlist "
+                  <span className="font-medium">{wishlist.title}</span>"
+                </span>
+              )}
+            </p>
+            {item.pickupStart && (
+              <div className="mt-3 p-3 bg-white rounded-sm border border-green-100">
+                <h4 className="text-sm font-medium mb-1">Pickup Time</h4>
+                <p className="text-sm text-muted-foreground">
+                  {format(new Date(item.pickupStart), "EEEE, MMMM d")} at{" "}
+                  {format(new Date(item.pickupStart), "h:mm a")} -{" "}
+                  {format(new Date(item.pickupEnd!), "h:mm a")}
+                </p>
+              </div>
+            )}
           </div>
         )}
 
