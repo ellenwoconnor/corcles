@@ -85,6 +85,7 @@ export default function WishlistsPage() {
     // First, check if the wishlist creator is a recipient of any items
     // This is a temporary solution until wishlist-specific tracking is implemented
     const wishlist = userWishlists.find((w) => w.id === wishlistId);
+    console.log("test", wishlist);
     if (!wishlist) return [];
 
     return allItems.filter(
