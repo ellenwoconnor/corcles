@@ -62,8 +62,9 @@ interface ListingFormProps {
     role: string;
     memberCount: number;
   }>;
+  communityId?: number; // Added prop for direct community ID
   defaultValues?: any;
-  onSuccess?: (data: any) => void; // Added data type to onSuccess
+  onSuccess?: (data: any) => void;
   isLoading?: boolean;
   buttonText: string;
 }
@@ -72,6 +73,7 @@ export function ListingForm({
   mode,
   itemId,
   communities = [],
+  communityId,
   defaultValues = {},
   onSuccess,
   isLoading: externalLoading,
@@ -93,8 +95,7 @@ export function ListingForm({
       isGift: true,
       imageUrl: "",
       userId: user?.id,
-      communityId:
-        defaultValues.communityId ||
+      communityId: communityId || defaultValues.communityId || 
         (communities.length > 0 ? communities[0].id : undefined),
       pickupLocation: defaultValues.pickupLocation || user?.address || "",
       ...defaultValues,
@@ -124,7 +125,7 @@ export function ListingForm({
       formData.append("userId", String(user.id));
 
       if (mode === "create") {
-        formData.append("communityId", String(data.communityId));
+        formData.append("communityId", String(communityId || data.communityId));
       }
 
       formData.append(
@@ -139,8 +140,7 @@ export function ListingForm({
       }
 
       const method = mode === "create" ? "POST" : "PATCH";
-      const endpoint =
-        mode === "create" ? "/api/items" : `/api/items/${itemId}`;
+      const endpoint = mode === "create" ? "/api/items" : `/api/items/${itemId}`;
 
       const response = await apiRequest(method, endpoint, formData);
 
@@ -158,7 +158,6 @@ export function ListingForm({
         description: `Item ${mode === "create" ? "created" : "updated"} successfully.`,
       });
       if (onSuccess) {
-        // Pass the created/updated item to the callback
         onSuccess(data);
       }
     },
@@ -217,6 +216,7 @@ export function ListingForm({
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
           name="description"
@@ -230,6 +230,7 @@ export function ListingForm({
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
           name="isGift"
@@ -268,7 +269,7 @@ export function ListingForm({
           />
         )}
 
-        {mode === "create" && (
+        {mode === "create" && !communityId && (
           <FormField
             control={form.control}
             name="communityId"

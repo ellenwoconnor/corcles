@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -38,11 +38,6 @@ export default function FulfillWishlistDialog({
       });
     }
   }, [open, wishlist, toast]);
-
-  const { data: userCommunities = [] } = useQuery<any[]>({
-    queryKey: ["/api/user/communities"],
-    enabled: !!user,
-  });
 
   // Mutation to set a recipient for an item
   const setRecipient = useMutation({
@@ -117,9 +112,8 @@ export default function FulfillWishlistDialog({
         </DialogHeader>
         <ListingForm
           mode="create"
-          communities={userCommunities}
+          communityId={wishlist?.communityId}
           onSuccess={(newItem) => {
-            // Get the newly created item ID and set the recipient
             try {
               console.log("Item creation response:", newItem);
 
