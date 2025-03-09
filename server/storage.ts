@@ -309,18 +309,16 @@ export class DatabaseStorage implements IStorage {
         excludeItemsWithRecipients
       });
 
-      // First select all fields from items table directly
       const query = db
         .select({
           ...items,
           userDisplayName: sql<string>`(
             SELECT username FROM ${users} WHERE ${users.id} = ${items.userId}
-          )`.as("userDisplayName"),
-          userHasFavorited: sql<boolean>`false`.as("userHasFavorited"),
+          )`,
+          userHasFavorited: sql<boolean>`false`,
         })
         .from(items);
 
-      // Build query conditions
       const conditions = [];
 
       // Don't show completed or delisted items unless viewing own items
@@ -354,7 +352,6 @@ export class DatabaseStorage implements IStorage {
         );
       }
 
-      // Apply all conditions and get raw results
       const results = await query
         .where(and(...conditions))
         .orderBy(desc(items.createdAt));
@@ -365,17 +362,14 @@ export class DatabaseStorage implements IStorage {
         results
       });
 
-      // Transform dates and handle null values
       return results.map(item => ({
         ...item,
-        proposedPickupWindows: item.proposedPickupWindows
-          ? (item.proposedPickupWindows as PickupWindow[])
-          : undefined,
-        pickupStart: item.pickupStart ? new Date(item.pickupStart).toISOString() : null,
-        pickupEnd: item.pickupEnd ? new Date(item.pickupEnd).toISOString() : null,
-        createdAt: new Date(item.createdAt).toISOString(),
+        proposedPickupWindows: item.proposedPickupWindows || [],
+        pickupStart: item.pickupStart ? item.pickupStart.toISOString() : null,
+        pickupEnd: item.pickupEnd ? item.pickupEnd.toISOString() : null,
+        createdAt: item.createdAt.toISOString(),
         userDisplayName: item.userDisplayName || "Anonymous",
-        userHasFavorited: item.userHasFavorited || false
+        userHasFavorited: Boolean(item.userHasFavorited)
       }));
 
     } catch (error) {
@@ -394,8 +388,8 @@ export class DatabaseStorage implements IStorage {
           ...items,
           userDisplayName: sql<string>`(
             SELECT username FROM ${users} WHERE ${users.id} = ${items.userId}
-          )`.as("userDisplayName"),
-          userHasFavorited: sql<boolean>`false`.as("userHasFavorited"),
+          )`,
+          userHasFavorited: sql<boolean>`false`,
         })
         .from(items)
         .where(eq(items.id, id));
@@ -404,14 +398,12 @@ export class DatabaseStorage implements IStorage {
 
       return {
         ...item,
-        proposedPickupWindows: item.proposedPickupWindows
-          ? (item.proposedPickupWindows as PickupWindow[])
-          : undefined,
-        pickupStart: item.pickupStart ? new Date(item.pickupStart).toISOString() : null,
-        pickupEnd: item.pickupEnd ? new Date(item.pickupEnd).toISOString() : null,
-        createdAt: new Date(item.createdAt).toISOString(),
+        proposedPickupWindows: item.proposedPickupWindows || [],
+        pickupStart: item.pickupStart ? item.pickupStart.toISOString() : null,
+        pickupEnd: item.pickupEnd ? item.pickupEnd.toISOString() : null,
+        createdAt: item.createdAt.toISOString(),
         userDisplayName: item.userDisplayName || "Anonymous",
-        userHasFavorited: item.userHasFavorited || false
+        userHasFavorited: Boolean(item.userHasFavorited)
       };
 
     } catch (error) {
@@ -1039,7 +1031,7 @@ export class DatabaseStorage implements IStorage {
 
   async getUserRole(userId: number, communityId: number): Promise<string | undefined> {
     try {
-      const [membership] = await db
+      const [membership] = awaitdb
         .select()
         .from(userCommunities)
         .where(

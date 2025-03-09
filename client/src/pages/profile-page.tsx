@@ -47,6 +47,15 @@ export default function ProfilePage() {
     (item) => item.status === "requested" && !item.pickupStart,
   );
 
+  const status_text = {
+    completed: "Pickup Complete",
+    scheduled: "Pickup Scheduled",
+    scheduling: "Setting Pickup Time",
+    requested: "Requests Received",
+    available: "Available",
+    delisted: "Delisted",
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
@@ -161,15 +170,7 @@ export default function ProfilePage() {
                                     : ""
                                 }
                               >
-                                {item.status === "completed"
-                                  ? "Pickup Complete"
-                                  : item.status === "scheduled"
-                                    ? "Pickup Scheduled"
-                                    : item.status === "scheduling"
-                                      ? "Setting Pickup Time"
-                                      : item.status === "requested"
-                                        ? "Requests Received"
-                                        : "Available"}
+                                {status_text[status_textitem.status]}
                               </Badge>
                             </div>
                             <CardDescription className="text-sm">
