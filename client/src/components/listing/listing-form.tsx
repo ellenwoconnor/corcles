@@ -86,6 +86,7 @@ export function ListingForm({
 
   const schema = mode === "create" ? createItemSchema : editItemSchema;
 
+  // Ensure communityId is properly set in form defaults
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -95,8 +96,8 @@ export function ListingForm({
       isGift: true,
       imageUrl: "",
       userId: user?.id,
-      communityId: communityId || defaultValues.communityId || 
-        (communities.length > 0 ? communities[0].id : undefined),
+      // Prioritize passed communityId
+      communityId: communityId,
       pickupLocation: defaultValues.pickupLocation || user?.address || "",
       ...defaultValues,
     },
@@ -114,18 +115,18 @@ export function ListingForm({
         throw new Error("Title is required");
       }
 
-      if (mode === "create" && !data.communityId) {
-        throw new Error("Community selection is required");
-      }
-
       formData.append("title", data.title.trim());
       formData.append("description", data.description || "");
       formData.append("isGift", String(data.isGift));
       formData.append("price", data.isGift ? "0" : String(data.price || 0));
       formData.append("userId", String(user.id));
 
+      // Always use the passed communityId for wishlist fulfillment
       if (mode === "create") {
-        formData.append("communityId", String(communityId || data.communityId));
+        if (!communityId) {
+          throw new Error("Community ID is required");
+        }
+        formData.append("communityId", String(communityId));
       }
 
       formData.append(
