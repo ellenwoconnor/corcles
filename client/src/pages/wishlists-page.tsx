@@ -12,33 +12,33 @@ import { useLocation } from "wouter";
 function formatTimeAgo(date: Date): string {
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  
+
   if (diffInSeconds < 60) {
-    return 'just now';
+    return "just now";
   }
-  
+
   const diffInMinutes = Math.floor(diffInSeconds / 60);
   if (diffInMinutes < 60) {
-    return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`;
+    return `${diffInMinutes} ${diffInMinutes === 1 ? "minute" : "minutes"} ago`;
   }
-  
+
   const diffInHours = Math.floor(diffInMinutes / 60);
   if (diffInHours < 24) {
-    return `${diffInHours} ${diffInHours === 1 ? 'hour' : 'hours'} ago`;
+    return `${diffInHours} ${diffInHours === 1 ? "hour" : "hours"} ago`;
   }
-  
+
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 30) {
-    return `${diffInDays} ${diffInDays === 1 ? 'day' : 'days'} ago`;
+    return `${diffInDays} ${diffInDays === 1 ? "day" : "days"} ago`;
   }
-  
+
   const diffInMonths = Math.floor(diffInDays / 30);
   if (diffInMonths < 12) {
-    return `${diffInMonths} ${diffInMonths === 1 ? 'month' : 'months'} ago`;
+    return `${diffInMonths} ${diffInMonths === 1 ? "month" : "months"} ago`;
   }
-  
+
   const diffInYears = Math.floor(diffInMonths / 12);
-  return `${diffInYears} ${diffInYears === 1 ? 'year' : 'years'} ago`;
+  return `${diffInYears} ${diffInYears === 1 ? "year" : "years"} ago`;
 }
 import {
   Card,
@@ -60,42 +60,44 @@ export default function WishlistsPage() {
       queryKey: ["/api/user/wishlists"],
       enabled: !!user,
     });
-    
+
   // Get communities first to properly fetch items
   const { data: userCommunities = [] } = useQuery({
     queryKey: ["/api/user/communities"],
     enabled: !!user,
   });
-  
+
   // Get user items to check if any fulfill the user's wishlists
   const { data: allItems = [] } = useQuery<any[]>({
     queryKey: ["/api/items", userCommunities],
     enabled: !!user && userCommunities.length > 0,
     queryFn: async () => {
       if (!userCommunities.length) return [];
-      const communityIds = userCommunities.map(c => c.id).join(',');
+      const communityIds = userCommunities.map((c) => c.id).join(",");
       const response = await fetch(`/api/items?communities=${communityIds}`);
       if (!response.ok) return [];
       return response.json();
-    }
+    },
   });
-  
+
   // Filter items that were created to fulfill user's wishlists
   const getFulfillmentItemsForWishlist = (wishlistId: number) => {
     // First, check if the wishlist creator is a recipient of any items
     // This is a temporary solution until wishlist-specific tracking is implemented
-    const wishlist = userWishlists.find(w => w.id === wishlistId);
+    const wishlist = userWishlists.find((w) => w.id === wishlistId);
     if (!wishlist) return [];
-    
-    return allItems.filter(item => 
-      // Check if this item is being given to the wishlist creator
-      item.recipientId === wishlist.userId
+
+    return allItems.filter(
+      (item) =>
+        // Check if this item is being given to the wishlist creator
+        item.recipientId === wishlist.userId,
     );
   };
-  
+
   // Navigate to the listing that fulfills the wishlist
   const viewFulfillmentListing = (wishlistId: number) => {
     const fulfillmentItems = getFulfillmentItemsForWishlist(wishlistId);
+    console.log("?", fulfillmentItems);
     if (fulfillmentItems.length > 0) {
       setLocation(`/item/${fulfillmentItems[0].id}`);
     }
@@ -148,10 +150,13 @@ export default function WishlistsPage() {
                         Budget: ${wishlist.budget}
                       </Badge>
                     )}
-                    
+
                     {/* Check if this wishlist has fulfillment offers */}
                     {getFulfillmentItemsForWishlist(wishlist.id).length > 0 && (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
+                      <Badge
+                        variant="outline"
+                        className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"
+                      >
                         <Gift className="h-3 w-3" />
                         Fulfilled
                       </Badge>
@@ -160,13 +165,13 @@ export default function WishlistsPage() {
                   <div className="text-xs text-muted-foreground">
                     Posted {formatTimeAgo(new Date(wishlist.createdAt))}
                   </div>
-                  
+
                   {/* Show view button for fulfilled wishlists */}
                   {getFulfillmentItemsForWishlist(wishlist.id).length > 0 && (
                     <div className="mt-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="text-xs flex items-center gap-1"
                         onClick={() => viewFulfillmentListing(wishlist.id)}
                       >
