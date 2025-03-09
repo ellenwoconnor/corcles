@@ -45,6 +45,11 @@ export default function RecipientListingView({
   // Ensure we have valid IDs for messaging
   const itemOwnerId = item.userId;
 
+  const pickupScheduled = item.pickupStart && item.pickupEnd;
+
+  // Check if this item is a wishlist fulfillment
+  const isWishlistFulfillment = item.wishlistId;
+
   return (
     <div className="grid md:grid-cols-2 gap-8">
       {/* Item Image */}
@@ -60,9 +65,25 @@ export default function RecipientListingView({
       <div className="space-y-6">
         {/* Header Section */}
         <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2">
-            {item.title}
-          </h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold tracking-tight">{item.title}</h1>
+            <div className="flex items-center gap-2">
+              {isWishlistFulfillment && (
+                <Badge
+                  variant="outline"
+                  className="bg-green-50 text-green-700 border-green-200"
+                >
+                  From Your Wishlist
+                </Badge>
+              )}
+              <Badge
+                variant="outline"
+                className="text-sm h-6 px-2 font-normal"
+              >
+                {pickupScheduled ? "Pickup Scheduled" : "Pickup Pending"}
+              </Badge>
+            </div>
+          </div>
           <div className="flex items-center gap-4">
             {item.isGift ? (
               <div className="inline-block bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">

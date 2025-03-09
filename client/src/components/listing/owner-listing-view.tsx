@@ -90,6 +90,19 @@ export default function OwnerListingView({
     },
   });
 
+  const statusText = {
+    completed: "Transaction Complete",
+    scheduled: "Pickup Scheduled",
+    scheduling: "Setting Pickup Time",
+    requested: "Requests Received",
+    available: "Available",
+    delisted: "Delisted",
+    pending_pickup: "Pending Pickup",
+  };
+
+  // Check if this item is a wishlist fulfillment
+  const isWishlistFulfillment = item.wishlistId && item.recipientId;
+
   return (
     <div className="grid md:grid-cols-2 gap-8">
       <div>
@@ -102,7 +115,30 @@ export default function OwnerListingView({
 
       <div className="flex flex-col gap-4">
         <div>
-          <h1 className="text-3xl font-bold">{item.title}</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold tracking-tight">{item.title}</h1>
+            <div className="flex items-center gap-2">
+              {isWishlistFulfillment && (
+                <Badge
+                  variant="outline"
+                  className="bg-green-50 text-green-700 border-green-200"
+                >
+                  Wishlist Fulfillment
+                </Badge>
+              )}
+              <Badge
+                variant={
+                  item.status === "pending_pickup" ||
+                  item.status === "scheduled"
+                    ? "outline"
+                    : "secondary"
+                }
+                className="text-sm h-6 px-2 font-normal"
+              >
+                {statusText[item.status]}
+              </Badge>
+            </div>
+          </div>
           {item.isGift ? (
             <Badge className="mt-2">Free</Badge>
           ) : (
@@ -153,8 +189,8 @@ export default function OwnerListingView({
                 {activeRequest
                   ? "Active Request"
                   : hasRequests
-                    ? `Requests (${requests.length})`
-                    : "No Requests Yet"}
+                  ? `Requests (${requests.length})`
+                  : "No Requests Yet"}
               </h3>
             </div>
             <div className="p-4">

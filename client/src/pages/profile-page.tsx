@@ -1,6 +1,6 @@
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { Item, ItemRequest, ItemBid } from "@shared/schema";
+import { Item, ItemRequest, ItemBid, Wishlist } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -12,10 +12,11 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Package, Gift, Tag, Clock } from "lucide-react";
+import { Loader2, Package, Gift, Tag, Clock, ListChecks } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import WishlistFulfillmentView from "@/components/wishlist-fulfillment-view";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -38,6 +39,18 @@ export default function ProfilePage() {
     queryKey: ["/api/user/bids"],
     enabled: !!user,
   });
+  
+  // Fetch user's wishlists
+  const { data: userWishlists = [], isLoading: wishlistsLoading } = useQuery<Wishlist[]>({
+    queryKey: ["/api/user/wishlists"],
+    enabled: !!user,
+  });
+  
+  // Get all items to find wishlist fulfillments
+  const { data: allItems = [] } = useQuery<Item[]>({
+    queryKey: ["/api/items"],
+    enabled: !!user,
+  });
 
   const pendingConfirmations =
     userRequests?.filter((r) => r.status === "awaiting_pickup_confirmation") ||
@@ -46,6 +59,14 @@ export default function ProfilePage() {
   const requestedItems = userItems?.filter(
     (item) => item.status === "requested" && !item.pickupStart,
   );
+  
+  // Function to get fulfillment items for a wishlist
+  const getFulfillmentItemsForWishlist = (wishlistId: number) => {
+    return allItems.filter(item => 
+      // Check if this item is assigned to this specific wishlist
+      item.wishlistId === wishlistId && item.recipientId === user?.id
+    );
+  };
 
   const statusText = {
     completed: "Pickup Complete",
@@ -122,6 +143,10 @@ export default function ProfilePage() {
             <TabsTrigger value="bids" className="flex items-center gap-2">
               <Tag className="h-4 w-4" />
               My Bids
+            </TabsTrigger>
+            <TabsTrigger value="wishlists" className="flex items-center gap-2">
+              <ListChecks className="h-4 w-4" />
+              My Wishlists
             </TabsTrigger>
           </TabsList>
 
@@ -406,6 +431,67 @@ export default function ProfilePage() {
                     </CardHeader>
                   </Card>
                 ))
+              )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="wishlists">
+            <div className="grid gap-4">
+              {!userWishlists || userWishlists.length === 0 ? (
+                <Card>
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-base">No Wishlists</CardTitle>
+                    <CardDescription>
+                      You haven't created any wishlists yet.
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              ) : (
+                userWishlists.map((wishlist) => {
+                  const fulfillmentItems = getFulfillmentItemsForWishlist(wishlist.id);
+                  
+                  return (
+                    <Card key={wishlist.id}>
+                      <CardHeader className="py-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-base">{wishlist.title}</CardTitle>
+                          {fulfillmentItems.length > 0 && (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
+                              <Gift className="h-3 w-3" />
+                              {fulfillmentItems.length === 1 ? "Fulfilled" : `${fulfillmentItems.length} Offers`}
+                            </Badge>
+                          )}
+                        </div>
+                        <CardDescription className="text-sm">
+                          Created {formatDistanceToNow(new Date(wishlist.createdAt), {
+                            addSuffix: true,
+                          })}
+                        </CardDescription>
+                        {wishlist.description && (
+                          <p className="text-sm mt-2 text-muted-foreground">
+                            {wishlist.description}
+                          </p>
+                        )}
+                      </CardHeader>
+                      <CardContent>
+                        {/* Show fulfillment items if any */}
+                        <WishlistFulfillmentView 
+                          wishlistId={wishlist.id}
+                          fulfillmentItems={fulfillmentItems}
+                        />
+                        
+                        {/* Link to create more wishlist items */}
+                        <div className="mt-3">
+                          <Link href="/wishlists">
+                            <Button variant="outline" size="sm">
+                              Manage Wishlists
+                            </Button>
+                          </Link>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
               )}
             </div>
           </TabsContent>
