@@ -8,8 +8,6 @@ import Navbar from "@/components/navbar";
 import PublicListingView from "@/components/listing/public-listing-view";
 import OwnerListingView from "@/components/listing/owner-listing-view";
 import RecipientListingView from "@/components/listing/recipient-listing-view";
-import DelistedListingView from "@/components/listing/delisted-listing-view"; // Added import
-
 
 interface PickupWindow {
   pickupStart: string;
@@ -110,28 +108,16 @@ export default function ListingPage() {
       <div className="min-h-screen bg-background">
         <Navbar />
         <main className="container py-12">
-          <h1 className="text-3xl font-bold">Item not found</h1>
-          <p className="text-muted-foreground my-4">
-            The item you're looking for doesn't exist or has been removed.
-          </p>
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">Item not found</h1>
+            <p className="text-muted-foreground">
+              The item you're looking for doesn't exist or has been removed.
+            </p>
+          </div>
         </main>
       </div>
     );
   }
-
-  // Show delisted view if the item is delisted
-  if (item.status === "delisted") {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <DelistedListingView item={item} />
-      </div>
-    );
-  }
-
-  // Determine which view to show
-  const isOwner = user?.id === item.userId;
-  const isRecipient = user?.id === item.recipientId;
 
   return (
     <div className="min-h-screen bg-background">
