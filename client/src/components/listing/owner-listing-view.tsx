@@ -12,6 +12,7 @@ import { useState } from "react";
 import { CancelButton } from "@/components/cancel-button";
 import { ExtendedItem } from "@/pages/listing-page";
 import { useQueryClient } from "@tanstack/react-query";
+import { DelistButton } from "@/components/delist-button";
 
 interface OwnerListingViewProps {
   item: ExtendedItem;
@@ -37,7 +38,6 @@ export default function OwnerListingView({
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  // Find the request that matches the selected recipient
   const activeRequest = item.recipientId
     ? requests.find((r) => r.requesterId === item.recipientId)
     : requests.find((r) =>
@@ -58,7 +58,6 @@ export default function OwnerListingView({
 
   return (
     <div className="grid md:grid-cols-2 gap-8">
-      {/* Item Image */}
       <div>
         <img
           src={item.imageUrl}
@@ -67,9 +66,7 @@ export default function OwnerListingView({
         />
       </div>
 
-      {/* Item Details */}
       <div className="space-y-6">
-        {/* Header Section */}
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-2">
             {item.title}
@@ -82,26 +79,27 @@ export default function OwnerListingView({
             ) : (
               <p className="text-2xl font-bold text-primary">${item.price}</p>
             )}
-            <EditListingDialog
-              item={item}
-              trigger={
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Pencil className="h-4 w-4" />
-                  Edit Listing
-                </Button>
-              }
-            />
+            <div className="flex items-center gap-2">
+              <EditListingDialog
+                item={item}
+                trigger={
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Pencil className="h-4 w-4" />
+                    Edit Listing
+                  </Button>
+                }
+              />
+              <DelistButton itemId={item.id} variant="outline" />
+            </div>
           </div>
         </div>
 
-        {/* Description */}
         <div className={SECTION_CLASS}>
           <p className="text-muted-foreground whitespace-pre-wrap">
             {item.description}
           </p>
         </div>
 
-        {/* Requests/Bids Section */}
         <div className={SECTION_CLASS}>
           <div className="flex items-center justify-between">
             <h3 className="text-base font-medium">
@@ -124,7 +122,6 @@ export default function OwnerListingView({
           </div>
         </div>
 
-        {/* Show confirmed pickup time if it exists */}
         {item.pickupStart && item.pickupEnd && (
           <div className={SECTION_CLASS}>
             <h3 className="font-medium mb-2">Confirmed Pickup Time</h3>
@@ -141,7 +138,6 @@ export default function OwnerListingView({
           </div>
         )}
 
-        {/* Pickup Scheduling Section */}
         {showPickupScheduler && (
           <div className={SECTION_CLASS}>
             <h3 className="text-base font-medium">Pickup Scheduling</h3>
@@ -190,7 +186,6 @@ export default function OwnerListingView({
           </div>
         )}
 
-        {/* Message and Cancel Section */}
         {item.isGift && showMessageAndCancel && (
           <div className={SECTION_CLASS}>
             <div className="flex items-center gap-4">
@@ -211,7 +206,6 @@ export default function OwnerListingView({
           </div>
         )}
 
-        {/* Pickup Location */}
         {item.pickupLocation && (
           <div className="mb-4 flex items-center text-sm text-muted-foreground">
             <MapPin className="w-4 h-4 mr-1" />
