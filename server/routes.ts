@@ -590,7 +590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             isGift: z.boolean(),
             imageUrl: z.string(),
             userId: z.number(),
-            communityId: z.number({
+            communityId: z.coerce.number({
               required_error: "Please select a community",
             }),
             pickupLocation: z.string().nullable().optional(),
