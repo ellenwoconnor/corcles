@@ -1,0 +1,104 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Base colors */
+  --background: 0 0% 98%;
+  --foreground: 240 10% 14%;
+  
+  /* Primary: Green */
+  --primary: 145 50% 40%;
+  --primary-foreground: 0 0% 100%;
+  
+  /* Card */
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 14%;
+  
+  /* Muted */
+  --muted: 240 5% 96%;
+  --muted-foreground: 240 4% 46%;
+  
+  /* Accent */
+  --accent: 25 70% 85%;
+  --accent-foreground: 240 6% 10%;
+  
+  /* Border */
+  --border: 240 6% 90%;
+  
+  /* Input */
+  --input: 240 6% 90%;
+  
+  /* Radius */
+  --radius: 0.75rem;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* Button */
+button, 
+.button {
+  border-radius: 12px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+button:hover,
+.button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Card */
+.card {
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Search input */
+input[type="search"], 
+.search-input {
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+input::placeholder {
+  color: #B0B0B0;
+}
+
+/* Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Section padding */
+.section {
+  padding: 40px 0;
+}
+
+/* Grid */
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+@media (max-width: 768px) {
+  .grid-container {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+}

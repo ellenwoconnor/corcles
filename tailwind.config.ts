@@ -5,6 +5,15 @@ export default {
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+      },
+      boxShadow: {
+        'card': '0px 4px 6px rgba(0, 0, 0, 0.05)',
+        'button': '0px 4px 6px rgba(0, 0, 0, 0.1)',
+        'hover': '0px 6px 8px rgba(0, 0, 0, 0.1)',
+        'input': '0px 2px 4px rgba(0, 0, 0, 0.05)',
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
