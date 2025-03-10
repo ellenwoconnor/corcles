@@ -23,11 +23,13 @@ interface TimeWindow {
 
 interface PickupSchedulerProps {
   itemId: number;
+  itemStatus: string; // Added itemStatus prop
   onScheduled: () => void;
 }
 
 export default function PickupScheduler({
   itemId,
+  itemStatus, // Using itemStatus prop
   onScheduled,
 }: PickupSchedulerProps) {
   const { toast } = useToast();
@@ -131,7 +133,9 @@ export default function PickupScheduler({
   return (
     <Drawer open={isOpen} onOpenChange={setIsOpen}>
       <DrawerTrigger asChild>
-        <Button>Schedule Pickup</Button>
+        <Button>
+          {['scheduling', 'scheduled'].includes(itemStatus) ? 'Update pickup times' : 'Set Pickup Times'}
+        </Button>
       </DrawerTrigger>
       <DrawerContent>
         <DrawerHeader>

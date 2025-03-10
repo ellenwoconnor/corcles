@@ -1,103 +1,150 @@
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { Item } from "@shared/schema";
+import { Item, type Community } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import ItemGrid from "@/components/item-grid";
 import CreateListingDialog from "@/components/create-listing-dialog";
+import { WelcomeDialog } from "@/components/welcome-dialog";
 import { Loader2, Search, Gift } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
+import CommunityWishlists from "@/components/community-wishlists";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Card } from "@/components/ui/card";
+import ItemCard from "@/components/item-card";
+import FadeIn from "@/components/fade-in";
+
+// Add 'use client' directive for Next.js strict mode
+("use client");
 
 export default function HomePage() {
   const { user } = useAuth();
-  const [search, setSearch] = useState("");
+  const [searchValue, setSearchValue] = useState("");
   const [showFreeOnly, setShowFreeOnly] = useState(false);
-  const debouncedSearch = useDebounce(search, 300);
-
-  const { data: items, isLoading } = useQuery<
-    (Item & { userHasFavorited: boolean })[]
+  const [showWelcome, setShowWelcome] = useState(false);
+  const debouncedSearchValue = useDebounce(searchValue, 300);
+  const { data: userCommunities = [] } = useQuery<
+    (Community & { role: string; memberCount: number })[]
   >({
-    queryKey: [`/api/items/${user?.community}`, debouncedSearch, showFreeOnly],
+    queryKey: ["/api/user/communities"],
+    enabled: !!user,
+  });
+
+  const communityIds = userCommunities.map((c) => c.id);
+
+  const { data: items = [], isLoading } = useQuery<Item[]>({
+    queryKey: ["/api/items", communityIds, debouncedSearchValue, showFreeOnly],
     queryFn: async () => {
-      const searchParams = new URLSearchParams();
-      if (debouncedSearch) {
-        searchParams.append("search", debouncedSearch);
+      if (communityIds.length === 0) return [];
+      const params = new URLSearchParams();
+      params.append("communities", communityIds.join(","));
+
+      if (debouncedSearchValue.trim()) {
+        params.append("search", debouncedSearchValue.trim());
       }
-      const response = await fetch(
-        `/api/items/${user?.community}?${searchParams.toString()}`,
-      );
+
+      // Always explicitly send the freeOnly parameter
+      params.append("freeOnly", showFreeOnly ? "true" : "false");
+
+      const response = await fetch(`/api/items?${params}`);
       if (!response.ok) {
         throw new Error("Failed to fetch items");
       }
-      const allItems = await response.json();
-      return showFreeOnly
-        ? allItems.filter((item: Item) => item.isGift)
-        : allItems;
+      return response.json();
     },
-    enabled: !!user?.community,
+    enabled: communityIds.length > 0,
   });
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
+      {showWelcome && <WelcomeDialog communities={userCommunities} />}
       <main className="container py-12 px-8">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight">Marketplace</h1>
-            <p className="text-muted-foreground">
-              Browse items in your communities
-            </p>
+        <FadeIn>
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+            <div>
+              <FadeIn>
+                <h1 className="text-2xl tracking-tight">Marketplace</h1>
+              </FadeIn>
+              <p className="text-muted-foreground">
+                Browse items in your communities
+              </p>
+            </div>
+            <div className="order-first sm:order-none">
+              <CreateListingDialog communities={userCommunities} />
+            </div>
           </div>
-          <div className="order-first sm:order-none">
-            <CreateListingDialog />
-          </div>
-        </div>
+        </FadeIn>
 
         <div className="space-y-4 mb-8">
           <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search items..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
+            <div className="mt-8">
+              <div className="flex items-center mb-4">
+                <div className="relative grow mr-4">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search listings"
+                    className="pl-8"
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center">
+                  <Checkbox
+                    id="freeOnly"
+                    checked={showFreeOnly}
+                    onCheckedChange={(checked) =>
+                      setShowFreeOnly(checked === true)
+                    }
+                    className="mr-2"
+                  />
+                  <Label htmlFor="freeOnly">Free only</Label>
+                </div>
+              </div>
+
+              {isLoading ? (
+                <div className="flex justify-center items-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : items.length === 0 ? (
+                <Card className="p-6 text-center">
+                  <p>No items found in your communities.</p>
+                </Card>
+              ) : (
+                <FadeIn delay={0.1}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {items.map((item, index) => (
+                      <FadeIn key={item.id} delay={index * 0.1}>
+                        <ItemCard item={item} />
+                      </FadeIn>
+                    ))}
+                  </div>
+                </FadeIn>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="free-only"
-              checked={showFreeOnly}
-              onCheckedChange={setShowFreeOnly}
-            />
-            <Label htmlFor="free-only" className="flex items-center gap-2">
-              <Gift className="h-4 w-4" />
-              Show only free items
-            </Label>
+          <div className="mt-24">
+            <FadeIn>
+              <div className="mt-10 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+                <div>
+                  <FadeIn>
+                    <h2 className="text-2xl tracking-tight">Community Wishlists</h2>
+                  </FadeIn>
+                  <p className="text-muted-foreground">
+                    Items your neighbors are looking for
+                  </p>
+                </div>
+              </div>
+            </FadeIn>
+            <FadeIn delay={0.2}>
+              <CommunityWishlists />
+            </FadeIn>
           </div>
         </div>
-
-        {isLoading ? (
-          <div className="flex items-center justify-center min-h-[400px]">
-            <Loader2 className="h-8 w-8 animate-spin text-border" />
-          </div>
-        ) : items?.length === 0 ? (
-          <div className="text-center py-12">
-            <h2 className="text-xl font-semibold mb-2">No items found</h2>
-            <p className="text-muted-foreground">
-              {search
-                ? "Try adjusting your search terms"
-                : showFreeOnly
-                  ? "No free items available in your community yet"
-                  : "Be the first to list an item in your community"}
-            </p>
-          </div>
-        ) : (
-          <ItemGrid items={items ?? []} />
-        )}
       </main>
     </div>
   );

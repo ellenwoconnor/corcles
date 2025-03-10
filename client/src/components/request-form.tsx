@@ -78,7 +78,7 @@ export default function RequestForm({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         <Button className="flex-1" disabled={hasRequested}>
-          {hasRequested ? "Request Pending" : "Request Item"}
+          {hasRequested ? "Requested" : "Request Item"}
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -124,7 +124,6 @@ export default function RequestForm({
                   recipientId={itemOwnerId}
                   requestId={currentRequest.id}
                   currentUserId={user.id}
-                  otherPartyId={itemOwnerId}
                 />
               )}
             </div>
