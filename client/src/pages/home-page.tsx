@@ -119,7 +119,7 @@ export default function HomePage() {
           </div>
 
           <div className="mt-24">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+            <div className="mt-10 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
               <div>
                 <h2 className="text-2xl tracking-tight">Community Wishlists</h2>
                 <p className="text-muted-foreground">

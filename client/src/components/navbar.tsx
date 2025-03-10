@@ -1,5 +1,4 @@
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import GrowthLogo from "@/components/growth-logo";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
