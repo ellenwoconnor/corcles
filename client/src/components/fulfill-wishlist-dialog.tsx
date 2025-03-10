@@ -41,11 +41,23 @@ export default function FulfillWishlistDialog({
 
   // Mutation to set a recipient for an item
   const setRecipient = useMutation({
-    mutationFn: async ({ itemId, recipientId, wishlistId }: { itemId: number; recipientId: number; wishlistId: number }) => {
-      const res = await apiRequest("POST", `/api/items/${itemId}/set-recipient`, {
-        recipientId,
-        wishlistId,
-      });
+    mutationFn: async ({
+      itemId,
+      recipientId,
+      wishlistId,
+    }: {
+      itemId: number;
+      recipientId: number;
+      wishlistId: number;
+    }) => {
+      const res = await apiRequest(
+        "POST",
+        `/api/items/${itemId}/set-recipient`,
+        {
+          recipientId,
+          wishlistId,
+        },
+      );
       if (!res.ok) {
         const error = await res.json();
         throw new Error(error.error || "Failed to fulfill wishlist");
@@ -72,7 +84,7 @@ export default function FulfillWishlistDialog({
   // This handles when a new item is created
   const handleItemCreated = (newItemId: number) => {
     try {
-      if (!newItemId || typeof newItemId !== 'number') {
+      if (!newItemId || typeof newItemId !== "number") {
         throw new Error(`Invalid item ID: ${newItemId}`);
       }
 
@@ -80,21 +92,25 @@ export default function FulfillWishlistDialog({
         throw new Error("Wishlist data is missing");
       }
 
-      if (!wishlist.userId || typeof wishlist.userId !== 'number') {
+      if (!wishlist.userId || typeof wishlist.userId !== "number") {
         throw new Error(`Invalid wishlist user ID: ${wishlist?.userId}`);
       }
 
-      console.log("Setting recipient:", { itemId: newItemId, recipientId: wishlist.userId });
+      console.log("Setting recipient:", {
+        itemId: newItemId,
+        recipientId: wishlist.userId,
+      });
       setRecipient.mutate({
         itemId: newItemId,
         recipientId: wishlist.userId,
-        wishlistId: wishlist.id
+        wishlistId: wishlist.id,
       });
     } catch (error) {
       console.error("Error setting recipient:", error);
       toast({
         title: "Error fulfilling wishlist",
-        description: error.message || "Could not set recipient for the created item",
+        description:
+          error.message || "Could not set recipient for the created item",
         variant: "destructive",
       });
       onClose(); // Close dialog even if we can't set recipient
@@ -105,9 +121,9 @@ export default function FulfillWishlistDialog({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Item for Wishlist</DialogTitle>
+          <DialogTitle>Offer Item</DialogTitle>
           <DialogDescription>
-            Create an item to fulfill "{wishlist?.title}"
+            Send a private offer to fulfill "{wishlist?.title}".
           </DialogDescription>
         </DialogHeader>
         <ListingForm
@@ -121,11 +137,11 @@ export default function FulfillWishlistDialog({
                 throw new Error("No item data returned");
               }
 
-              if (typeof newItem !== 'object') {
+              if (typeof newItem !== "object") {
                 throw new Error(`Invalid item data type: ${typeof newItem}`);
               }
 
-              if (!newItem.id || typeof newItem.id !== 'number') {
+              if (!newItem.id || typeof newItem.id !== "number") {
                 throw new Error(`Invalid item ID: ${JSON.stringify(newItem)}`);
               }
 
@@ -135,7 +151,9 @@ export default function FulfillWishlistDialog({
               console.error("Error processing created item:", error);
               toast({
                 title: "Error creating item",
-                description: error.message || "Could not process the created item properly",
+                description:
+                  error.message ||
+                  "Could not process the created item properly",
                 variant: "destructive",
               });
               onClose();
