@@ -68,6 +68,7 @@ export default function CommunityWishlists() {
   const [selectedWishlist, setSelectedWishlist] = useState<
     Wishlist | undefined
   >(undefined);
+  const [fulfilledWishlistUsers, setFulfilledWishlistUsers] = useState([]); // Added state
 
   const { data: communityWishlists = [], isLoading } = useQuery<
     (Wishlist & { communityName?: string })[]
@@ -80,13 +81,13 @@ export default function CommunityWishlists() {
     queryKey: ["/api/user/communities"],
     enabled: !!user,
   });
-  
+
   // Get user items to check if they've already fulfilled wishlists
   const { data: userItems = [] } = useQuery<any[]>({
     queryKey: ["/api/user/items"],
     enabled: !!user,
   });
-  
+
   // Filter items that were created to fulfill wishlists (those with recipients)
   const fulfilledWishlistItems = userItems.filter(item => item.recipientId);
 
@@ -141,13 +142,24 @@ export default function CommunityWishlists() {
 
   // Check if wishlist has already been fulfilled by the current user
   const hasUserFulfilledWishlist = (wishlistUserId: number) => {
+    // Check local state first
+    if (fulfilledWishlistUsers.includes(wishlistUserId)) {
+      return true;
+    }
     return fulfilledWishlistItems.some(item => item.recipientId === wishlistUserId);
   };
 
-  const onFulfillWishlist = (wishlist: Wishlist) => {
-    // Skip confirmation dialog and go straight to item creation
-    setSelectedWishlist(wishlist);
-    setCreateItemDialogOpen(true);
+  const onFulfillWishlist = async (wishlist: Wishlist) => {
+    try {
+      // Simulate API call to fulfill wishlist.  Replace with actual API call
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate delay
+      setFulfilledWishlistUsers([...fulfilledWishlistUsers, wishlist.userId]);
+      setSelectedWishlist(wishlist);
+      setCreateItemDialogOpen(true);
+    } catch (error) {
+      console.error("Error fulfilling wishlist:", error);
+      // Add error handling as needed
+    }
   };
 
   if (isLoading) {
