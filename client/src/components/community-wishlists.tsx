@@ -23,7 +23,7 @@ import { Gift, Clock, User, Lock } from "lucide-react";
 import FulfillWishlistDialog from "./fulfill-wishlist-dialog";
 import { motion } from 'framer-motion'; //Import Framer Motion
 
-const FadeIn = motion.custom(function FadeIn({ children, delay }) {
+const FadeIn = ({ children, delay }) => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -32,7 +32,7 @@ const FadeIn = motion.custom(function FadeIn({ children, delay }) {
       {children}
     </motion.div>
   );
-});
+};
 
 
 export default function CommunityWishlists() {
