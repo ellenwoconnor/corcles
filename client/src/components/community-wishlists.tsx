@@ -1,3 +1,5 @@
+
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { type Wishlist } from "@shared/schema";
@@ -5,70 +7,30 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 import {
-  Lock,
-  Eye,
-  Loader2,
-  Users,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
-import Slider from "react-slick";
-import { useRef, useEffect, useState } from "react";
-
-// Import Slick CSS in your component
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
+import { Gift, Clock, User, Lock } from "lucide-react";
 import FulfillWishlistDialog from "./fulfill-wishlist-dialog";
-
-// Format time ago function
-function formatTimeAgo(date: Date): string {
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 60) {
-    return "just now";
-  }
-
-  const diffInMinutes = Math.floor(diffInSeconds / 60);
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes} ${diffInMinutes === 1 ? "minute" : "minutes"} ago`;
-  }
-
-  const diffInHours = Math.floor(diffInMinutes / 60);
-  if (diffInHours < 24) {
-    return `${diffInHours} ${diffInHours === 1 ? "hour" : "hours"} ago`;
-  }
-
-  const diffInDays = Math.floor(diffInHours / 24);
-  if (diffInDays < 30) {
-    return `${diffInDays} ${diffInDays === 1 ? "day" : "days"} ago`;
-  }
-
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) {
-    return `${diffInMonths} ${diffInMonths === 1 ? "month" : "months"} ago`;
-  }
-
-  const diffInYears = Math.floor(diffInMonths / 12);
-  return `${diffInYears} ${diffInYears === 1 ? "year" : "years"} ago`;
-}
 
 export default function CommunityWishlists() {
   const { user } = useAuth();
-  const sliderRef = useRef<Slider>(null);
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-  const [fulfillDialogOpen, setFulfillDialogOpen] = useState(false);
-  const [createItemDialogOpen, setCreateItemDialogOpen] = useState(false);
   const [selectedWishlist, setSelectedWishlist] = useState<
     Wishlist | undefined
   >(undefined);
-  const [fulfilledWishlistUsers, setFulfilledWishlistUsers] = useState([]); // Added state
+  const [fulfilledWishlistUsers, setFulfilledWishlistUsers] = useState<number[]>([]);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [createItemDialogOpen, setCreateItemDialogOpen] = useState(false);
 
   const { data: communityWishlists = [], isLoading } = useQuery<
     (Wishlist & { communityName?: string })[]
@@ -91,13 +53,6 @@ export default function CommunityWishlists() {
   // Filter items that were created to fulfill wishlists (those with recipients)
   const fulfilledWishlistItems = userItems.filter(item => item.recipientId);
 
-  // Handle window resize to adjust carousel settings
-  useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   // Associate community names with wishlists
   const wishlistsWithCommunityNames = communityWishlists.map((wishlist) => {
     const community = communities.find((c) => c.id === wishlist.communityId);
@@ -106,39 +61,6 @@ export default function CommunityWishlists() {
       communityName: community?.name || "Unknown Community",
     };
   });
-
-  // Determine slides to show based on window width
-  const getSlidesToShow = () => {
-    if (windowWidth < 640) return 1;
-    if (windowWidth < 1024) return 2;
-    return 3;
-  };
-
-  // Carousel settings
-  const settings = {
-    dots: true,
-    infinite: wishlistsWithCommunityNames.length > getSlidesToShow(),
-    speed: 500,
-    slidesToShow: getSlidesToShow(),
-    slidesToScroll: 1,
-    arrows: false,
-    responsive: [
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 1,
-        },
-      },
-      {
-        breakpoint: 640,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-        },
-      },
-    ],
-  };
 
   // Check if wishlist has already been fulfilled by the current user
   const hasUserFulfilledWishlist = (wishlistUserId: number) => {
@@ -162,99 +84,199 @@ export default function CommunityWishlists() {
     }
   };
 
+  // Format date to readable format
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }).format(date);
+  };
+
+  // View wishlist details
+  const viewWishlistDetails = (wishlist: Wishlist) => {
+    setSelectedWishlist(wishlist);
+    setDetailsDialogOpen(true);
+  };
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <Loader2 className="h-8 w-8 animate-spin text-border" />
+      <div className="flex justify-center items-center p-8">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
-  if (wishlistsWithCommunityNames.length === 0) {
+  if (communityWishlists.length === 0) {
     return (
-      <div className="text-center py-12">
-        <h2 className="text-xl font-semibold mb-2">No community wishlists</h2>
+      <div className="text-center p-6">
+        <h3 className="text-lg font-medium mb-2">No wishlist items found</h3>
         <p className="text-muted-foreground">
-          Join more communities to see what others are looking for
+          There are no wishlists in your communities yet.
         </p>
       </div>
     );
   }
 
+  // Determine urgency color
+  const getUrgencyColor = (urgency: string) => {
+    switch (urgency) {
+      case "high":
+        return "bg-red-100 text-red-800 border-red-200";
+      case "normal":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "low":
+        return "bg-green-100 text-green-800 border-green-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
   return (
-    <div className="relative">
-      <div className="mb-6">
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
-          <Button
-            variant="outline"
-            size="icon"
-            className="rounded-full shadow-md"
-            onClick={() => sliderRef.current?.slickPrev()}
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-        </div>
-
-        <div className="px-10">
-          <Slider ref={sliderRef} {...settings}>
-            {wishlistsWithCommunityNames.map((wishlist) => (
-              <div key={wishlist.id} className="px-2">
-                <Card className="h-full">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      {wishlist.title}
-                      {wishlist.isPrivate && (
-                        <Lock className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </CardTitle>
-                    <CardDescription>{wishlist.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      <Badge
-                        variant="outline"
-                        className="flex items-center gap-1"
-                      >
-                        <Users className="h-3 w-3" /> {wishlist.communityName}
-                      </Badge>
-                    </div>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {wishlist.budget && (
-                        <Badge variant="secondary">
-                          Budget: ${wishlist.budget}
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Posted by {wishlist.userDisplayName || "Anonymous"} {formatTimeAgo(new Date(wishlist.createdAt))}
-                    </div>
-                    {hasUserFulfilledWishlist(wishlist.userId) ? (
-                      <Button variant="outline" disabled className="mt-2">
-                        Already Fulfilled
-                      </Button>
-                    ) : (
-                      <Button onClick={() => onFulfillWishlist(wishlist)} className="mt-2">
-                        Fulfill
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold tracking-tight">Community Wishlists</h2>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {wishlistsWithCommunityNames.map((wishlist) => (
+          <Card key={wishlist.id} className="overflow-hidden flex flex-col h-full">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                {wishlist.title}
+                {wishlist.isPrivate && (
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                )}
+              </CardTitle>
+              <CardDescription className="flex items-center gap-1 text-xs">
+                <User className="h-3 w-3" />
+                <span>
+                  {wishlist.userName || "Anonymous"} in {wishlist.communityName}
+                </span>
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="pb-2 flex-grow">
+              <div className="flex flex-wrap gap-2 mb-2">
+                <Badge className={`${getUrgencyColor(wishlist.urgency)} border`}>
+                  {wishlist.urgency.charAt(0).toUpperCase() + wishlist.urgency.slice(1)} Priority
+                </Badge>
+                
+                {wishlist.budget && (
+                  <Badge variant="outline">
+                    Budget: ${wishlist.budget}
+                  </Badge>
+                )}
               </div>
-            ))}
-          </Slider>
-        </div>
-
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 z-10">
-          <Button
-            variant="outline"
-            size="icon"
-            className="rounded-full shadow-md"
-            onClick={() => sliderRef.current?.slickNext()}
-          >
-            <ChevronRight className="h-5 w-5" />
-          </Button>
-        </div>
+              
+              <p className="text-sm line-clamp-2 text-muted-foreground mb-2">
+                {wishlist.description || "No description provided"}
+              </p>
+              
+              <div className="text-xs text-muted-foreground flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                Added {formatDate(wishlist.createdAt)}
+              </div>
+            </CardContent>
+            
+            <CardFooter className="pt-2 flex justify-between">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => viewWishlistDetails(wishlist)}
+              >
+                View Details
+              </Button>
+              
+              <Button
+                variant={hasUserFulfilledWishlist(wishlist.userId) ? "outline" : "default"}
+                size="sm"
+                disabled={hasUserFulfilledWishlist(wishlist.userId)}
+                onClick={() => onFulfillWishlist(wishlist)}
+              >
+                {hasUserFulfilledWishlist(wishlist.userId) ? (
+                  <>
+                    <Gift className="h-4 w-4 mr-1" />
+                    Already Fulfilled
+                  </>
+                ) : (
+                  <>
+                    <Gift className="h-4 w-4 mr-1" />
+                    Fulfill
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+        ))}
       </div>
+
+      {/* Wishlist Details Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="sm:max-w-[525px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedWishlist?.title}
+              {selectedWishlist?.isPrivate && (
+                <Lock className="h-4 w-4 text-muted-foreground" />
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              By {selectedWishlist?.userName || "Anonymous"} in {selectedWishlist?.communityName}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {selectedWishlist?.urgency && (
+                <Badge className={`${getUrgencyColor(selectedWishlist.urgency)} border`}>
+                  {selectedWishlist.urgency.charAt(0).toUpperCase() + selectedWishlist.urgency.slice(1)} Priority
+                </Badge>
+              )}
+              
+              {selectedWishlist?.budget && (
+                <Badge variant="outline">
+                  Budget: ${selectedWishlist.budget}
+                </Badge>
+              )}
+              
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {formatDate(selectedWishlist?.createdAt || "")}
+              </Badge>
+            </div>
+            
+            <div className="border-t pt-3">
+              <h4 className="font-medium mb-2">Description</h4>
+              <p className="text-muted-foreground whitespace-pre-wrap">
+                {selectedWishlist?.description || "No description provided"}
+              </p>
+            </div>
+            
+            <div className="flex justify-end pt-4">
+              <Button
+                disabled={selectedWishlist ? hasUserFulfilledWishlist(selectedWishlist.userId) : false}
+                onClick={() => {
+                  setDetailsDialogOpen(false);
+                  if (selectedWishlist) {
+                    onFulfillWishlist(selectedWishlist);
+                  }
+                }}
+              >
+                {selectedWishlist && hasUserFulfilledWishlist(selectedWishlist.userId) ? (
+                  "Already Fulfilled"
+                ) : (
+                  <>
+                    <Gift className="h-4 w-4 mr-2" />
+                    Fulfill This Wishlist
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fulfill Wishlist Dialog */}
       <FulfillWishlistDialog
         open={createItemDialogOpen}
         onClose={() => setCreateItemDialogOpen(false)}
