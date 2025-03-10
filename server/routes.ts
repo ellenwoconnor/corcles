@@ -472,12 +472,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // No need for additional search term logging
 
+      const isFreeOnly = freeOnly === "true";
+      
+      // Log filters being applied
+      logger.debug("Applying filters:", {
+        communities,
+        searchTerm,
+        freeOnly: isFreeOnly
+      });
+      
       const items = await storage.getItems(
         communities,
         req.user?.id,
         searchTerm,
         false,
-        freeOnly === "true",
+        isFreeOnly,
         includeWithRecipients !== "true", // Only exclude items with recipients if not explicitly including them
       );
 

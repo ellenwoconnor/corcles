@@ -44,9 +44,8 @@ export default function HomePage() {
         params.append("search", debouncedSearchValue.trim());
       }
 
-      if (showFreeOnly) {
-        params.append("freeOnly", "true");
-      }
+      // Always explicitly send the freeOnly parameter
+      params.append("freeOnly", showFreeOnly ? "true" : "false");
 
       const response = await fetch(`/api/items?${params}`);
       if (!response.ok) {

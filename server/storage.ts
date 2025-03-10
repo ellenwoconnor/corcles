@@ -353,6 +353,13 @@ export class DatabaseStorage implements IStorage {
         );
       }
 
+      // Apply freeOnly filter
+      if (freeOnly) {
+        logger.debug("Applying freeOnly filter");
+        conditions.push(eq(items.isGift, true));
+      }
+
+
       const results = await query
         .where(and(...conditions))
         .orderBy(desc(items.createdAt));
