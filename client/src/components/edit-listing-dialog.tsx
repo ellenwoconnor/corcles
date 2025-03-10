@@ -65,7 +65,10 @@ export function EditListingDialog({ item }: EditListingDialogProps) {
         <ListingForm 
           mode="edit"
           itemId={item.id}
-          defaultValues={item}
+          defaultValues={{
+            ...item,
+            communityName: item.communityName || `Community ${item.communityId}`
+          }}
           onSuccess={() => setOpen(false)}
           buttonText="Update Listing"
         />

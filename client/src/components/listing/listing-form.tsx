@@ -272,7 +272,7 @@ export function ListingForm({
           />
         )}
 
-        {mode === "create" && !communityId && (
+        {mode === "create" && !communityId ? (
           <FormField
             control={form.control}
             name="communityId"
@@ -303,7 +303,17 @@ export function ListingForm({
               </FormItem>
             )}
           />
-        )}
+        ) : mode === "edit" && defaultValues?.communityName ? (
+          <FormItem>
+            <FormLabel>Community</FormLabel>
+            <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+              {defaultValues.communityName}
+            </div>
+            <FormDescription>
+              Items cannot be moved between communities after creation
+            </FormDescription>
+          </FormItem>
+        ) : null}
 
         <FormField
           control={form.control}
