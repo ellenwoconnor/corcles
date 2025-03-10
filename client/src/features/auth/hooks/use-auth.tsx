@@ -175,6 +175,44 @@ export function AuthProvider({
       });
       return;
     }
+    
+    // Only initialize Google login if the feature is enabled
+    if (googleOAuthEnabled) {
+      googleLoginHook();
+    }
+};
+
+// Only create the hook if the feature is enabled to prevent invalid hook calls
+const googleLoginHook = googleOAuthEnabled ? useGoogleLogin({
+  onSuccess: async (response) => {
+    try {
+      // Log OAuth response for debugging
+      console.info('Google OAuth Success:', {
+        hasAccessToken: !!response.access_token,
+        tokenLength: response.access_token.length,
+        origin: window.location.origin
+      });
+
+      const res = await googleAuthMutation.mutateAsync(response.access_token);
+
+      // Better type checking for the response
+      if (res && 'needsAddressInfo' in res) {
+        setNeedsAddressInfo(true);
+        setPendingGoogleUser({
+          email: res.email,
+          name: res.name || '',
+          picture: res.picture || '',
+          userId: res.userId,
+          accessToken: response.access_token
+        });
+      }
+    } catch (error) {
+      console.error('Google Authentication Error:', {
+        error,
+        origin: window.location.origin,
+        isDevelopment: import.meta.env.DEV,
+        clientIdSource: import.meta.env.DEV ? 'development' : 'production'
+      });
 
     const googleLoginHook = useGoogleLogin({
       onSuccess: async (response) => {

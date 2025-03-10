@@ -28,7 +28,8 @@ type AuthFormProps = {
 
 export function AuthForm({ onSuccess }: AuthFormProps) {
   const { loginMutation, registerMutation, googleLogin } = useAuth();
-  const googleOAuthEnabled = process.env.NODE_ENV !== "production"; // Feature flag
+  // Use the flag provided by the API config instead of hardcoding
+  const { googleOAuthEnabled } = useAuth();
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
