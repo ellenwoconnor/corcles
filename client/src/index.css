@@ -1,3 +1,28 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+/* Custom Carousel Styles */
+.slick-track {
+  display: flex !important;
+  gap: 16px;
+}
+
+.slick-slide {
+  height: inherit !important;
+}
+
+.slick-slide > div {
+  height: 100%;
+}
+
+.slick-dots li button:before {
+  font-size: 10px;
+}
+
+.slick-dots {
+  bottom: -30px;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,7 +33,14 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply antialiased bg-background text-foreground text-sm font-normal;
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  /* Custom search input styles */
+  input[type="search"] {
+    border-radius: 25px;
+    outline: none;
   }
 }
 

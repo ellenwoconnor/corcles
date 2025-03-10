@@ -1,4 +1,3 @@
-
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -29,6 +28,29 @@ vi.mock('@/lib/queryClient', () => ({
   },
 }));
 
+const mockCommunities = [
+  { 
+    id: 1, 
+    name: 'Test Community 1', 
+    role: 'member', 
+    memberCount: 5,
+    createdAt: new Date(),
+    description: 'Test description 1',
+    createdBy: 1,
+    isCustom: true
+  },
+  { 
+    id: 2, 
+    name: 'Test Community 2', 
+    role: 'member', 
+    memberCount: 3,
+    createdAt: new Date(),
+    description: 'Test description 2',
+    createdBy: 1,
+    isCustom: true
+  },
+];
+
 const renderWithQuery = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -40,7 +62,7 @@ const renderWithQuery = () => {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <CreateListingDialog />
+      <CreateListingDialog communities={mockCommunities} />
     </QueryClientProvider>
   );
 };
@@ -49,7 +71,7 @@ describe('CreateListingDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (useAuth as any).mockReturnValue({
-      user: { id: 1, community: 'test-community' },
+      user: { id: 1 },
       isAuthenticated: true,
     });
   });
@@ -63,59 +85,60 @@ describe('CreateListingDialog', () => {
     renderWithQuery();
     const createButton = screen.getByRole('button', { name: /create listing/i });
     await userEvent.click(createButton);
-    
+
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/description/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/community/i)).toBeInTheDocument();
   });
 
   it('defaults to gift/free mode', async () => {
     renderWithQuery();
     const createButton = screen.getByRole('button', { name: /create listing/i });
     await userEvent.click(createButton);
-    
-    const freeButton = screen.getByRole('button', { name: /free/i });
-    expect(freeButton).toHaveClass('bg-primary');
-    expect(screen.queryByLabelText(/price/i)).not.toBeInTheDocument();
-  });
 
-  it('shows price input when "Set a price" is selected', async () => {
-    renderWithQuery();
-    const createButton = screen.getByRole('button', { name: /create listing/i });
-    await userEvent.click(createButton);
-    
-    const setPriceButton = screen.getByRole('button', { name: /set a price/i });
-    await userEvent.click(setPriceButton);
-    
-    expect(screen.getByLabelText(/price/i)).toBeInTheDocument();
+    const freeButton = screen.getByLabelText(/free item/i);
+    expect(freeButton).toBeChecked();
+    expect(screen.queryByLabelText(/price/i)).not.toBeInTheDocument();
   });
 
   it('validates required fields', async () => {
     renderWithQuery();
     const createButton = screen.getByRole('button', { name: /create listing/i });
     await userEvent.click(createButton);
-    
+
     const submitButton = screen.getByRole('button', { name: /^create listing$/i });
     await userEvent.click(submitButton);
-    
+
     expect(await screen.findByText(/title is required/i)).toBeInTheDocument();
-    expect(await screen.findByText(/description is required/i)).toBeInTheDocument();
+    expect(await screen.findByText(/please select a community/i)).toBeInTheDocument();
   });
 
   it('validates price when not in gift mode', async () => {
     renderWithQuery();
     const createButton = screen.getByRole('button', { name: /create listing/i });
     await userEvent.click(createButton);
-    
-    const setPriceButton = screen.getByRole('button', { name: /set a price/i });
-    await userEvent.click(setPriceButton);
-    
+
+    // Uncheck gift mode
+    const freeButton = screen.getByLabelText(/free item/i);
+    await userEvent.click(freeButton);
+
     const priceInput = screen.getByLabelText(/price/i);
     await userEvent.type(priceInput, '0');
-    
+
     const submitButton = screen.getByRole('button', { name: /^create listing$/i });
     await userEvent.click(submitButton);
-    
+
     expect(await screen.findByText(/price must be greater than zero/i)).toBeInTheDocument();
+  });
+
+  it('shows community selection dropdown', async () => {
+    renderWithQuery();
+    const createButton = screen.getByRole('button', { name: /create listing/i });
+    await userEvent.click(createButton);
+
+    expect(screen.getByText(/select a community/i)).toBeInTheDocument();
+    const communitySelect = screen.getByLabelText(/community/i);
+    expect(communitySelect).toBeInTheDocument();
   });
 });
