@@ -119,7 +119,7 @@ export default function FulfillWishlistDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] max-h-[80vh] overflow-y-auto rounded-lg shadow-card">
+      <DialogContent className="sm:max-w-[425px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Offer Item</DialogTitle>
           <DialogDescription>
