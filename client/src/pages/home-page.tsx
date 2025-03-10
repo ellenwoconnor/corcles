@@ -65,7 +65,9 @@ export default function HomePage() {
         <FadeIn>
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
             <div>
-              <h1 className="text-2xl tracking-tight">Marketplace</h1>
+              <FadeIn>
+                <h1 className="text-2xl tracking-tight">Marketplace</h1>
+              </FadeIn>
               <p className="text-muted-foreground">
                 Browse items in your communities
               </p>
@@ -112,13 +114,15 @@ export default function HomePage() {
                   <p>No items found in your communities.</p>
                 </Card>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {items.map((item, index) => (
-                    <FadeIn key={item.id} delay={index * 0.1}>
-                      <ItemCard item={item} />
-                    </FadeIn>
-                  ))}
-                </div>
+                <FadeIn delay={0.1}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {items.map((item, index) => (
+                      <FadeIn key={item.id} delay={index * 0.1}>
+                        <ItemCard item={item} />
+                      </FadeIn>
+                    ))}
+                  </div>
+                </FadeIn>
               )}
             </div>
           </div>
@@ -127,14 +131,18 @@ export default function HomePage() {
             <FadeIn>
               <div className="mt-10 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
                 <div>
-                  <h2 className="text-2xl tracking-tight">Community Wishlists</h2>
+                  <FadeIn>
+                    <h2 className="text-2xl tracking-tight">Community Wishlists</h2>
+                  </FadeIn>
                   <p className="text-muted-foreground">
                     Items your neighbors are looking for
                   </p>
                 </div>
               </div>
             </FadeIn>
-            <CommunityWishlists />
+            <FadeIn delay={0.2}>
+              <CommunityWishlists />
+            </FadeIn>
           </div>
         </div>
       </main>
