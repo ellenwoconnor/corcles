@@ -27,13 +27,11 @@ export default function Navbar() {
           <div className="hidden md:flex md:items-center md:space-x-4">
             <Link href="/communities">
               <Button variant="ghost" className="flex items-center space-x-2">
-                <Users className="h-4 w-4" />
                 <span>Communities</span>
               </Button>
             </Link>
             <Link href="/wishlists">
               <Button variant="ghost" className="flex items-center space-x-2">
-                <Gift className="h-4 w-4" />
                 <span>Wishlists</span>
               </Button>
             </Link>
