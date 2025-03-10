@@ -24,7 +24,9 @@ export default function ItemCard({ item }: ItemCardProps) {
             </div>
           </div>
           <div className="p-3">
-            <h3 className="font-semibold text-base mb-1 truncate">{item.title}</h3>
+            <h3 className="font-semibold text-base mb-1 truncate">
+              {item.title}
+            </h3>
             <div className="mt-1">
               <span className="text-sm text-muted-foreground">
                 {formatDistanceToNow(new Date(item.createdAt), {
