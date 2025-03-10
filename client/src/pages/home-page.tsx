@@ -118,7 +118,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="mt-16">
+          <div className="mt-24">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
               <div>
                 <h2 className="text-2xl tracking-tight">Community Wishlists</h2>
