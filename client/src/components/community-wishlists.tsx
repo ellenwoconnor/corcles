@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
@@ -85,8 +84,12 @@ export default function CommunityWishlists() {
   };
 
   // Format date to readable format
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return "Unknown date";
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return "Invalid date";
+    }
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
       day: 'numeric',
@@ -136,7 +139,7 @@ export default function CommunityWishlists() {
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold tracking-tight">Community Wishlists</h2>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {wishlistsWithCommunityNames.map((wishlist) => (
           <Card key={wishlist.id} className="overflow-hidden flex flex-col h-full">
@@ -154,30 +157,30 @@ export default function CommunityWishlists() {
                 </span>
               </CardDescription>
             </CardHeader>
-            
+
             <CardContent className="pb-2 flex-grow">
               <div className="flex flex-wrap gap-2 mb-2">
                 <Badge className={`${getUrgencyColor(wishlist.urgency)} border`}>
                   {wishlist.urgency.charAt(0).toUpperCase() + wishlist.urgency.slice(1)} Priority
                 </Badge>
-                
+
                 {wishlist.budget && (
                   <Badge variant="outline">
                     Budget: ${wishlist.budget}
                   </Badge>
                 )}
               </div>
-              
+
               <p className="text-sm line-clamp-2 text-muted-foreground mb-2">
                 {wishlist.description || "No description provided"}
               </p>
-              
+
               <div className="text-xs text-muted-foreground flex items-center gap-1">
                 <Clock className="h-3 w-3" />
                 Added {formatDate(wishlist.createdAt)}
               </div>
             </CardContent>
-            
+
             <CardFooter className="pt-2 flex justify-between">
               <Button 
                 variant="outline" 
@@ -186,7 +189,7 @@ export default function CommunityWishlists() {
               >
                 View Details
               </Button>
-              
+
               <Button
                 variant={hasUserFulfilledWishlist(wishlist.userId) ? "outline" : "default"}
                 size="sm"
@@ -224,7 +227,7 @@ export default function CommunityWishlists() {
               By {selectedWishlist?.userName || "Anonymous"} in {selectedWishlist?.communityName}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="flex flex-wrap gap-2">
               {selectedWishlist?.urgency && (
@@ -232,26 +235,26 @@ export default function CommunityWishlists() {
                   {selectedWishlist.urgency.charAt(0).toUpperCase() + selectedWishlist.urgency.slice(1)} Priority
                 </Badge>
               )}
-              
+
               {selectedWishlist?.budget && (
                 <Badge variant="outline">
                   Budget: ${selectedWishlist.budget}
                 </Badge>
               )}
-              
+
               <Badge variant="outline" className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
                 {formatDate(selectedWishlist?.createdAt || "")}
               </Badge>
             </div>
-            
+
             <div className="border-t pt-3">
               <h4 className="font-medium mb-2">Description</h4>
               <p className="text-muted-foreground whitespace-pre-wrap">
                 {selectedWishlist?.description || "No description provided"}
               </p>
             </div>
-            
+
             <div className="flex justify-end pt-4">
               <Button
                 disabled={selectedWishlist ? hasUserFulfilledWishlist(selectedWishlist.userId) : false}
