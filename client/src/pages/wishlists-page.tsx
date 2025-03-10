@@ -75,9 +75,7 @@ export default function WishlistsPage() {
       if (!userCommunities.length) return [];
       const communityIds = userCommunities.map((c) => c.id).join(",");
       // Add includeWithRecipients=true parameter to include items that have recipients
-      const response = await fetch(
-        `/api/items?communities=${communityIds}&includeWithRecipients=true`,
-      );
+      const response = await fetch(`/api/items?communities=${communityIds}&includeWithRecipients=true`);
       if (!response.ok) return [];
       return response.json();
     },
@@ -91,35 +89,28 @@ export default function WishlistsPage() {
         // Check if this item is explicitly linked to this wishlist
         item.wishlistId === wishlistId &&
         // And check if the current user is the recipient
-        item.recipientId === user?.id,
+        item.recipientId === user?.id
     );
 
     // Find items with wishlist ID 3 (for debugging)
-    const wishlistItems = allItems.filter(
-      (item) => item.wishlistId === wishlistId,
-    );
-
-    console.log(`Filtering for wishlist ${wishlistId}:`, {
+    const wishlistItems = allItems.filter(item => item.wishlistId === wishlistId);
+    
+    console.log(`Filtering for wishlist ${wishlistId}:`, { 
       totalItems: allItems.length,
       itemsWithWishlistId: wishlistItems.length,
-      itemsWithUserAsRecipient: allItems.filter(
-        (item) => item.recipientId === user?.id,
-      ).length,
+      itemsWithUserAsRecipient: allItems.filter(item => item.recipientId === user?.id).length,
       matchingBoth: filtered.length,
-      userId: user?.id,
+      userId: user?.id
     });
-
+    
     // Log details of items with this wishlist ID
     if (wishlistId === 3) {
-      console.log(
-        `Items with wishlistId ${wishlistId}:`,
-        wishlistItems.map((item) => ({
-          id: item.id,
-          title: item.title,
-          recipientId: item.recipientId,
-          userId: item.userId,
-        })),
-      );
+      console.log(`Items with wishlistId ${wishlistId}:`, wishlistItems.map(item => ({
+        id: item.id,
+        title: item.title,
+        recipientId: item.recipientId,
+        userId: item.userId
+      })));
     }
 
     return filtered;
@@ -139,7 +130,7 @@ export default function WishlistsPage() {
       <main className="container py-12 px-8">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-2xl tracking-tight">Wishlists</h1>
+            <h1 className="text-4xl font-bold tracking-tight">Wishlists</h1>
             <p className="text-muted-foreground">
               Post items you're looking for
             </p>
@@ -187,20 +178,7 @@ export default function WishlistsPage() {
                         variant="outline"
                         className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"
                       >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="h-3 w-3"
-                        >
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
+                        <Gift className="h-3 w-3" />
                         Fulfilled
                       </Badge>
                     )}

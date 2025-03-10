@@ -27,20 +27,13 @@ type AuthContextType = {
   } | null;
   completeGoogleSignup: (address: string, zipCode: string) => Promise<SelectUser | undefined>;
   isGoogleSignupLoading: boolean;
-  googleOAuthEnabled: boolean;
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ 
-  children, 
-  googleOAuthEnabled = false 
-}: { 
-  children: ReactNode;
-  googleOAuthEnabled?: boolean;
-}) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [needsAddressInfo, setNeedsAddressInfo] = useState(false);
   const [pendingGoogleUser, setPendingGoogleUser] = useState<{
@@ -166,129 +159,76 @@ export function AuthProvider({
     }
   };
 
-  const googleLogin = () => {
-    if (!googleOAuthEnabled) {
-      toast({
-        title: "Google login unavailable",
-        description: "Google login is not available in this environment.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Only initialize Google login if the feature is enabled
-    if (googleOAuthEnabled) {
-      googleLoginHook();
-    }
-};
-
-// Only create the hook if the feature is enabled to prevent invalid hook calls
-const googleLoginHook = googleOAuthEnabled ? useGoogleLogin({
-  onSuccess: async (response) => {
-    try {
-      // Log OAuth response for debugging
-      console.info('Google OAuth Success:', {
-        hasAccessToken: !!response.access_token,
-        tokenLength: response.access_token.length,
-        origin: window.location.origin
-      });
-
-      const res = await googleAuthMutation.mutateAsync(response.access_token);
-
-      // Better type checking for the response
-      if (res && 'needsAddressInfo' in res) {
-        setNeedsAddressInfo(true);
-        setPendingGoogleUser({
-          email: res.email,
-          name: res.name || '',
-          picture: res.picture || '',
-          userId: res.userId,
-          accessToken: response.access_token
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (response) => {
+      try {
+        // Log OAuth response for debugging
+        console.info('Google OAuth Success:', {
+          hasAccessToken: !!response.access_token,
+          tokenLength: response.access_token.length,
+          origin: window.location.origin
         });
-      }
-    } catch (error) {
-      console.error('Google Authentication Error:', {
-        error,
-        origin: window.location.origin,
-        isDevelopment: import.meta.env.DEV,
-        clientIdSource: import.meta.env.DEV ? 'development' : 'production'
-      });
 
-    const googleLoginHook = useGoogleLogin({
-      onSuccess: async (response) => {
-        try {
-          // Log OAuth response for debugging
-          console.info('Google OAuth Success:', {
-            hasAccessToken: !!response.access_token,
-            tokenLength: response.access_token.length,
-            origin: window.location.origin
-          });
+        const res = await googleAuthMutation.mutateAsync(response.access_token);
 
-          const res = await googleAuthMutation.mutateAsync(response.access_token);
-
-          // Better type checking for the response
-          if (res && 'needsAddressInfo' in res) {
-            setNeedsAddressInfo(true);
-            setPendingGoogleUser({
-              email: res.email,
-              name: res.name || '',
-              picture: res.picture || '',
-              userId: res.userId,
-              accessToken: response.access_token
-            });
-          }
-        } catch (error) {
-          console.error('Google Authentication Error:', {
-            error,
-            origin: window.location.origin,
-            isDevelopment: import.meta.env.DEV,
-            clientIdSource: import.meta.env.DEV ? 'development' : 'production'
-          });
-
-          toast({
-            title: "Authentication Error",
-            description: "Failed to authenticate. Please ensure you're using the Web client ID with correct domain configuration.",
-            variant: "destructive",
+        // Better type checking for the response
+        if (res && 'needsAddressInfo' in res) {
+          setNeedsAddressInfo(true);
+          setPendingGoogleUser({
+            email: res.email,
+            name: res.name || '',
+            picture: res.picture || '',
+            userId: res.userId,
+            accessToken: response.access_token
           });
         }
-      },
-      onError: (error) => {
-        console.error('Google OAuth Error:', {
+      } catch (error) {
+        console.error('Google Authentication Error:', {
           error,
           origin: window.location.origin,
-          isDevelopment: import.meta.env.DEV
+          isDevelopment: import.meta.env.DEV,
+          clientIdSource: import.meta.env.DEV ? 'development' : 'production'
         });
 
         toast({
-          title: "Google Sign-In Failed",
-          description: "Could not initialize Google Sign-In. Please check the client configuration.",
+          title: "Authentication Error",
+          description: "Failed to authenticate. Please ensure you're using the Web client ID with correct domain configuration.",
           variant: "destructive",
         });
-      },
-      flow: 'implicit',
-      scope: 'email profile'
-    });
-    googleLoginHook();
-  };
+      }
+    },
+    onError: (error) => {
+      console.error('Google OAuth Error:', {
+        error,
+        origin: window.location.origin,
+        isDevelopment: import.meta.env.DEV
+      });
 
-  const value = {
-    user: user ?? null,
-    isLoading,
-    error,
-    loginMutation,
-    logoutMutation,
-    registerMutation,
-    googleLogin,
-    needsAddressInfo,
-    pendingGoogleUser,
-    completeGoogleSignup,
-    isGoogleSignupLoading,
-    googleOAuthEnabled
-  };
+      toast({
+        title: "Google Sign-In Failed",
+        description: "Could not initialize Google Sign-In. Please check the client configuration.",
+        variant: "destructive",
+      });
+    },
+    flow: 'implicit',
+    scope: 'email profile'
+  });
 
   return (
     <AuthContext.Provider
-      value={value}
+      value={{
+        user: user ?? null,
+        isLoading,
+        error,
+        loginMutation,
+        logoutMutation,
+        registerMutation,
+        googleLogin,
+        needsAddressInfo,
+        pendingGoogleUser,
+        completeGoogleSignup,
+        isGoogleSignupLoading
+      }}
     >
       {children}
     </AuthContext.Provider>

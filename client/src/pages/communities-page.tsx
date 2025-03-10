@@ -129,7 +129,7 @@ export default function CommunitiesPage() {
       <main className="container py-12">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-2xl tracking-tight">Communities</h1>
+            <h1 className="text-4xl font-bold tracking-tight">Communities</h1>
             <p className="text-muted-foreground">
               Manage your communities and invitations
             </p>
@@ -283,8 +283,8 @@ export default function CommunitiesPage() {
                         <DialogDescription className="mb-4">
                           <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mt-3">
                             <p className="font-medium text-foreground mb-2">
-                              {selectedCommunity?.isCustom
-                                ? "Share the community spirit!"
+                              {selectedCommunity?.isCustom 
+                                ? "Share the community spirit!" 
                                 : "Invite neighbors to your local circle!"}
                             </p>
                             <p className="text-muted-foreground">
@@ -294,8 +294,7 @@ export default function CommunitiesPage() {
                             </p>
                             {!selectedCommunity?.isCustom && (
                               <p className="mt-2 text-sm text-amber-600 flex items-center">
-                                <span className="mr-1">⚠️</span> This community
-                                is limited to addresses in your zip code area.
+                                <span className="mr-1">⚠️</span> This community is limited to addresses in your zip code area.
                               </p>
                             )}
                           </div>

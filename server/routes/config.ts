@@ -18,8 +18,6 @@ router.get("/api/config", (req, res) => {
     const clientConfig = {
       googleClientId: googleClientId,
       environment: process.env.NODE_ENV,
-      // Only enable Google OAuth in development or if client ID exists
-      enableGoogleOAuth: process.env.NODE_ENV === 'development' || !!googleClientId,
     };
 
     logger.info("Serving client configuration", {

@@ -30,7 +30,11 @@ async function startServer() {
     });
 
     // Validate required environment variables
-    const requiredEnvVars = ["DATABASE_URL", "SESSION_SECRET"];
+    const requiredEnvVars = [
+      "DATABASE_URL",
+      "SESSION_SECRET",
+      "GOOGLE_CLIENT_ID",
+    ];
     const missingVars = requiredEnvVars.filter(
       (varName) => !process.env[varName],
     );
@@ -91,7 +95,7 @@ async function startServer() {
       // Check if static directory exists, otherwise create it
       if (!fs.existsSync(staticDir)) {
         logger.warn("Static directory does not exist, creating it:", {
-          staticDir,
+          staticDir
         });
         try {
           fs.mkdirSync(staticDir, { recursive: true });
@@ -102,7 +106,7 @@ async function startServer() {
           });
         }
       }
-
+      
       logger.info("Static files directory:", {
         staticDir,
         exists: fs.existsSync(staticDir),
@@ -115,7 +119,7 @@ async function startServer() {
       // For all routes, serve the static HTML or fallback to a simple message
       app.get("*", (req, res) => {
         const indexPath = path.resolve(staticDir, "index.html");
-
+        
         // Debug environment variables without exposing them
         logger.info("Environment configuration status:", {
           hasGoogleClientId: !!process.env.GOOGLE_CLIENT_ID,
@@ -130,9 +134,7 @@ async function startServer() {
           res.sendFile(indexPath);
         } else {
           logger.warn("index.html not found, sending fallback response");
-          res
-            .status(200)
-            .send("Server is running, but client files are not available.");
+          res.status(200).send("Server is running, but client files are not available.");
         }
       });
     }
