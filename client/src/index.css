@@ -1,4 +1,6 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
 /* Custom Carousel Styles */
 .slick-track {
   display: flex !important;
@@ -31,7 +33,14 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply antialiased bg-background text-foreground text-sm font-normal;
+    font-family: 'Poppins', sans-serif;
+  }
+  
+  /* Custom search input styles */
+  input[type="search"] {
+    border-radius: 25px;
+    outline: none;
   }
 }
 

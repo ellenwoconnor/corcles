@@ -1,11 +1,38 @@
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { insertCommunitySchema, type Community, type InsertCommunity } from "@shared/schema";
+import {
+  insertCommunitySchema,
+  type Community,
+  type InsertCommunity,
+} from "@shared/schema";
 import Navbar from "@/components/navbar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Loader2, Plus, UserPlus, Users } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,15 +43,21 @@ import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState } from "react";
 import { z } from "zod";
+// Import the new component
+import CommunityInviteForm from "@/components/community-invite-form";
 
 export default function CommunitiesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
+  const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(
+    null,
+  );
 
-  const { data: communities, isLoading } = useQuery<(Community & { role: string; memberCount: number })[]>({
+  const { data: communities, isLoading } = useQuery<
+    (Community & { role: string; memberCount: number })[]
+  >({
     queryKey: ["/api/user/communities"],
     enabled: !!user,
   });
@@ -35,16 +68,7 @@ export default function CommunitiesPage() {
       name: "",
       description: "",
       createdBy: user?.id,
-      isCustom: true
-    },
-  });
-
-  const inviteForm = useForm({
-    resolver: zodResolver(z.object({
-      invitedEmail: z.string().email("Please enter a valid email address"),
-    })),
-    defaultValues: {
-      invitedEmail: "",
+      isCustom: true,
     },
   });
 
@@ -53,11 +77,11 @@ export default function CommunitiesPage() {
       const response = await apiRequest("POST", "/api/communities", {
         ...data,
         createdBy: user?.id,
-        isCustom: true
+        isCustom: true,
       });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to create community');
+        throw new Error(error.error || "Failed to create community");
       }
       return response.json();
     },
@@ -79,41 +103,8 @@ export default function CommunitiesPage() {
     },
   });
 
-  const inviteMutation = useMutation({
-    mutationFn: async ({ invitedEmail, communityId }: { invitedEmail: string; communityId: number }) => {
-      const response = await apiRequest("POST", `/api/communities/${communityId}/invite`, { invitedEmail });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to send invitation');
-      }
-      return response.json();
-    },
-    onSuccess: (data) => {
-      toast({
-        title: data.autoEnrolled ? "User enrolled" : "Invitation sent",
-        description: data.autoEnrolled 
-          ? "The user has been automatically enrolled in the community."
-          : "The invitation has been sent successfully.",
-      });
-      setInviteDialogOpen(false);
-      inviteForm.reset();
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to send invitation",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   const onSubmit = (data: InsertCommunity) => {
     createCommunityMutation.mutate(data);
-  };
-
-  const onInvite = (data: { invitedEmail: string }) => {
-    if (!selectedCommunity) return;
-    inviteMutation.mutate({ invitedEmail: data.invitedEmail, communityId: selectedCommunity.id });
   };
 
   if (!user) {
@@ -156,7 +147,8 @@ export default function CommunitiesPage() {
                   <DialogHeader>
                     <DialogTitle>Create a New Community</DialogTitle>
                     <DialogDescription>
-                      Create a custom community to share items with a specific group.
+                      Create a custom community to share items with a specific
+                      group.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">
@@ -167,7 +159,10 @@ export default function CommunitiesPage() {
                         <FormItem>
                           <FormLabel>Community Name</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="Enter community name" />
+                            <Input
+                              {...field}
+                              placeholder="Enter community name"
+                            />
                           </FormControl>
                           <FormDescription>
                             Choose a unique name for your community
@@ -183,7 +178,10 @@ export default function CommunitiesPage() {
                         <FormItem>
                           <FormLabel>Description</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="Enter community description" />
+                            <Input
+                              {...field}
+                              placeholder="Enter community description"
+                            />
                           </FormControl>
                           <FormDescription>
                             Briefly describe the purpose of this community
@@ -219,7 +217,8 @@ export default function CommunitiesPage() {
             <CardHeader>
               <CardTitle>No Communities</CardTitle>
               <CardDescription>
-                You haven't joined any communities yet. Create one to get started!
+                You haven't joined any communities yet. Create one to get
+                started!
               </CardDescription>
             </CardHeader>
           </Card>
@@ -231,80 +230,87 @@ export default function CommunitiesPage() {
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="text-base truncate">{community.name}</CardTitle>
-                        <Badge variant={community.role === 'admin' ? 'default' : 'secondary'}>
+                        <CardTitle className="text-base truncate">
+                          {community.name}
+                        </CardTitle>
+                        <Badge
+                          variant={
+                            community.role === "admin" ? "default" : "secondary"
+                          }
+                        >
                           {community.role}
                         </Badge>
                       </div>
-                      <CardDescription className="line-clamp-1">{community.description}</CardDescription>
+                      <CardDescription className="line-clamp-1">
+                        {community.description}
+                      </CardDescription>
                       <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                         <div className="flex items-center">
                           <Users className="h-4 w-4 mr-1" />
                           <span>{community.memberCount} members</span>
                         </div>
                         <div>
-                          Created {format(new Date(community.createdAt), 'PP')}
+                          Created {format(new Date(community.createdAt), "PP")}
                         </div>
                       </div>
                     </div>
                   </div>
                 </CardHeader>
                 <CardFooter>
-                    <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="ml-2"
-                          onClick={() => {
-                            setSelectedCommunity(community);
-                            setInviteDialogOpen(true);
-                          }}
-                        >
-                          <UserPlus className="h-4 w-4 mr-1" />
-                          Invite
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <Form {...inviteForm}>
-                          <form onSubmit={inviteForm.handleSubmit(onInvite)}>
-                            <DialogHeader>
-                              <DialogTitle>Invite to {community.name}</DialogTitle>
-                              <DialogDescription>
-                                Send an invitation to join this community. If the user already exists, they will be automatically enrolled.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4 py-4">
-                              <FormField
-                                control={inviteForm.control}
-                                name="invitedEmail"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Email Address</FormLabel>
-                                    <FormControl>
-                                      <Input {...field} type="email" placeholder="Enter email address" />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                            </div>
-                            <DialogFooter>
-                              <Button
-                                type="submit"
-                                disabled={inviteMutation.isPending}
-                              >
-                                {inviteMutation.isPending && (
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                )}
-                                Send Invitation
-                              </Button>
-                            </DialogFooter>
-                          </form>
-                        </Form>
-                      </DialogContent>
-                    </Dialog>
-                  </CardFooter>
+                  <Dialog
+                    open={inviteDialogOpen}
+                    onOpenChange={setInviteDialogOpen}
+                  >
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="ml-2"
+                        onClick={() => {
+                          setSelectedCommunity(community);
+                          setInviteDialogOpen(true);
+                        }}
+                      >
+                        <UserPlus className="h-4 w-4 mr-1" />
+                        Invite
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>
+                          Invite to {selectedCommunity?.name}
+                        </DialogTitle>
+                        <DialogDescription className="mb-4">
+                          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mt-3">
+                            <p className="font-medium text-foreground mb-2">
+                              {selectedCommunity?.isCustom 
+                                ? "Share the community spirit!" 
+                                : "Invite neighbors to your local circle!"}
+                            </p>
+                            <p className="text-muted-foreground">
+                              {selectedCommunity?.isCustom
+                                ? "Your friend will receive an email with instructions on how to join this custom community."
+                                : "Neighbors with matching zip codes can join this community. They'll receive an email with setup instructions."}
+                            </p>
+                            {!selectedCommunity?.isCustom && (
+                              <p className="mt-2 text-sm text-amber-600 flex items-center">
+                                <span className="mr-1">⚠️</span> This community is limited to addresses in your zip code area.
+                              </p>
+                            )}
+                          </div>
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="py-4">
+                        {selectedCommunity && (
+                          <CommunityInviteForm
+                            community={selectedCommunity}
+                            onSuccess={() => setInviteDialogOpen(false)}
+                          />
+                        )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </CardFooter>
               </Card>
             ))}
           </div>

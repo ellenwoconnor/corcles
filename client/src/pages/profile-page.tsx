@@ -1,6 +1,6 @@
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { Item, ItemRequest, ItemBid } from "@shared/schema";
+import { Item, ItemRequest, ItemBid, Wishlist } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -12,10 +12,11 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Package, Gift, Tag, Clock } from "lucide-react";
+import { Loader2, Package, Gift, Tag, Clock, ListChecks } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import WishlistFulfillmentView from "@/components/wishlist-fulfillment-view";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -38,6 +39,31 @@ export default function ProfilePage() {
     queryKey: ["/api/user/bids"],
     enabled: !!user,
   });
+  
+  // Fetch user's wishlists
+  const { data: userWishlists = [], isLoading: wishlistsLoading } = useQuery<Wishlist[]>({
+    queryKey: ["/api/user/wishlists"],
+    enabled: !!user,
+  });
+  
+  // Get communities to properly fetch items 
+  const { data: userCommunities = [] } = useQuery({
+    queryKey: ["/api/user/communities"],
+    enabled: !!user,
+  });
+
+  // Get items with community filter to avoid the 400 error
+  const { data: allItems = [] } = useQuery<Item[]>({
+    queryKey: ["/api/items", userCommunities],
+    enabled: !!user && userCommunities.length > 0,
+    queryFn: async () => {
+      if (!userCommunities.length) return [];
+      const communityIds = userCommunities.map(c => c.id).join(',');
+      const response = await fetch(`/api/items?communities=${communityIds}`);
+      if (!response.ok) return [];
+      return response.json();
+    }
+  });
 
   const pendingConfirmations =
     userRequests?.filter((r) => r.status === "awaiting_pickup_confirmation") ||
@@ -46,6 +72,24 @@ export default function ProfilePage() {
   const requestedItems = userItems?.filter(
     (item) => item.status === "requested" && !item.pickupStart,
   );
+  
+  // Function to get fulfillment items for a wishlist
+  const getFulfillmentItemsForWishlist = (wishlistId: number) => {
+    return allItems.filter(item => 
+      // Check if this item is assigned to this specific wishlist
+      item.wishlistId === wishlistId && item.recipientId === user?.id
+    );
+  };
+
+  const statusText = {
+    completed: "Pickup Complete",
+    scheduled: "Pickup Scheduled",
+    scheduling: "Setting Pickup Time",
+    requested: "Requests Received",
+    available: "Available",
+    delisted: "Delisted",
+    pending_pickup: "Pending Pickup",
+  };
 
   if (!user) {
     return (
@@ -113,6 +157,10 @@ export default function ProfilePage() {
               <Tag className="h-4 w-4" />
               My Bids
             </TabsTrigger>
+            <TabsTrigger value="wishlists" className="flex items-center gap-2">
+              <ListChecks className="h-4 w-4" />
+              My Wishlists
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="listings">
@@ -161,15 +209,7 @@ export default function ProfilePage() {
                                     : ""
                                 }
                               >
-                                {item.status === "completed"
-                                  ? "Pickup Complete"
-                                  : item.status === "scheduled"
-                                    ? "Pickup Scheduled"
-                                    : item.status === "scheduling"
-                                      ? "Setting Pickup Time"
-                                      : item.status === "requested"
-                                        ? "Requests Received"
-                                        : "Available"}
+                                {statusText[item.status]}
                               </Badge>
                             </div>
                             <CardDescription className="text-sm">
@@ -182,7 +222,16 @@ export default function ProfilePage() {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        {item.pickupStart && (
+                        {item.status === "delisted" ? (
+                          <div className="p-4 bg-muted rounded-lg border border-muted-foreground/20">
+                            <h3 className="font-medium mb-2 text-muted-foreground">
+                              This item has been delisted
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              Delisted items cannot be edited or requested by users.
+                            </p>
+                          </div>
+                        ) : item.pickupStart && (
                           <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
                             <h3 className="font-medium mb-2">
                               Pickup Scheduled
@@ -250,14 +299,16 @@ export default function ProfilePage() {
                             </CardTitle>
                             <Badge
                               variant={
-                                request.status ===
-                                "awaiting_pickup_confirmation"
-                                  ? "default"
-                                  : request.status === "accepted"
-                                    ? "secondary"
-                                    : request.status === "pending"
+                                request.item.status === "delisted"
+                                  ? "outline"
+                                  : request.status ===
+                                    "awaiting_pickup_confirmation"
+                                    ? "default"
+                                    : request.status === "accepted"
                                       ? "secondary"
-                                      : "destructive"
+                                      : request.status === "pending"
+                                        ? "secondary"
+                                        : "destructive"
                               }
                               className={
                                 request.status === "accepted"
@@ -265,11 +316,13 @@ export default function ProfilePage() {
                                   : ""
                               }
                             >
-                              {request.status === "awaiting_pickup_confirmation"
-                                ? "Confirm Pickup"
-                                : request.status === "accepted"
-                                  ? "Pickup Scheduled"
-                                  : request.status}
+                              {request.item.status === "delisted"
+                                ? "Delisted"
+                                : request.status === "awaiting_pickup_confirmation"
+                                  ? "Confirm Pickup"
+                                  : request.status === "accepted"
+                                    ? "Pickup Scheduled"
+                                    : request.status}
                             </Badge>
                           </div>
                           <CardDescription className="text-sm">
@@ -282,7 +335,16 @@ export default function ProfilePage() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      {request.status === "awaiting_pickup_confirmation" && (
+                      {request.item.status === "delisted" ? (
+                        <div className="p-4 bg-muted rounded-lg border border-muted-foreground/20">
+                            <h3 className="font-medium mb-2 text-muted-foreground">
+                              This item has been delisted
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              Delisted items cannot be edited or requested by users.
+                            </p>
+                          </div>
+                      ) : request.status === "awaiting_pickup_confirmation" ? (
                         <div className="mt-2">
                           <Link
                             href={`/item/${request.item.id}`}
@@ -294,8 +356,7 @@ export default function ProfilePage() {
                             </div>
                           </Link>
                         </div>
-                      )}
-                      {request.status === "accepted" &&
+                      ) : request.status === "accepted" &&
                         request.item.pickupStart && (
                           <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
                             <h3 className="font-medium mb-2">
@@ -383,6 +444,67 @@ export default function ProfilePage() {
                     </CardHeader>
                   </Card>
                 ))
+              )}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="wishlists">
+            <div className="grid gap-4">
+              {!userWishlists || userWishlists.length === 0 ? (
+                <Card>
+                  <CardHeader className="py-3">
+                    <CardTitle className="text-base">No Wishlists</CardTitle>
+                    <CardDescription>
+                      You haven't created any wishlists yet.
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              ) : (
+                userWishlists.map((wishlist) => {
+                  const fulfillmentItems = getFulfillmentItemsForWishlist(wishlist.id);
+                  
+                  return (
+                    <Card key={wishlist.id}>
+                      <CardHeader className="py-3">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-base">{wishlist.title}</CardTitle>
+                          {fulfillmentItems.length > 0 && (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
+                              <Gift className="h-3 w-3" />
+                              {fulfillmentItems.length === 1 ? "Fulfilled" : `${fulfillmentItems.length} Offers`}
+                            </Badge>
+                          )}
+                        </div>
+                        <CardDescription className="text-sm">
+                          Created {formatDistanceToNow(new Date(wishlist.createdAt), {
+                            addSuffix: true,
+                          })}
+                        </CardDescription>
+                        {wishlist.description && (
+                          <p className="text-sm mt-2 text-muted-foreground">
+                            {wishlist.description}
+                          </p>
+                        )}
+                      </CardHeader>
+                      <CardContent>
+                        {/* Show fulfillment items if any */}
+                        <WishlistFulfillmentView 
+                          wishlistId={wishlist.id}
+                          fulfillmentItems={fulfillmentItems}
+                        />
+                        
+                        {/* Link to create more wishlist items */}
+                        <div className="mt-3">
+                          <Link href="/wishlists">
+                            <Button variant="outline" size="sm">
+                              Manage Wishlists
+                            </Button>
+                          </Link>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
               )}
             </div>
           </TabsContent>
