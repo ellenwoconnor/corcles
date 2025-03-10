@@ -28,6 +28,7 @@ type AuthFormProps = {
 
 export function AuthForm({ onSuccess }: AuthFormProps) {
   const { loginMutation, registerMutation, googleLogin } = useAuth();
+  const googleOAuthEnabled = process.env.NODE_ENV !== "production"; // Feature flag
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -62,26 +63,30 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
 
       <TabsContent value="login">
         <div className="space-y-4">
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={handleGoogleLogin}
-          >
-            <SiGoogle className="mr-2 h-4 w-4" />
-            Continue with Google
-          </Button>
+          {googleOAuthEnabled && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleGoogleLogin}
+              >
+                <SiGoogle className="mr-2 h-4 w-4" />
+                Continue with Google
+              </Button>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
 
           <Form {...loginForm}>
             <form
@@ -135,27 +140,30 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
 
       <TabsContent value="register">
         <div className="space-y-4">
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={handleGoogleLogin}
-          >
-            <SiGoogle className="mr-2 h-4 w-4" />
-            Continue with Google
-          </Button>
+          {googleOAuthEnabled && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleGoogleLogin}
+              >
+                <SiGoogle className="mr-2 h-4 w-4" />
+                Continue with Google
+              </Button>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
-
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
           <Form {...registerForm}>
             <form
               onSubmit={registerForm.handleSubmit(async (data) => {
