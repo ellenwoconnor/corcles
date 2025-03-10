@@ -62,7 +62,13 @@ export function EditListingDialog({ item }: EditListingDialogProps) {
             Update the details of your listing.
           </DialogDescription>
         </DialogHeader>
-        <ListingForm item={item} onSuccess={() => setOpen(false)} />
+        <ListingForm 
+          mode="edit"
+          itemId={item.id}
+          defaultValues={item}
+          onSuccess={() => setOpen(false)}
+          buttonText="Update Listing"
+        />
       </DialogContent>
     </Dialog>
   );
