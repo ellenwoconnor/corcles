@@ -121,12 +121,14 @@ export function ListingForm({
       formData.append("price", data.isGift ? "0" : String(data.price || 0));
       formData.append("userId", String(user.id));
 
-      // Always use the passed communityId for wishlist fulfillment
+      // Always use the communityId for item creation
       if (mode === "create") {
-        if (!communityId) {
+        // Use either the explicitly passed communityId or the one from the form data
+        const itemCommunityId = communityId || data.communityId;
+        if (!itemCommunityId) {
           throw new Error("Community ID is required");
         }
-        formData.append("communityId", String(communityId));
+        formData.append("communityId", String(itemCommunityId));
       }
 
       formData.append(
