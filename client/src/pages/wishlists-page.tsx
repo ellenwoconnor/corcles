@@ -187,7 +187,20 @@ export default function WishlistsPage() {
                         variant="outline"
                         className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"
                       >
-                        <Gift className="h-3 w-3" />
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-3 w-3"
+                        >
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
                         Fulfilled
                       </Badge>
                     )}

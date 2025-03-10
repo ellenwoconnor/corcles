@@ -181,7 +181,20 @@ export default function CommunityWishlists() {
 
                 {hasUserFulfilledWishlist(wishlist.userId) && (
                   <Badge variant="outline" className="text-xs">
-                    <Gift className="h-3 w-3 mr-1" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-3 w-3 mr-1"
+                    >
+                      <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
                     Fulfilled
                   </Badge>
                 )}
