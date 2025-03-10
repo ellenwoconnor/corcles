@@ -63,7 +63,7 @@ export default function HomePage() {
       <main className="container py-12 px-8">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight">Marketplace</h1>
+            <h1 className="text-2xl tracking-tight">Marketplace</h1>
             <p className="text-muted-foreground">
               Browse items in your communities
             </p>
@@ -81,7 +81,7 @@ export default function HomePage() {
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    placeholder="Search listings..."
+                    placeholder="Search listings"
                     className="pl-8"
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
@@ -118,19 +118,17 @@ export default function HomePage() {
             </div>
           </div>
 
-        <div className="mt-16">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight">
-                Community Wishlists
-              </h2>
-              <p className="text-muted-foreground">
-                Items your neighbors are looking for
-              </p>
+          <div className="mt-16">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+              <div>
+                <h2 className="text-2xl tracking-tight">Community Wishlists</h2>
+                <p className="text-muted-foreground">
+                  Items your neighbors are looking for
+                </p>
+              </div>
             </div>
+            <CommunityWishlists />
           </div>
-          <CommunityWishlists />
-        </div>
         </div>
       </main>
     </div>
