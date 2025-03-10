@@ -1,3 +1,4 @@
+
 import { Item } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,7 +12,7 @@ type ItemCardProps = {
 
 export default function ItemCard({ item }: ItemCardProps) {
   return (
-    <FadeIn> {/* Added FadeIn wrapper */}
+    <FadeIn>
       <Link href={`/item/${item.id}`}>
         <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
           <CardContent className="p-0">
@@ -40,6 +41,6 @@ export default function ItemCard({ item }: ItemCardProps) {
           </CardContent>
         </Card>
       </Link>
-    </FadeIn> {/* Closed FadeIn wrapper */}
+    </FadeIn>
   );
 }
