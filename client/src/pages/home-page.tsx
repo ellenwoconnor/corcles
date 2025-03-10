@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import ItemCard from "@/components/item-card";
+import FadeIn from "@/components/fade-in";
 
 // Add 'use client' directive for Next.js strict mode
 ("use client");
@@ -61,17 +62,19 @@ export default function HomePage() {
       <Navbar />
       {showWelcome && <WelcomeDialog communities={userCommunities} />}
       <main className="container py-12 px-8">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl tracking-tight">Marketplace</h1>
-            <p className="text-muted-foreground">
-              Browse items in your communities
-            </p>
+        <FadeIn>
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+            <div>
+              <h1 className="text-2xl tracking-tight">Marketplace</h1>
+              <p className="text-muted-foreground">
+                Browse items in your communities
+              </p>
+            </div>
+            <div className="order-first sm:order-none">
+              <CreateListingDialog communities={userCommunities} />
+            </div>
           </div>
-          <div className="order-first sm:order-none">
-            <CreateListingDialog communities={userCommunities} />
-          </div>
-        </div>
+        </FadeIn>
 
         <div className="space-y-4 mb-8">
           <div className="relative">
@@ -110,8 +113,10 @@ export default function HomePage() {
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {items.map((item) => (
-                    <ItemCard key={item.id} item={item} />
+                  {items.map((item, index) => (
+                    <FadeIn key={item.id} delay={index * 0.1}>
+                      <ItemCard item={item} />
+                    </FadeIn>
                   ))}
                 </div>
               )}
@@ -119,14 +124,16 @@ export default function HomePage() {
           </div>
 
           <div className="mt-24">
-            <div className="mt-10 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
-              <div>
-                <h2 className="text-2xl tracking-tight">Community Wishlists</h2>
-                <p className="text-muted-foreground">
-                  Items your neighbors are looking for
-                </p>
+            <FadeIn>
+              <div className="mt-10 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+                <div>
+                  <h2 className="text-2xl tracking-tight">Community Wishlists</h2>
+                  <p className="text-muted-foreground">
+                    Items your neighbors are looking for
+                  </p>
+                </div>
               </div>
-            </div>
+            </FadeIn>
             <CommunityWishlists />
           </div>
         </div>

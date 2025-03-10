@@ -21,6 +21,19 @@ import {
 } from "./ui/dialog";
 import { Gift, Clock, User, Lock } from "lucide-react";
 import FulfillWishlistDialog from "./fulfill-wishlist-dialog";
+import { motion } from 'framer-motion'; //Import Framer Motion
+
+const FadeIn = motion.custom(function FadeIn({ children, delay }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1, transition: { duration: 0.5, delay } }}
+    >
+      {children}
+    </motion.div>
+  );
+});
+
 
 export default function CommunityWishlists() {
   const { user } = useAuth();
@@ -139,41 +152,42 @@ export default function CommunityWishlists() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {wishlistsWithCommunityNames.map((wishlist) => (
-          <Card 
-            key={wishlist.id} 
-            className="overflow-hidden flex flex-col h-full cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all"
-            onClick={() => viewWishlistDetails(wishlist)}
-          >
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                {wishlist.title}
-                {wishlist.isPrivate && (
-                  <Lock className="h-4 w-4 text-muted-foreground" />
-                )}
-              </CardTitle>
-              <CardDescription className="flex items-center gap-1 text-xs">
-                <User className="h-3 w-3" />
-                <span>
-                  {wishlist.userName || "Anonymous"} in {wishlist.communityName}
-                </span>
-              </CardDescription>
-            </CardHeader>
+        {wishlistsWithCommunityNames.map((wishlist, index) => (
+          <FadeIn key={wishlist.id} delay={index * 0.1}>
+            <Card
+              className="overflow-hidden flex flex-col h-full cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all"
+              onClick={() => viewWishlistDetails(wishlist)}
+            >
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  {wishlist.title}
+                  {wishlist.isPrivate && (
+                    <Lock className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </CardTitle>
+                <CardDescription className="flex items-center gap-1 text-xs">
+                  <User className="h-3 w-3" />
+                  <span>
+                    {wishlist.userName || "Anonymous"} in {wishlist.communityName}
+                  </span>
+                </CardDescription>
+              </CardHeader>
 
-            <CardFooter className="pt-1 flex items-center justify-between text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {formatDate(wishlist.createdAt)}
-              </div>
-              
-              {hasUserFulfilledWishlist(wishlist.userId) && (
-                <Badge variant="outline" className="text-xs">
-                  <Gift className="h-3 w-3 mr-1" />
-                  Fulfilled
-                </Badge>
-              )}
-            </CardFooter>
-          </Card>
+              <CardFooter className="pt-1 flex items-center justify-between text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {formatDate(wishlist.createdAt)}
+                </div>
+
+                {hasUserFulfilledWishlist(wishlist.userId) && (
+                  <Badge variant="outline" className="text-xs">
+                    <Gift className="h-3 w-3 mr-1" />
+                    Fulfilled
+                  </Badge>
+                )}
+              </CardFooter>
+            </Card>
+          </FadeIn>
         ))}
       </div>
 
@@ -224,8 +238,8 @@ export default function CommunityWishlists() {
                 <div>
                   <h4 className="font-medium">Status</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {selectedWishlist && hasUserFulfilledWishlist(selectedWishlist.userId) 
-                      ? "You've already fulfilled this wishlist" 
+                    {selectedWishlist && hasUserFulfilledWishlist(selectedWishlist.userId)
+                      ? "You've already fulfilled this wishlist"
                       : "You can help fulfill this wishlist"}
                   </p>
                 </div>
