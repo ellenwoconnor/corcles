@@ -1,8 +1,7 @@
 
 interface Window {
   env?: {
-    GOOGLE_CLIENT_ID?: string;
-    enableGoogleOAuth?: boolean;
+    GOOGLE_CLIENT_ID: string;
     [key: string]: any;
   };
 }
