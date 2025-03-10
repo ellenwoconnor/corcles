@@ -63,13 +63,7 @@ export function MessageDialog({
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Debug log the props
-  console.log('MessageDialog mounted with props:', {
-    requestId,
-    currentUserId,
-    recipientId,
-    open
-  });
+  // Removed debug log
 
   // Use SSE instead of WebSocket
   const { isConnected } = useServerEvents({
@@ -94,24 +88,12 @@ export function MessageDialog({
   const { data: messages = [], isLoading: messagesLoading } = useQuery<Message[]>({
     queryKey: ['/api/messages', recipientId, requestId],
     queryFn: async () => {
-      console.log('Fetching messages:', {
-        recipientId,
-        requestId,
-        currentUserId,
-        enabled: open && !!recipientId && !!requestId,
-        open,
-        hasRecipientId: !!recipientId,
-        hasRequestId: !!requestId
-      });
-
       const response = await apiRequest('GET', `/api/messages/${recipientId}/${requestId}`);
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to fetch messages');
       }
-      const data = await response.json();
-      console.log('Fetched messages:', data.length);
-      return data;
+      return response.json();
     },
     enabled: open && !!recipientId && !!requestId
   });

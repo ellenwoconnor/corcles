@@ -1,5 +1,4 @@
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import RobotLogo from "@/components/robot-logo";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,8 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Menu, User, Users, Gift } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { LogOut, User, Users, Gift } from "lucide-react";
 
 export default function Navbar() {
   const { user, logoutMutation } = useAuth();
@@ -19,9 +17,10 @@ export default function Navbar() {
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-24 items-center px-8">
         <div className="mr-4">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
-            <span className="text-2xl font-bold uppercase tracking-wide">C<span className="text-[#6ABF69]">O</span>RCLES</span>
-            <RobotLogo />
+          <Link href="/" className="mr-6 flex items-center">
+            <span className="text-4xl uppercase tracking-wide">
+              C<span className="text-[#6ABF69]">O</span>RCLES
+            </span>
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">

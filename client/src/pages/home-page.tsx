@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import ItemCard from "@/components/item-card";
+import FadeIn from "@/components/fade-in";
 
 // Add 'use client' directive for Next.js strict mode
 ("use client");
@@ -44,9 +45,8 @@ export default function HomePage() {
         params.append("search", debouncedSearchValue.trim());
       }
 
-      if (showFreeOnly) {
-        params.append("freeOnly", "true");
-      }
+      // Always explicitly send the freeOnly parameter
+      params.append("freeOnly", showFreeOnly ? "true" : "false");
 
       const response = await fetch(`/api/items?${params}`);
       if (!response.ok) {
@@ -62,17 +62,21 @@ export default function HomePage() {
       <Navbar />
       {showWelcome && <WelcomeDialog communities={userCommunities} />}
       <main className="container py-12 px-8">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight">Marketplace</h1>
-            <p className="text-muted-foreground">
-              Browse items in your communities
-            </p>
+        <FadeIn>
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+            <div>
+              <FadeIn>
+                <h1 className="text-2xl tracking-tight">Marketplace</h1>
+              </FadeIn>
+              <p className="text-muted-foreground">
+                Browse items in your communities
+              </p>
+            </div>
+            <div className="order-first sm:order-none">
+              <CreateListingDialog communities={userCommunities} />
+            </div>
           </div>
-          <div className="order-first sm:order-none">
-            <CreateListingDialog communities={userCommunities} />
-          </div>
-        </div>
+        </FadeIn>
 
         <div className="space-y-4 mb-8">
           <div className="relative">
@@ -82,7 +86,7 @@ export default function HomePage() {
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    placeholder="Search listings..."
+                    placeholder="Search listings"
                     className="pl-8"
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
@@ -110,28 +114,36 @@ export default function HomePage() {
                   <p>No items found in your communities.</p>
                 </Card>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {items.map((item) => (
-                    <ItemCard key={item.id} item={item} />
-                  ))}
-                </div>
+                <FadeIn delay={0.1}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {items.map((item, index) => (
+                      <FadeIn key={item.id} delay={index * 0.1}>
+                        <ItemCard item={item} />
+                      </FadeIn>
+                    ))}
+                  </div>
+                </FadeIn>
               )}
             </div>
           </div>
 
-        <div className="mt-16">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
-            <div>
-              <h2 className="text-3xl font-bold tracking-tight">
-                Community Wishlists
-              </h2>
-              <p className="text-muted-foreground">
-                Items your neighbors are looking for
-              </p>
-            </div>
+          <div className="mt-24">
+            <FadeIn>
+              <div className="mt-10 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+                <div>
+                  <FadeIn>
+                    <h2 className="text-2xl tracking-tight">Community Wishlists</h2>
+                  </FadeIn>
+                  <p className="text-muted-foreground">
+                    Items your neighbors are looking for
+                  </p>
+                </div>
+              </div>
+            </FadeIn>
+            <FadeIn delay={0.2}>
+              <CommunityWishlists />
+            </FadeIn>
           </div>
-          <CommunityWishlists />
-        </div>
         </div>
       </main>
     </div>

@@ -29,6 +29,7 @@ import {
   isS3Configured,
   uploadFileToDigitalOcean,
 } from "./storage-do";
+import configRoutes from "./routes/config";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -60,9 +61,12 @@ function sendSSEMessage(userId: number, data: any) {
   if (client) {
     try {
       client.write(`data: ${JSON.stringify(data)}\n\n`);
-      logger.debug('SSE message sent successfully:', { userId, messageType: data.type });
+      logger.debug("SSE message sent successfully:", {
+        userId,
+        messageType: data.type,
+      });
     } catch (error) {
-      logger.error('Failed to send SSE message:', { userId, error });
+      logger.error("Failed to send SSE message:", { userId, error });
       // Remove failed connection
       sseClients.delete(userId);
     }
@@ -76,6 +80,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(passport.session());
 
   setupAuth(app);
+
+  // Register config routes
+  app.use(configRoutes);
 
   // Middleware to check authentication
   const requireAuth = (req: Request, res: Response, next: NextFunction) => {
@@ -94,17 +101,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/events", requireAuth, (req, res) => {
     const userId = req.user?.id;
     if (!userId) {
-      logger.warn('SSE connection attempt without user ID');
+      logger.warn("SSE connection attempt without user ID");
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    logger.info('New SSE connection established:', { userId });
+    logger.info("New SSE connection established:", { userId });
 
     // Set headers for SSE
     res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive'
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
     });
 
     // Send initial connection message
@@ -114,15 +121,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     sseClients.set(userId, res);
 
     // Remove client on connection close
-    req.on('close', () => {
-      logger.info('SSE connection closed:', { userId });
+    req.on("close", () => {
+      logger.info("SSE connection closed:", { userId });
       sseClients.delete(userId);
       res.end();
     });
 
     // Handle errors
-    res.on('error', (error) => {
-      logger.error('SSE connection error:', { userId, error });
+    res.on("error", (error) => {
+      logger.error("SSE connection error:", { userId, error });
       sseClients.delete(userId);
       res.end();
     });
@@ -227,8 +234,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const wishlists = await db
-        .select()
+        .select({
+          ...schema.wishlists,
+          userDisplayName: schema.users.displayName
+        })
         .from(schema.wishlists)
+        .leftJoin(schema.users, eq(schema.wishlists.userId, schema.users.id))
         .where(
           and(
             inArray(schema.wishlists.communityId, communityIds),
@@ -286,11 +297,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/messages/send", requireAuth, async (req, res) => {
     try {
       const { recipientId, content, requestId } = req.body;
-      logger.info("Received message request:", { 
-        recipientId, 
+      logger.info("Received message request:", {
+        recipientId,
         requestId,
         content: content?.substring(0, 20), // Log just the start of content for privacy
-        senderId: req.user?.id
+        senderId: req.user?.id,
       });
 
       // Validate recipient exists
@@ -386,15 +397,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Mark messages as read
       await storage.markMessagesAsRead(req.user.id, userId, requestId);
 
-      logger.debug("Fetched messages:", {
-        requestId,
-        itemId: item.id,
-        itemOwner: item.userId,
-        requester: itemRequest.requesterId,
-        messageCount: messages.length,
-        currentUser: req.user.id
-      });
-
       res.json(messages);
     } catch (error) {
       logger.error("Error fetching messages:", error);
@@ -436,7 +438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/items", requireAuth, async (req, res) => {
     try {
-      const { search, communities: communityParam, freeOnly } = req.query;
+      const { search, communities: communityParam, freeOnly, includeWithRecipients } = req.query;
       const searchTerm = typeof search === "string" ? search.trim() : undefined;
 
       let communities: number[] = [];
@@ -451,8 +453,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (searchTerm) {
         logger.info("Search request:", {
           term: searchTerm,
-          communityIds: communities.join(','),
+          communityIds: communities.join(","),
           freeOnly: freeOnly === "true" ? true : false,
+          includeWithRecipients: includeWithRecipients === "true"
         });
       }
 
@@ -469,16 +472,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // No need for additional search term logging
 
+      const isFreeOnly = freeOnly === "true";
+      
+      // Log filters being applied
+      logger.debug("Applying filters:", {
+        communities,
+        searchTerm,
+        freeOnly: isFreeOnly
+      });
+      
       const items = await storage.getItems(
         communities,
         req.user?.id,
         searchTerm,
         false,
-        freeOnly === "true",
+        isFreeOnly,
+        includeWithRecipients !== "true", // Only exclude items with recipients if not explicitly including them
       );
 
       // Only log item fetches with search terms or if explicitly debugging
-      if (searchTerm && logger.level === 'debug') {
+      if (searchTerm && logger.level === "debug") {
         logger.debug("Items fetched:", {
           searchTerm,
           itemCount: items.length,
@@ -586,7 +599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             isGift: z.boolean(),
             imageUrl: z.string(),
             userId: z.number(),
-            communityId: z.number({
+            communityId: z.coerce.number({
               required_error: "Please select a community",
             }),
             pickupLocation: z.string().nullable().optional(),
@@ -963,7 +976,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           validatedWindows.push({
             pickupStart: startDate.toISOString(),
-            pickupEnd: endDate.toISOString(),          });
+            pickupEnd: endDate.toISOString(),
+          });
         } catch (error) {
           logger.error("Date validation error:", error);
           return res
@@ -973,7 +987,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const proposedWindows = validatedWindows.map((window, index) => ({
-        ...window,        order: index,
+        ...window,
+        order: index,
       }));
 
       logger.debug("Validated windows:", proposedWindows);
@@ -1080,6 +1095,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error("Error confirming pickup:", error);
       res.status(500).json({ error: "Failed to confirm pickup" });
+    }
+  });
+
+  // Endpoint to set a recipient for an item (for wishlist fulfillment)
+  app.post("/api/items/:id/set-recipient", requireAuth, async (req, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const { recipientId, wishlistId } = req.body;
+      if (!recipientId || isNaN(parseInt(recipientId.toString()))) {
+        return res
+          .status(400)
+          .json({ error: "Valid recipient ID is required" });
+      }
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      // Check if the current user is the owner of the item
+      if (item.userId !== req.user.id) {
+        return res
+          .status(403)
+          .json({ error: "Not authorized to set recipient for this item" });
+      }
+
+      // If wishlistId is provided, validate it
+      let validWishlistId = null;
+      if (wishlistId && !isNaN(parseInt(wishlistId.toString()))) {
+        const wishlist = await db
+          .select()
+          .from(schema.wishlists)
+          .where(eq(schema.wishlists.id, parseInt(wishlistId.toString())))
+          .limit(1);
+        
+        if (wishlist.length > 0) {
+          validWishlistId = parseInt(wishlistId.toString());
+        }
+      }
+
+      // Update the item with the recipient and wishlist info
+      await db
+        .update(schema.items)
+        .set({
+          recipientId: recipientId,
+          wishlistId: validWishlistId,
+        })
+        .where(eq(schema.items.id, itemId));
+
+      logger.info("Set recipient for item:", {
+        itemId,
+        recipientId,
+        wishlistId: validWishlistId,
+        userId: req.user.id,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Error setting recipient:", error);
+      res.status(500).json({ error: "Failed to set recipient" });
     }
   });
 
@@ -1554,6 +1633,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
               continue;
             }
 
+            // Skip non-custom (zip code) communities
+            if (!community.isCustom) {
+              logger.warn("Skipping invite - non-custom community:", {
+                inviteId: invite.id,
+                communityId: invite.communityId,
+                communityName: community.name,
+              });
+              continue;
+            }
+
             await tx
               .insert(schema.userCommunities)
               .values({
@@ -1685,6 +1774,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add SSE endpoint
   //This line was already in the edited code, no need to add it again
+
+  app.delete("/api/items/:id", requireAuth, async (req, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      // Get the item to verify ownership
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      // Verify ownership
+      if (item.userId !== req.user?.id) {
+        return res.status(403).json({ error: "Not authorized to delete this item" });
+      }
+
+      // Delete related records first
+      await db.delete(schema.messages)
+        .where(
+          inArray(
+            schema.messages.requestId,
+            db.select({ id: schema.itemRequests.id })
+              .from(schema.itemRequests)
+              .where(eq(schema.itemRequests.itemId, itemId))
+          )
+        );
+
+      // Delete requests
+      await db.delete(schema.itemRequests)
+        .where(eq(schema.itemRequests.itemId, itemId));
+
+      // Delete bids
+      await db.delete(schema.itemBids)
+        .where(eq(schema.itemBids.itemId, itemId));
+
+      // Finally delete the item
+      await db.delete(schema.items)
+        .where(eq(schema.items.id, itemId));
+
+      logger.info('Item deleted successfully:', { itemId, userId: req.user?.id });
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Error deleting item:", error);
+      res.status(500).json({ error: "Failed to delete item" });
+    }
+  });
+
+  app.post("/api/items/:id/delist", requireAuth, async (req, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      // Get the item to verify ownership
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      // Verify ownership
+      if (item.userId !== req.user?.id) {
+        return res.status(403).json({ error: "Not authorized to delist this item" });
+      }
+
+      // Update all associated item requests to canceled status
+      await db.update(schema.itemRequests)
+        .set({ 
+          status: REQUEST_STATUS.CANCELED,
+          cancellationInfo: JSON.stringify({
+            canceledBy: req.user.id,
+            canceledAt: new Date().toISOString(),
+            reason: "Item was delisted by owner"
+          })
+        })
+        .where(eq(schema.itemRequests.itemId, itemId));
+
+      // Update item status to delisted
+      await db.update(schema.items)
+        .set({ status: "delisted" })
+        .where(eq(schema.items.id, itemId));
+
+      logger.info('Item delisted successfully and requests canceled:', { 
+        itemId, 
+        userId: req.user?.id 
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Error delisting item:", error);
+      res.status(500).json({ error: "Failed to delist item" });
+    }
+  });
 
   const server = createServer(app);
   return server;

@@ -15,6 +15,7 @@ import S3TestComponent from "@/components/admin/s3-test";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AddressCompletionDialog } from "./components/address-completion-dialog";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { useState, useEffect } from "react";
 
 // Configuration error component
 function ConfigurationError({ message }: { message: string }) {
@@ -61,54 +62,63 @@ function AppContent() {
   );
 }
 
-function App() {
-  // Get the client ID based on environment
-  const clientId = (() => {
-    try {
-      // In development, use Vite's import.meta.env
-      if (import.meta.env.DEV) {
-        const devClientId = import.meta.env.GOOGLE_CLIENT_ID;
-        if (!devClientId) {
-          throw new Error('Google Client ID not found in development environment');
+// Added useClientConfig hook -  ASSUMPTIONS MADE ABOUT API ENDPOINT AND RESPONSE
+const useClientConfig = () => {
+  const [config, setConfig] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        const response = await fetch('/api/config');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-        return devClientId;
+        const data = await response.json();
+        setConfig(data);
+      } catch (err) {
+        setError(err);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // In production, use window.env
-      if (typeof window === 'undefined' || !window.env?.GOOGLE_CLIENT_ID) {
-        throw new Error('Google Client ID not found in production environment');
-      }
-      return window.env.GOOGLE_CLIENT_ID;
-    } catch (error) {
-      console.error('OAuth Configuration Error:', error);
-      return null;
-    }
-  })();
+    fetchConfig();
+  }, []);
 
-  // Log configuration status
-  console.info('OAuth Configuration Status:', {
-    hasClientId: !!clientId,
-    clientIdLength: clientId?.length || 0,
-    isDevelopment: import.meta.env.DEV,
-    isProduction: import.meta.env.PROD,
-    devClientId: import.meta.env.DEV ? import.meta.env.GOOGLE_CLIENT_ID : undefined,
-    windowEnvClientId: typeof window !== 'undefined' ? window.env?.GOOGLE_CLIENT_ID : undefined
-  });
+  return { config, error, loading };
+};
 
-  // Show error UI if client ID is missing
-  if (!clientId) {
+
+function App() {
+  const { config, error, loading } = useClientConfig();
+
+  // Show loading state
+  if (loading) {
     return (
-      <ConfigurationError 
-        message={`OAuth configuration is missing. Please ensure:
-1. You are using the Web client ID (not auto-created)
-2. JavaScript origins include your domain
-3. The client ID is properly set in environment variables`}
-      />
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
+
+  // Show error if config fetch failed
+  if (error) {
+    return (
+      <ConfigurationError message={`Failed to load application configuration: ${error}`} />
+    );
+  }
+
+  // Check if Google OAuth config is available
+  if (!config?.googleClientId) {
+    return (
+      <ConfigurationError message="Google OAuth Client ID is missing. Please check your server configuration." />
     );
   }
 
   return (
-    <GoogleOAuthProvider clientId={clientId}>
+    <GoogleOAuthProvider clientId={config.googleClientId}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <AppContent />

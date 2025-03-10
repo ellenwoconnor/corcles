@@ -62,8 +62,9 @@ interface ListingFormProps {
     role: string;
     memberCount: number;
   }>;
+  communityId?: number; // Added prop for direct community ID
   defaultValues?: any;
-  onSuccess?: () => void;
+  onSuccess?: (data: any) => void;
   isLoading?: boolean;
   buttonText: string;
 }
@@ -72,6 +73,7 @@ export function ListingForm({
   mode,
   itemId,
   communities = [],
+  communityId,
   defaultValues = {},
   onSuccess,
   isLoading: externalLoading,
@@ -84,6 +86,7 @@ export function ListingForm({
 
   const schema = mode === "create" ? createItemSchema : editItemSchema;
 
+  // Ensure communityId is properly set in form defaults
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -93,9 +96,8 @@ export function ListingForm({
       isGift: true,
       imageUrl: "",
       userId: user?.id,
-      communityId:
-        defaultValues.communityId ||
-        (communities.length > 0 ? communities[0].id : undefined),
+      // Prioritize passed communityId
+      communityId: communityId,
       pickupLocation: defaultValues.pickupLocation || user?.address || "",
       ...defaultValues,
     },
@@ -113,18 +115,20 @@ export function ListingForm({
         throw new Error("Title is required");
       }
 
-      if (mode === "create" && !data.communityId) {
-        throw new Error("Community selection is required");
-      }
-
       formData.append("title", data.title.trim());
       formData.append("description", data.description || "");
       formData.append("isGift", String(data.isGift));
       formData.append("price", data.isGift ? "0" : String(data.price || 0));
       formData.append("userId", String(user.id));
 
+      // Always use the communityId for item creation
       if (mode === "create") {
-        formData.append("communityId", String(data.communityId));
+        // Use either the explicitly passed communityId or the one from the form data
+        const itemCommunityId = communityId || data.communityId;
+        if (!itemCommunityId) {
+          throw new Error("Community ID is required");
+        }
+        formData.append("communityId", String(itemCommunityId));
       }
 
       formData.append(
@@ -139,8 +143,7 @@ export function ListingForm({
       }
 
       const method = mode === "create" ? "POST" : "PATCH";
-      const endpoint =
-        mode === "create" ? "/api/items" : `/api/items/${itemId}`;
+      const endpoint = mode === "create" ? "/api/items" : `/api/items/${itemId}`;
 
       const response = await apiRequest(method, endpoint, formData);
 
@@ -151,19 +154,15 @@ export function ListingForm({
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/items"] });
-      if (itemId) {
-        queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
-      }
-      queryClient.invalidateQueries({ queryKey: ["/api/user/items"] });
-
       toast({
-        title: "Success!",
-        description: `Your listing has been ${mode === "create" ? "created" : "updated"}.`,
+        title: "Success",
+        description: `Item ${mode === "create" ? "created" : "updated"} successfully.`,
       });
-
-      onSuccess?.();
+      if (onSuccess) {
+        onSuccess(data);
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -220,6 +219,7 @@ export function ListingForm({
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
           name="description"
@@ -233,6 +233,7 @@ export function ListingForm({
             </FormItem>
           )}
         />
+
         <FormField
           control={form.control}
           name="isGift"
@@ -271,7 +272,7 @@ export function ListingForm({
           />
         )}
 
-        {mode === "create" && (
+        {mode === "create" && !communityId ? (
           <FormField
             control={form.control}
             name="communityId"
@@ -302,7 +303,17 @@ export function ListingForm({
               </FormItem>
             )}
           />
-        )}
+        ) : mode === "edit" && defaultValues?.communityName ? (
+          <FormItem>
+            <FormLabel>Community</FormLabel>
+            <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+              {defaultValues.communityName}
+            </div>
+            <FormDescription>
+              Items cannot be moved between communities after creation
+            </FormDescription>
+          </FormItem>
+        ) : null}
 
         <FormField
           control={form.control}

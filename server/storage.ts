@@ -50,7 +50,9 @@ export interface IStorage {
     communities: number[],
     userId?: number,
     search?: string,
-    userItemsOnly?: boolean
+    userItemsOnly?: boolean,
+    freeOnly?: boolean,
+    excludeItemsWithRecipients?: boolean
   ): Promise<(Item & { userHasFavorited: boolean })[]>;
   getItem(
     id: number,
@@ -102,6 +104,7 @@ export interface IStorage {
   getUserWishlists(userId: number): Promise<Wishlist[]>;
   getCommunityWishlists(communityId: number): Promise<Wishlist[]>;
   updateWishlist(id: number, userId: number, updates: Partial<InsertWishlist>): Promise<Wishlist | undefined>;
+  getWishlistFulfillmentItems(wishlistId: number): Promise<Item[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -293,7 +296,9 @@ export class DatabaseStorage implements IStorage {
     communities: number[],
     userId?: number,
     search?: string,
-    userItemsOnly?: boolean
+    userItemsOnly?: boolean,
+    freeOnly?: boolean,
+    excludeItemsWithRecipients?: boolean
   ): Promise<(Item & { userHasFavorited: boolean })[]> {
     try {
       logger.debug('Fetching items with params:', {
@@ -301,24 +306,31 @@ export class DatabaseStorage implements IStorage {
         userId,
         search,
         userItemsOnly,
+        freeOnly,
+        excludeItemsWithRecipients
       });
 
-      // First select all fields from items table directly
       const query = db
         .select({
           ...items,
           userDisplayName: sql<string>`(
             SELECT username FROM ${users} WHERE ${users.id} = ${items.userId}
-          )`.as("userDisplayName"),
-          userHasFavorited: sql<boolean>`false`.as("userHasFavorited"),
+          )`,
+          userHasFavorited: sql<boolean>`false`,
         })
         .from(items);
 
-      // Build query conditions
       const conditions = [];
 
-      // Don't show completed items
-      conditions.push(notInArray(items.status, ['completed']));
+      // Don't show completed or delisted items unless viewing own items
+      if (!userItemsOnly) {
+        conditions.push(notInArray(items.status, ['completed', 'delisted']));
+      }
+
+      // Exclude items with recipients if requested
+      if (excludeItemsWithRecipients) {
+        conditions.push(sql`${items.recipientId} IS NULL`);
+      }
 
       // Filter by user's items if requested
       if (userItemsOnly && userId) {
@@ -341,7 +353,13 @@ export class DatabaseStorage implements IStorage {
         );
       }
 
-      // Apply all conditions and get raw results
+      // Apply freeOnly filter
+      if (freeOnly) {
+        logger.debug("Applying freeOnly filter");
+        conditions.push(eq(items.isGift, true));
+      }
+
+
       const results = await query
         .where(and(...conditions))
         .orderBy(desc(items.createdAt));
@@ -352,17 +370,14 @@ export class DatabaseStorage implements IStorage {
         results
       });
 
-      // Transform dates and handle null values
       return results.map(item => ({
         ...item,
-        proposedPickupWindows: item.proposedPickupWindows
-          ? (item.proposedPickupWindows as PickupWindow[])
-          : undefined,
-        pickupStart: item.pickupStart ? new Date(item.pickupStart).toISOString() : null,
-        pickupEnd: item.pickupEnd ? new Date(item.pickupEnd).toISOString() : null,
-        createdAt: new Date(item.createdAt).toISOString(),
+        proposedPickupWindows: item.proposedPickupWindows || [],
+        pickupStart: item.pickupStart ? item.pickupStart.toISOString() : null,
+        pickupEnd: item.pickupEnd ? item.pickupEnd.toISOString() : null,
+        createdAt: item.createdAt.toISOString(),
         userDisplayName: item.userDisplayName || "Anonymous",
-        userHasFavorited: item.userHasFavorited || false
+        userHasFavorited: Boolean(item.userHasFavorited)
       }));
 
     } catch (error) {
@@ -381,8 +396,8 @@ export class DatabaseStorage implements IStorage {
           ...items,
           userDisplayName: sql<string>`(
             SELECT username FROM ${users} WHERE ${users.id} = ${items.userId}
-          )`.as("userDisplayName"),
-          userHasFavorited: sql<boolean>`false`.as("userHasFavorited"),
+          )`,
+          userHasFavorited: sql<boolean>`false`,
         })
         .from(items)
         .where(eq(items.id, id));
@@ -391,14 +406,12 @@ export class DatabaseStorage implements IStorage {
 
       return {
         ...item,
-        proposedPickupWindows: item.proposedPickupWindows
-          ? (item.proposedPickupWindows as PickupWindow[])
-          : undefined,
-        pickupStart: item.pickupStart ? new Date(item.pickupStart).toISOString() : null,
-        pickupEnd: item.pickupEnd ? new Date(item.pickupEnd).toISOString() : null,
-        createdAt: new Date(item.createdAt).toISOString(),
+        proposedPickupWindows: item.proposedPickupWindows || [],
+        pickupStart: item.pickupStart ? item.pickupStart.toISOString() : null,
+        pickupEnd: item.pickupEnd ? item.pickupEnd.toISOString() : null,
+        createdAt: item.createdAt.toISOString(),
         userDisplayName: item.userDisplayName || "Anonymous",
-        userHasFavorited: item.userHasFavorited || false
+        userHasFavorited: Boolean(item.userHasFavorited)
       };
 
     } catch (error) {
@@ -1038,11 +1051,7 @@ export class DatabaseStorage implements IStorage {
 
       return membership?.role;
     } catch (error) {
-      logger.error('Error getting user role:', {
-        error,
-        userId,
-        communityId
-      });
+      logger.error('Error getting user role:', { error, userId, communityId });
       throw error;
     }
   }
@@ -1137,6 +1146,26 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       logger.error('Error updating wishlist:', { error, wishlistId: id, updates });
       throw error;
+    }
+  }
+
+  async getWishlistFulfillmentItems(wishlistId: number): Promise<Item[]> {
+    try {
+      const items = await db
+        .select()
+        .from(items)
+        .where(eq(items.wishlistId, wishlistId));
+
+      return items.map(item => ({
+        ...item,
+        createdAt: item.createdAt.toISOString(),
+      }));
+    } catch (error) {
+      logger.error("Error fetching wishlist fulfillment items:", {
+        wishlistId,
+        error,
+      });
+      return [];
     }
   }
 }
