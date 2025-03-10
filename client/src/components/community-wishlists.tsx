@@ -151,14 +151,14 @@ export default function CommunityWishlists() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {wishlistsWithCommunityNames.map((wishlist, index) => (
           <FadeIn key={wishlist.id} delay={index * 0.1}>
             <Card
-              className="overflow-hidden flex flex-col h-full cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all"
+              className="overflow-hidden flex flex-col h-full cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all p-1"
               onClick={() => viewWishlistDetails(wishlist)}
             >
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-4 pt-4">
                 <CardTitle className="text-lg flex items-center gap-2">
                   {wishlist.title}
                   {wishlist.isPrivate && (
@@ -173,7 +173,7 @@ export default function CommunityWishlists() {
                 </CardDescription>
               </CardHeader>
 
-              <CardFooter className="pt-1 flex items-center justify-between text-xs text-muted-foreground">
+              <CardFooter className="pt-3 pb-3 flex items-center justify-between text-xs text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   {formatDate(wishlist.createdAt)}
