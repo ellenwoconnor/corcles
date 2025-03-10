@@ -110,21 +110,28 @@ function App() {
     );
   }
 
-  // Check if Google OAuth config is available
-  if (!config?.googleClientId) {
-    return (
-      <ConfigurationError message="Google OAuth Client ID is missing. Please check your server configuration." />
-    );
-  }
+  // Check if Google OAuth is enabled
+  const isGoogleOAuthEnabled = config?.enableGoogleOAuth && config?.googleClientId;
 
+  // Conditionally wrap with Google OAuth provider
   return (
-    <GoogleOAuthProvider clientId={config.googleClientId}>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <AppContent />
-        </AuthProvider>
-      </QueryClientProvider>
-    </GoogleOAuthProvider>
+    <>
+      {isGoogleOAuthEnabled ? (
+        <GoogleOAuthProvider clientId={config.googleClientId || ""}>
+          <QueryClientProvider client={queryClient}>
+            <AuthProvider googleOAuthEnabled={isGoogleOAuthEnabled}>
+              <AppContent />
+            </AuthProvider>
+          </QueryClientProvider>
+        </GoogleOAuthProvider>
+      ) : (
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider googleOAuthEnabled={isGoogleOAuthEnabled}>
+            <AppContent />
+          </AuthProvider>
+        </QueryClientProvider>
+      )}
+    </>
   );
 }
 
