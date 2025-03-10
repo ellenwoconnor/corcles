@@ -140,8 +140,12 @@ export default function CommunityWishlists() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {wishlistsWithCommunityNames.map((wishlist) => (
-          <Card key={wishlist.id} className="overflow-hidden flex flex-col h-full">
-            <CardHeader className="pb-2">
+          <Card 
+            key={wishlist.id} 
+            className="overflow-hidden flex flex-col h-full cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all"
+            onClick={() => viewWishlistDetails(wishlist)}
+          >
+            <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 {wishlist.title}
                 {wishlist.isPrivate && (
@@ -156,56 +160,18 @@ export default function CommunityWishlists() {
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="pb-2 flex-grow">
-              <div className="flex flex-wrap gap-2 mb-2">
-                <Badge className={`${getUrgencyColor(wishlist.urgency)} border`}>
-                  {wishlist.urgency.charAt(0).toUpperCase() + wishlist.urgency.slice(1)} Priority
-                </Badge>
-
-                {wishlist.budget && (
-                  <Badge variant="outline">
-                    Budget: ${wishlist.budget}
-                  </Badge>
-                )}
-              </div>
-
-              <p className="text-sm line-clamp-2 text-muted-foreground mb-2">
-                {wishlist.description || "No description provided"}
-              </p>
-
-              <div className="text-xs text-muted-foreground flex items-center gap-1">
+            <CardFooter className="pt-1 flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                Added {formatDate(wishlist.createdAt)}
+                {formatDate(wishlist.createdAt)}
               </div>
-            </CardContent>
-
-            <CardFooter className="pt-2 flex justify-between">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => viewWishlistDetails(wishlist)}
-              >
-                View Details
-              </Button>
-
-              <Button
-                variant={hasUserFulfilledWishlist(wishlist.userId) ? "outline" : "default"}
-                size="sm"
-                disabled={hasUserFulfilledWishlist(wishlist.userId)}
-                onClick={() => onFulfillWishlist(wishlist)}
-              >
-                {hasUserFulfilledWishlist(wishlist.userId) ? (
-                  <>
-                    <Gift className="h-4 w-4 mr-1" />
-                    Already Fulfilled
-                  </>
-                ) : (
-                  <>
-                    <Gift className="h-4 w-4 mr-1" />
-                    Fulfill
-                  </>
-                )}
-              </Button>
+              
+              {hasUserFulfilledWishlist(wishlist.userId) && (
+                <Badge variant="outline" className="text-xs">
+                  <Gift className="h-3 w-3 mr-1" />
+                  Fulfilled
+                </Badge>
+              )}
             </CardFooter>
           </Card>
         ))}
@@ -213,7 +179,7 @@ export default function CommunityWishlists() {
 
       {/* Wishlist Details Dialog */}
       <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent className="sm:max-w-[525px]">
+        <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {selectedWishlist?.title}
@@ -226,7 +192,7 @@ export default function CommunityWishlists() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="space-y-5 mt-2">
             <div className="flex flex-wrap gap-2">
               {selectedWishlist?.urgency && (
                 <Badge className={`${getUrgencyColor(selectedWishlist.urgency)} border`}>
@@ -242,36 +208,46 @@ export default function CommunityWishlists() {
 
               <Badge variant="outline" className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />
-                {formatDate(selectedWishlist?.createdAt || "")}
+                Added {formatDate(selectedWishlist?.createdAt || "")}
               </Badge>
             </div>
 
-            <div className="border-t pt-3">
+            <div className="border-t pt-4">
               <h4 className="font-medium mb-2">Description</h4>
               <p className="text-muted-foreground whitespace-pre-wrap">
                 {selectedWishlist?.description || "No description provided"}
               </p>
             </div>
 
-            <div className="flex justify-end pt-4">
-              <Button
-                disabled={selectedWishlist ? hasUserFulfilledWishlist(selectedWishlist.userId) : false}
-                onClick={() => {
-                  setDetailsDialogOpen(false);
-                  if (selectedWishlist) {
-                    onFulfillWishlist(selectedWishlist);
-                  }
-                }}
-              >
-                {selectedWishlist && hasUserFulfilledWishlist(selectedWishlist.userId) ? (
-                  "Already Fulfilled"
-                ) : (
-                  <>
-                    <Gift className="h-4 w-4 mr-2" />
-                    Fulfill This Wishlist
-                  </>
-                )}
-              </Button>
+            <div className="border-t pt-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h4 className="font-medium">Status</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {selectedWishlist && hasUserFulfilledWishlist(selectedWishlist.userId) 
+                      ? "You've already fulfilled this wishlist" 
+                      : "You can help fulfill this wishlist"}
+                  </p>
+                </div>
+                <Button
+                  disabled={selectedWishlist ? hasUserFulfilledWishlist(selectedWishlist.userId) : false}
+                  onClick={() => {
+                    setDetailsDialogOpen(false);
+                    if (selectedWishlist) {
+                      onFulfillWishlist(selectedWishlist);
+                    }
+                  }}
+                >
+                  {selectedWishlist && hasUserFulfilledWishlist(selectedWishlist.userId) ? (
+                    "Already Fulfilled"
+                  ) : (
+                    <>
+                      <Gift className="h-4 w-4 mr-2" />
+                      Fulfill This Wishlist
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
