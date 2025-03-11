@@ -17,7 +17,6 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { UserCheck } from "lucide-react";
 
-
 interface OwnerListingViewProps {
   item: ExtendedItem;
   requests: (ItemRequest & { userId?: number })[];
@@ -124,7 +123,7 @@ export default function OwnerListingView({
       <div className="flex flex-col gap-4">
         <div>
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold tracking-tight">{item.title}</h1>
+            <h1 className="text-2xl tracking-tight">{item.title}</h1>
             <div className="flex items-center gap-2">
               {isWishlistFulfillment && (
                 <Badge
@@ -197,8 +196,8 @@ export default function OwnerListingView({
                 {activeRequest
                   ? "Active Request"
                   : hasRequests
-                  ? `Requests (${requests.length})`
-                  : "No Requests Yet"}
+                    ? `Requests (${requests.length})`
+                    : "No Requests Yet"}
               </h3>
             </div>
             <div className="p-4">
@@ -291,7 +290,7 @@ export default function OwnerListingView({
               <span>Recipient Selected</span>
             </h2>
             <p className="text-sm mb-3">
-              This item is being given to{" "}
+              This item is being offered to{" "}
               <span className="font-medium">{recipientUsername}</span>
               {item.wishlistId && wishlist && (
                 <span className="ml-1">
