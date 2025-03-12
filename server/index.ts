@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite } from "./vite";
 import logger, { requestLogger, logStartupInfo } from "./logger";
-import { db } from "./db-dev";
+import { db } from "./db";
 import { sql } from "drizzle-orm";
 import path from "path";
 import fs from "fs";
@@ -140,7 +140,7 @@ async function startServer() {
     }
 
     // Start server with proper port binding
-    const PORT = Number(process.env.PORT || 5000);
+    const PORT = Number(process.env.PORT || 3000);
 
     await new Promise<void>((resolve, reject) => {
       try {
