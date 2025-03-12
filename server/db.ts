@@ -78,7 +78,8 @@ async function migrate() {
       pickup_start TIMESTAMP,
       pickup_end TIMESTAMP,
       proposed_pickup_windows JSONB[],
-      pickup_location TEXT
+      pickup_location TEXT,
+      wishlist_id INTEGER
     )`,
     `CREATE TABLE IF NOT EXISTS item_requests (
       id SERIAL PRIMARY KEY,
@@ -101,7 +102,26 @@ async function migrate() {
       urgency TEXT DEFAULT 'normal',
       is_private BOOLEAN NOT NULL DEFAULT false
     )`,
-    `DO $$ 
+    `DO $$
+    `CREATE TABLE IF NOT EXISTS item_bids (
+      id SERIAL PRIMARY KEY,
+      item_id INTEGER NOT NULL,
+      bidder_id INTEGER NOT NULL,
+      amount INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      message TEXT,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )`,
+    `CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      sender_id INTEGER NOT NULL REFERENCES users(id),
+      recipient_id INTEGER NOT NULL REFERENCES users(id),
+      content TEXT NOT NULL,
+      request_id INTEGER NOT NULL REFERENCES item_requests(id),
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      read_at TIMESTAMP
+    )`,
+    `DO $$
     BEGIN
       -- Create home communities for each zip code if they don't exist
       INSERT INTO communities (name, description, created_by, is_custom)
