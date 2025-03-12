@@ -1,12 +1,15 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
 import * as schema from "@shared/schema";
 import logger from './logger';
+import pkg from 'pg';
+import dotenv from 'dotenv';
+import { drizzle } from "drizzle-orm/node-postgres";
 
-// Configure WebSocket for Neon database
-neonConfig.webSocketConstructor = ws;
-logger.debug('Configured WebSocket constructor for Neon database');
+dotenv.config();
+console.log("Starting database in prod environment");
+console.log("Using local environmental variables", process.env);
+
+const { Pool } = pkg;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -14,16 +17,12 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Initialize database connection pool
-export const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 5000, // 5 second timeout
-  max: 20 // Maximum number of clients to create
+export const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
 });
 
-// Initialize Drizzle ORM
-export const db = drizzle({ client: pool, schema });
-logger.debug('Initialized Drizzle with database connection');
+export const db = drizzle(pool, { schema });
+console.log('Initialized DrizzleDB with database connection');
 
 // Run initial migration
 async function migrate() {
