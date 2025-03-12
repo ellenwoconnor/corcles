@@ -102,7 +102,6 @@ async function migrate() {
       urgency TEXT DEFAULT 'normal',
       is_private BOOLEAN NOT NULL DEFAULT false
     )`,
-    `DO $$
     `CREATE TABLE IF NOT EXISTS item_bids (
       id SERIAL PRIMARY KEY,
       item_id INTEGER NOT NULL,
