@@ -15,7 +15,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SiGoogle } from "react-icons/si";
-import { Separator } from "@/components/ui/separator";
 
 const loginSchema = insertUserSchema.pick({
   username: true,
@@ -166,7 +165,8 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                   if ((error as Error).message.includes("address")) {
                     registerForm.setError("address", {
                       type: "manual",
-                      message: "This address is already registered in our system",
+                      message:
+                        "This address is already registered in our system",
                     });
                   }
                 }
@@ -206,7 +206,11 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input type="email" {...field} placeholder="your@email.com" />
+                      <Input
+                        type="email"
+                        {...field}
+                        placeholder="your@email.com"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

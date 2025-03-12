@@ -39,14 +39,16 @@ export default function ProfilePage() {
     queryKey: ["/api/user/bids"],
     enabled: !!user,
   });
-  
+
   // Fetch user's wishlists
-  const { data: userWishlists = [], isLoading: wishlistsLoading } = useQuery<Wishlist[]>({
+  const { data: userWishlists = [], isLoading: wishlistsLoading } = useQuery<
+    Wishlist[]
+  >({
     queryKey: ["/api/user/wishlists"],
     enabled: !!user,
   });
-  
-  // Get communities to properly fetch items 
+
+  // Get communities to properly fetch items
   const { data: userCommunities = [] } = useQuery({
     queryKey: ["/api/user/communities"],
     enabled: !!user,
@@ -58,11 +60,11 @@ export default function ProfilePage() {
     enabled: !!user && userCommunities.length > 0,
     queryFn: async () => {
       if (!userCommunities.length) return [];
-      const communityIds = userCommunities.map(c => c.id).join(',');
+      const communityIds = userCommunities.map((c) => c.id).join(",");
       const response = await fetch(`/api/items?communities=${communityIds}`);
       if (!response.ok) return [];
       return response.json();
-    }
+    },
   });
 
   const pendingConfirmations =
@@ -72,12 +74,13 @@ export default function ProfilePage() {
   const requestedItems = userItems?.filter(
     (item) => item.status === "requested" && !item.pickupStart,
   );
-  
+
   // Function to get fulfillment items for a wishlist
   const getFulfillmentItemsForWishlist = (wishlistId: number) => {
-    return allItems.filter(item => 
-      // Check if this item is assigned to this specific wishlist
-      item.wishlistId === wishlistId && item.recipientId === user?.id
+    return allItems.filter(
+      (item) =>
+        // Check if this item is assigned to this specific wishlist
+        item.wishlistId === wishlistId && item.recipientId === user?.id,
     );
   };
 
@@ -122,9 +125,7 @@ export default function ProfilePage() {
         <div className="mb-8 space-y-4">
           <div className="space-y-4">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight mb-2">
-                {user.username}
-              </h1>
+              <h1 className="text-2xl tracking-tight mb-2">{user.username}</h1>
               <div className="text-sm">
                 <span className="font-medium">Address: </span>
                 <span className="text-muted-foreground">{user.address}</span>
@@ -228,23 +229,27 @@ export default function ProfilePage() {
                               This item has been delisted
                             </h3>
                             <p className="text-sm text-muted-foreground">
-                              Delisted items cannot be edited or requested by users.
+                              Delisted items cannot be edited or requested by
+                              users.
                             </p>
                           </div>
-                        ) : item.pickupStart && (
-                          <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
-                            <h3 className="font-medium mb-2">
-                              Pickup Scheduled
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              {format(
-                                new Date(item.pickupStart),
-                                "EEEE, MMMM d",
-                              )}{" "}
-                              at {format(new Date(item.pickupStart), "h:mm a")}{" "}
-                              - {format(new Date(item.pickupEnd!), "h:mm a")}
-                            </p>
-                          </div>
+                        ) : (
+                          item.pickupStart && (
+                            <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                              <h3 className="font-medium mb-2">
+                                Pickup Scheduled
+                              </h3>
+                              <p className="text-sm text-muted-foreground">
+                                {format(
+                                  new Date(item.pickupStart),
+                                  "EEEE, MMMM d",
+                                )}{" "}
+                                at{" "}
+                                {format(new Date(item.pickupStart), "h:mm a")} -{" "}
+                                {format(new Date(item.pickupEnd!), "h:mm a")}
+                              </p>
+                            </div>
+                          )
                         )}
                       </CardContent>
                     </Card>
@@ -302,7 +307,7 @@ export default function ProfilePage() {
                                 request.item.status === "delisted"
                                   ? "outline"
                                   : request.status ===
-                                    "awaiting_pickup_confirmation"
+                                      "awaiting_pickup_confirmation"
                                     ? "default"
                                     : request.status === "accepted"
                                       ? "secondary"
@@ -318,7 +323,8 @@ export default function ProfilePage() {
                             >
                               {request.item.status === "delisted"
                                 ? "Delisted"
-                                : request.status === "awaiting_pickup_confirmation"
+                                : request.status ===
+                                    "awaiting_pickup_confirmation"
                                   ? "Confirm Pickup"
                                   : request.status === "accepted"
                                     ? "Pickup Scheduled"
@@ -337,13 +343,14 @@ export default function ProfilePage() {
                     <CardContent>
                       {request.item.status === "delisted" ? (
                         <div className="p-4 bg-muted rounded-lg border border-muted-foreground/20">
-                            <h3 className="font-medium mb-2 text-muted-foreground">
-                              This item has been delisted
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              Delisted items cannot be edited or requested by users.
-                            </p>
-                          </div>
+                          <h3 className="font-medium mb-2 text-muted-foreground">
+                            This item has been delisted
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            Delisted items cannot be edited or requested by
+                            users.
+                          </p>
+                        </div>
                       ) : request.status === "awaiting_pickup_confirmation" ? (
                         <div className="mt-2">
                           <Link
@@ -356,7 +363,8 @@ export default function ProfilePage() {
                             </div>
                           </Link>
                         </div>
-                      ) : request.status === "accepted" &&
+                      ) : (
+                        request.status === "accepted" &&
                         request.item.pickupStart && (
                           <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
                             <h3 className="font-medium mb-2">
@@ -379,7 +387,8 @@ export default function ProfilePage() {
                               )}
                             </p>
                           </div>
-                        )}
+                        )
+                      )}
                     </CardContent>
                   </Card>
                 ))
@@ -447,7 +456,7 @@ export default function ProfilePage() {
               )}
             </div>
           </TabsContent>
-          
+
           <TabsContent value="wishlists">
             <div className="grid gap-4">
               {!userWishlists || userWishlists.length === 0 ? (
@@ -461,22 +470,32 @@ export default function ProfilePage() {
                 </Card>
               ) : (
                 userWishlists.map((wishlist) => {
-                  const fulfillmentItems = getFulfillmentItemsForWishlist(wishlist.id);
-                  
+                  const fulfillmentItems = getFulfillmentItemsForWishlist(
+                    wishlist.id,
+                  );
+
                   return (
                     <Card key={wishlist.id}>
                       <CardHeader className="py-3">
                         <div className="flex items-center justify-between">
-                          <CardTitle className="text-base">{wishlist.title}</CardTitle>
+                          <CardTitle className="text-base">
+                            {wishlist.title}
+                          </CardTitle>
                           {fulfillmentItems.length > 0 && (
-                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1">
+                            <Badge
+                              variant="outline"
+                              className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"
+                            >
                               <Gift className="h-3 w-3" />
-                              {fulfillmentItems.length === 1 ? "Fulfilled" : `${fulfillmentItems.length} Offers`}
+                              {fulfillmentItems.length === 1
+                                ? "Fulfilled"
+                                : `${fulfillmentItems.length} Offers`}
                             </Badge>
                           )}
                         </div>
                         <CardDescription className="text-sm">
-                          Created {formatDistanceToNow(new Date(wishlist.createdAt), {
+                          Created{" "}
+                          {formatDistanceToNow(new Date(wishlist.createdAt), {
                             addSuffix: true,
                           })}
                         </CardDescription>
@@ -488,11 +507,11 @@ export default function ProfilePage() {
                       </CardHeader>
                       <CardContent>
                         {/* Show fulfillment items if any */}
-                        <WishlistFulfillmentView 
+                        <WishlistFulfillmentView
                           wishlistId={wishlist.id}
                           fulfillmentItems={fulfillmentItems}
                         />
-                        
+
                         {/* Link to create more wishlist items */}
                         <div className="mt-3">
                           <Link href="/wishlists">

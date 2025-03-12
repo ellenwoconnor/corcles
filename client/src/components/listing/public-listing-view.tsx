@@ -13,11 +13,11 @@ interface PublicListingViewProps {
   hasBid?: boolean;
 }
 
-export default function PublicListingView({ 
-  item, 
+export default function PublicListingView({
+  item,
   currentUserId,
   hasRequested = false,
-  hasBid = false 
+  hasBid = false,
 }: PublicListingViewProps) {
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
 
@@ -39,18 +39,14 @@ export default function PublicListingView({
       <div className="space-y-6">
         {/* Header Section */}
         <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2">
-            {item.title}
-          </h1>
+          <h1 className="text-2xl tracking-tight mb-2">{item.title}</h1>
           <div className="flex items-center gap-4">
             {item.isGift ? (
               <div className="inline-block bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
                 Free
               </div>
             ) : (
-              <p className="text-2xl font-bold text-primary">
-                ${item.price}
-              </p>
+              <p className="text-2xl font-bold text-primary">${item.price}</p>
             )}
           </div>
         </div>

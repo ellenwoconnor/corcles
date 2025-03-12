@@ -44,12 +44,10 @@ export function WelcomeDialog({ communities }: WelcomeDialogProps) {
                 <p className="font-medium text-foreground">
                   Welcome to the party!
                 </p>
-                <p>Looks like you've also been invited into:</p>
-                <ul className="list-disc pl-6 mt-2">
-                  {invitedCommunities.map((community) => (
-                    <li key={community.id}>{community.name}</li>
-                  ))}
-                </ul>
+                <p>
+                  You've also been invited into private corcles:{" "}
+                  {invitedCommunities.join(", ")}
+                </p>
               </div>
             )}
           </DialogDescription>

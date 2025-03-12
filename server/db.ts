@@ -77,7 +77,8 @@ async function migrate() {
       recipient_id INTEGER,
       pickup_start TIMESTAMP,
       pickup_end TIMESTAMP,
-      proposed_pickup_windows JSONB[]
+      proposed_pickup_windows JSONB[],
+      pickup_location TEXT
     )`,
     `CREATE TABLE IF NOT EXISTS item_requests (
       id SERIAL PRIMARY KEY,
@@ -135,6 +136,15 @@ async function migrate() {
         SELECT 1 FROM user_communities uc
         WHERE uc.user_id = u.id AND uc.community_id = c.id
       );
+    END $$;`,
+    `DO $$ 
+    BEGIN
+      -- Set pickup_location for existing items to their owner's address if not set
+      UPDATE items
+      SET pickup_location = (
+        SELECT address FROM users WHERE users.id = items.user_id
+      )
+      WHERE pickup_location IS NULL;
     END $$;`
   ];
 

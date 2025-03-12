@@ -73,7 +73,7 @@ export default function RecipientListingView({
         {/* Header Section */}
         <div>
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold tracking-tight">{item.title}</h1>
+            <h1 className="text-2xl tracking-tight">{item.title}</h1>
             <div className="flex items-center gap-2">
               {isWishlistFulfillment && (
                 <Badge
@@ -83,10 +83,7 @@ export default function RecipientListingView({
                   From Your Wishlist
                 </Badge>
               )}
-              <Badge
-                variant="outline"
-                className="text-sm h-6 px-2 font-normal"
-              >
+              <Badge variant="outline" className="text-sm h-6 px-2 font-normal">
                 {pickupScheduled ? "Pickup Scheduled" : "Pickup Pending"}
               </Badge>
             </div>
@@ -128,7 +125,6 @@ export default function RecipientListingView({
             <span>Pickup: {item.pickupLocation}</span>
           </div>
         )}
-
 
         {/* Show confirmed pickup time */}
         {item.pickupStart && item.pickupEnd && (
