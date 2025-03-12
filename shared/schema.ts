@@ -179,10 +179,13 @@ export const insertItemSchema = createInsertSchema(items).omit({
   path: ["price"],
 });
 
+// Use typeof check to handle both browser and Node.js environments
 export const editItemSchema = (insertItemSchema as z.ZodEffects<z.ZodObject<any>>)
   .innerType()
   .extend({
-    imageFile: z.instanceof(File).optional(),
+    imageFile: typeof File !== 'undefined' 
+      ? z.instanceof(File).optional()
+      : z.any().optional(),
   });
 
 export const insertItemRequestSchema = createInsertSchema(itemRequests).omit({

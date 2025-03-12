@@ -140,7 +140,7 @@ async function startServer() {
     }
 
     // Start server with proper port binding
-    const PORT = Number(process.env.PORT || 5000);
+    const PORT = Number(process.env.PORT || 3000);
 
     await new Promise<void>((resolve, reject) => {
       try {
