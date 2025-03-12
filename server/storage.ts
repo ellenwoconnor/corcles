@@ -30,11 +30,10 @@ import {
   type Wishlist,
   type InsertWishlist,
 } from "@shared/schema";
-import { db } from "./db-dev";
+import { db, pool } from "./db";
 import { eq, and, desc, sql, ilike, or, notInArray, inArray } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { pool } from "./db-dev";
 import logger from './logger';
 
 const PostgresSessionStore = connectPg(session);
