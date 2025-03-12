@@ -113,12 +113,3 @@ docker rmi $(docker images -q)
 
 Check running containers: 
 docker ps
-
-
-
-username = doadmin
-password = ***REMOVED***
-host = "db-postgresql-sfo2-31262-do-user-19500929-0.h.db.ondigitalocean.com"
-port = 25060
-database = defaultdb
-sslmode = require
