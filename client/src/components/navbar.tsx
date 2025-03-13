@@ -49,7 +49,9 @@ export default function Navbar() {
                       alt={user?.displayName}
                     />
                     <AvatarFallback>
-                      {user?.displayName?.[0]?.toUpperCase()}
+                      {(user?.displayName && user.displayName.trim() !== "") 
+                        ? user.displayName.charAt(0).toUpperCase() 
+                        : "?"}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
