@@ -21,7 +21,7 @@ import {
 } from "./ui/dialog";
 import { Gift, Clock, User, Lock } from "lucide-react";
 import FulfillWishlistDialog from "./fulfill-wishlist-dialog";
-import { motion } from 'framer-motion'; //Import Framer Motion
+import { motion } from "framer-motion"; //Import Framer Motion
 
 const FadeIn = ({ children, delay }) => {
   return (
@@ -34,13 +34,14 @@ const FadeIn = ({ children, delay }) => {
   );
 };
 
-
 export default function CommunityWishlists() {
   const { user } = useAuth();
   const [selectedWishlist, setSelectedWishlist] = useState<
     Wishlist | undefined
   >(undefined);
-  const [fulfilledWishlistUsers, setFulfilledWishlistUsers] = useState<number[]>([]);
+  const [fulfilledWishlistUsers, setFulfilledWishlistUsers] = useState<
+    number[]
+  >([]);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [createItemDialogOpen, setCreateItemDialogOpen] = useState(false);
 
@@ -63,7 +64,7 @@ export default function CommunityWishlists() {
   });
 
   // Filter items that were created to fulfill wishlists (those with recipients)
-  const fulfilledWishlistItems = userItems.filter(item => item.recipientId);
+  const fulfilledWishlistItems = userItems.filter((item) => item.recipientId);
 
   // Associate community names with wishlists
   const wishlistsWithCommunityNames = communityWishlists.map((wishlist) => {
@@ -80,13 +81,15 @@ export default function CommunityWishlists() {
     if (fulfilledWishlistUsers.includes(wishlistUserId)) {
       return true;
     }
-    return fulfilledWishlistItems.some(item => item.recipientId === wishlistUserId);
+    return fulfilledWishlistItems.some(
+      (item) => item.recipientId === wishlistUserId,
+    );
   };
 
   const onFulfillWishlist = async (wishlist: Wishlist) => {
     try {
       // Simulate API call to fulfill wishlist.  Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate delay
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate delay
       setFulfilledWishlistUsers([...fulfilledWishlistUsers, wishlist.userId]);
       setSelectedWishlist(wishlist);
       setCreateItemDialogOpen(true);
@@ -103,10 +106,10 @@ export default function CommunityWishlists() {
     if (isNaN(date.getTime())) {
       return "Invalid date";
     }
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     }).format(date);
   };
 
@@ -126,12 +129,9 @@ export default function CommunityWishlists() {
 
   if (communityWishlists.length === 0) {
     return (
-      <div className="text-center p-6">
-        <h3 className="text-lg font-medium mb-2">No wishlist items found</h3>
-        <p className="text-muted-foreground">
-          There are no wishlists in your communities yet.
-        </p>
-      </div>
+      <Card className="p-6 text-center border-none">
+        <p>No wishlist items found in your communities.</p>
+      </Card>
     );
   }
 
@@ -168,7 +168,8 @@ export default function CommunityWishlists() {
                 <CardDescription className="flex items-center gap-1 text-xs">
                   <User className="h-3 w-3" />
                   <span>
-                    {wishlist.userName || "Anonymous"} in {wishlist.communityName}
+                    {wishlist.userName || "Anonymous"} in{" "}
+                    {wishlist.communityName}
                   </span>
                 </CardDescription>
               </CardHeader>
@@ -202,15 +203,20 @@ export default function CommunityWishlists() {
               )}
             </DialogTitle>
             <DialogDescription>
-              By {selectedWishlist?.userName || "Anonymous"} in {selectedWishlist?.communityName}
+              By {selectedWishlist?.userName || "Anonymous"} in{" "}
+              {selectedWishlist?.communityName}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5 mt-2">
             <div className="flex flex-wrap gap-2">
               {selectedWishlist?.urgency && (
-                <Badge className={`${getUrgencyColor(selectedWishlist.urgency)} border`}>
-                  {selectedWishlist.urgency.charAt(0).toUpperCase() + selectedWishlist.urgency.slice(1)} Priority
+                <Badge
+                  className={`${getUrgencyColor(selectedWishlist.urgency)} border`}
+                >
+                  {selectedWishlist.urgency.charAt(0).toUpperCase() +
+                    selectedWishlist.urgency.slice(1)}{" "}
+                  Priority
                 </Badge>
               )}
 
@@ -238,13 +244,18 @@ export default function CommunityWishlists() {
                 <div>
                   <h4 className="font-medium">Status</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {selectedWishlist && hasUserFulfilledWishlist(selectedWishlist.userId)
+                    {selectedWishlist &&
+                    hasUserFulfilledWishlist(selectedWishlist.userId)
                       ? "You've already fulfilled this wishlist"
                       : "You can help fulfill this wishlist"}
                   </p>
                 </div>
                 <Button
-                  disabled={selectedWishlist ? hasUserFulfilledWishlist(selectedWishlist.userId) : false}
+                  disabled={
+                    selectedWishlist
+                      ? hasUserFulfilledWishlist(selectedWishlist.userId)
+                      : false
+                  }
                   onClick={() => {
                     setDetailsDialogOpen(false);
                     if (selectedWishlist) {
@@ -252,7 +263,8 @@ export default function CommunityWishlists() {
                     }
                   }}
                 >
-                  {selectedWishlist && hasUserFulfilledWishlist(selectedWishlist.userId) ? (
+                  {selectedWishlist &&
+                  hasUserFulfilledWishlist(selectedWishlist.userId) ? (
                     "Already Fulfilled"
                   ) : (
                     <>

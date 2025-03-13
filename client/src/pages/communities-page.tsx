@@ -136,10 +136,7 @@ export default function CommunitiesPage() {
           </div>
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Community
-              </Button>
+              <Button>Create Community</Button>
             </DialogTrigger>
             <DialogContent>
               <Form {...form}>

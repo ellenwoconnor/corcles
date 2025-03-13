@@ -110,7 +110,7 @@ export default function HomePage() {
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
               ) : items.length === 0 ? (
-                <Card className="p-6 text-center">
+                <Card className="p-6 text-center border-none">
                   <p>No items found in your communities.</p>
                 </Card>
               ) : (
@@ -132,7 +132,9 @@ export default function HomePage() {
               <div className="mt-10 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
                 <div>
                   <FadeIn>
-                    <h2 className="text-2xl tracking-tight">Community Wishlists</h2>
+                    <h2 className="text-2xl tracking-tight">
+                      Community Wishlists
+                    </h2>
                   </FadeIn>
                   <p className="text-muted-foreground">
                     Items your neighbors are looking for

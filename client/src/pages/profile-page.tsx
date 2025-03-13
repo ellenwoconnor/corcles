@@ -139,7 +139,7 @@ export default function ProfilePage() {
             <TabsTrigger value="listings" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
               My Listings{" "}
-              {requestedItems.length > 0 && (
+              {requestedItems && requestedItems.length > 0 && (
                 <Badge variant="default" className="ml-2">
                   {requestedItems.length}
                 </Badge>

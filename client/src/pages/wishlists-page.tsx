@@ -7,6 +7,14 @@ import { useState } from "react";
 import CreateWishlistDialog from "@/components/create-wishlist-dialog";
 import { Loader2, Lock, Eye, Gift, ExternalLink } from "lucide-react";
 import { useLocation } from "wouter";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 // Format time ago function
 function formatTimeAgo(date: Date): string {
@@ -40,15 +48,6 @@ function formatTimeAgo(date: Date): string {
   const diffInYears = Math.floor(diffInMonths / 12);
   return `${diffInYears} ${diffInYears === 1 ? "year" : "years"} ago`;
 }
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
 export default function WishlistsPage() {
   const { user } = useAuth();
@@ -154,12 +153,15 @@ export default function WishlistsPage() {
             <Loader2 className="h-8 w-8 animate-spin text-border" />
           </div>
         ) : userWishlists.length === 0 ? (
-          <div className="text-center py-12">
-            <h2 className="text-xl font-semibold mb-2">No wishlists yet</h2>
-            <p className="text-muted-foreground">
-              Create your first wishlist to keep track of items you want
-            </p>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>No wishlists yet</CardTitle>
+              <CardDescription>
+                Create your first wishlist to keep track of items you're looking
+                for!
+              </CardDescription>
+            </CardHeader>
+          </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {userWishlists.map((wishlist) => (
