@@ -22,6 +22,7 @@ import {
 import { Gift, Clock, User, Lock } from "lucide-react";
 import FulfillWishlistDialog from "./fulfill-wishlist-dialog";
 import { motion } from 'framer-motion'; //Import Framer Motion
+import EmptyState from "@/components/empty-state"; // Import EmptyState component
 
 const FadeIn = ({ children, delay }) => {
   return (
@@ -126,12 +127,9 @@ export default function CommunityWishlists() {
 
   if (communityWishlists.length === 0) {
     return (
-      <div className="text-center p-6">
-        <h3 className="text-lg font-medium mb-2">No wishlist items found</h3>
-        <p className="text-muted-foreground">
-          There are no wishlists in your communities yet.
-        </p>
-      </div>
+      <EmptyState>
+        {/* Assuming EmptyState component handles the rendering of the empty state */}
+      </EmptyState>
     );
   }
 

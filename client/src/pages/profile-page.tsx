@@ -10,6 +10,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import EmptyState from "@/components/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Package, Gift, Tag, Clock, ListChecks } from "lucide-react";
@@ -167,14 +168,13 @@ export default function ProfilePage() {
           <TabsContent value="listings">
             <div className="grid gap-4">
               {!userItems || userItems.length === 0 ? (
-                <Card>
-                  <CardHeader className="py-3">
-                    <CardTitle className="text-base">No Listings</CardTitle>
-                    <CardDescription>
-                      You haven't listed any items yet.
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
+                <EmptyState
+                  title="No Listings"
+                  description="You haven't listed any items yet. Create a listing to share items with your community."
+                  icon={<Package className="h-6 w-6" />}
+                  actionLabel="Create Listing"
+                  actionLink="/new"
+                />
               ) : (
                 <div className="grid gap-4">
                   {userItems.map((item) => (
@@ -274,14 +274,13 @@ export default function ProfilePage() {
                 </div>
               )}
               {!userRequests || userRequests.length === 0 ? (
-                <Card>
-                  <CardHeader className="py-3">
-                    <CardTitle className="text-base">No Requests</CardTitle>
-                    <CardDescription>
-                      You haven't requested any items yet.
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
+                <EmptyState
+                  title="No Requests"
+                  description="You haven't requested any items yet. Browse the marketplace to find items you need."
+                  icon={<Gift className="h-6 w-6" />}
+                  actionLabel="Browse Marketplace"
+                  actionLink="/"
+                />
               ) : (
                 userRequests.map((request) => (
                   <Card key={request.id}>
@@ -399,14 +398,13 @@ export default function ProfilePage() {
           <TabsContent value="bids">
             <div className="grid gap-4">
               {!userBids || userBids.length === 0 ? (
-                <Card>
-                  <CardHeader className="py-3">
-                    <CardTitle className="text-base">No Bids</CardTitle>
-                    <CardDescription>
-                      You haven't placed any bids yet.
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
+                <EmptyState
+                  title="No Bids"
+                  description="You haven't placed any bids yet. Browse the marketplace to find items you'd like to bid on."
+                  icon={<Tag className="h-6 w-6" />}
+                  actionLabel="Browse Marketplace"
+                  actionLink="/"
+                />
               ) : (
                 userBids.map((bid) => (
                   <Card key={bid.id}>
@@ -460,14 +458,13 @@ export default function ProfilePage() {
           <TabsContent value="wishlists">
             <div className="grid gap-4">
               {!userWishlists || userWishlists.length === 0 ? (
-                <Card>
-                  <CardHeader className="py-3">
-                    <CardTitle className="text-base">No Wishlists</CardTitle>
-                    <CardDescription>
-                      You haven't created any wishlists yet.
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
+                <EmptyState
+                  title="No Wishlists"
+                  description="You haven't created any wishlists yet. Create a wishlist to let your community know what you need."
+                  icon={<ListChecks className="h-6 w-6" />}
+                  actionLabel="Create Wishlist"
+                  actionLink="/wishlists"
+                />
               ) : (
                 userWishlists.map((wishlist) => {
                   const fulfillmentItems = getFulfillmentItemsForWishlist(
