@@ -72,7 +72,6 @@ export default function CommunityWishlists() {
     return {
       ...wishlist,
       communityName: community?.name || "Unknown Community",
-      userName: wishlist.userDisplayName || "Anonymous"
     };
   });
 

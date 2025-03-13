@@ -236,7 +236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const wishlists = await db
         .select({
           ...schema.wishlists,
-          userDisplayName: schema.users.displayName,
+          userDisplayName: schema.users.displayName
         })
         .from(schema.wishlists)
         .leftJoin(schema.users, eq(schema.wishlists.userId, schema.users.id))
@@ -249,15 +249,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ),
           ),
         );
-
-      logger.debug("Fetched wishlists with user display names:", {
-        count: wishlists.length,
-        sample: wishlists.length > 0 ? {
-          id: wishlists[0].id,
-          userId: wishlists[0].userId,
-          displayName: wishlists[0].userDisplayName,
-        } : null,
-      });
 
       res.json(wishlists);
     } catch (error) {
@@ -482,14 +473,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // No need for additional search term logging
 
       const isFreeOnly = freeOnly === "true";
-
+      
       // Log filters being applied
       logger.debug("Applying filters:", {
         communities,
         searchTerm,
         freeOnly: isFreeOnly
       });
-
+      
       const items = await storage.getItems(
         communities,
         req.user?.id,
@@ -961,7 +952,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const startDate = new Date(window.pickupStart);
           const endDate = new Date(window.pickupEnd);
 
-          if (isNaN`(`startDate.getTime()) || isNaN(endDate.getTime())) {
+          if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
             return res.status(400).json({ error: "Invalid date format" });
           }
 
@@ -1142,7 +1133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .from(schema.wishlists)
           .where(eq(schema.wishlists.id, parseInt(wishlistId.toString())))
           .limit(1);
-
+        
         if (wishlist.length > 0) {
           validWishlistId = parseInt(wishlistId.toString());
         }
@@ -1872,7 +1863,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         itemId, 
         userId: req.user?.id 
       });
-
+      
       res.json({ success: true });
     } catch (error) {
       logger.error("Error delisting item:", error);
