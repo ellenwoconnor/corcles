@@ -4,13 +4,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install
 COPY . .
-
-# Add cert for fly.io
-# Commend this out if deploying locally
-RUN sh -c 'echo "$PG_CA_CERT" > /app/ca-certificate.crt'
-
-# Set the SSLROOTCERT environment variable
-ENV SSLROOTCERT=/app/ca-certificate.crt
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Ensure esbuild is installed for amd64 architecture during the build step
 RUN npm install esbuild --platform=linux/amd64
@@ -36,4 +31,5 @@ EXPOSE 3000
 ENV NODE_ENV production
 
 # Start the server
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["node", "dist/index.js"]
