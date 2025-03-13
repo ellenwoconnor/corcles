@@ -63,6 +63,8 @@ docker logs [container] --follow
 
 ## Deploying to Fly.io
 
+docker build --no-cache -t registry.fly.io/corcles:latest .
+
 First authenticate with fly.io: 
 fly auth docker-login
 
@@ -72,6 +74,10 @@ docker push registry.fly.io/corcles:latest
 
 Then deploy
 fly deploy
+
+Other useful commands
+fly ssh console -a corcles
+
 
 ### To run a local database
 

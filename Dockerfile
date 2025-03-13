@@ -28,8 +28,13 @@ COPY .env /app/.env
 # Note replit config uses port 5000, we are changing to 3000
 EXPOSE 3000
 
+# If PG_CA_CERT is set, write the certificate and set SSLROOTCERT
+RUN if [ -n "$PG_CA_CERT" ]; then \
+    echo "$PG_CA_CERT" > /app/ca-certificate.crt && \
+    export SSLROOTCERT=/app/ca-certificate.crt; \
+    fi
+
 ENV NODE_ENV production
 
 # Start the server
-ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["node", "dist/index.js"]
