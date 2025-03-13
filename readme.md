@@ -44,6 +44,8 @@ docker-compose build --no-cache
 Start containers: 
 docker-compose up -d
 
+docker-compose build --no-cache && docker-compose up
+
 You should be able to access the app at localhost:3000
 
 Other handy docker commands: 

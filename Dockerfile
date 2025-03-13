@@ -5,6 +5,11 @@ COPY package.json package-lock.json ./
 RUN npm install
 COPY . .
 
+# Add cert for fly.io
+# Commend this out if deploying locally
+echo "$PG_CA_CERT" > /app/ca-certificate.crt
+export SSLROOTCERT=/app/ca-certificate.crt
+
 # Ensure esbuild is installed for amd64 architecture during the build step
 RUN npm install esbuild --platform=linux/amd64
 RUN npm run build
