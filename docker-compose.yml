@@ -6,24 +6,25 @@ services:
       - "3000:3000" # Note replit config uses port 5000, this may cause issues
     env_file:
       - .env  # Load environment variables
-    depends_on:
-      - db
+    # depends_on:
+    #   - db
     restart: always
     volumes:
       - ./ca-certificate.crt:/app/ca-certificate.crt
 
-  db:
-    image: postgres:15-alpine
-    restart: always
-    environment:
-      POSTGRES_USER: ${PGUSER}
-      POSTGRES_PASSWORD: ${PGPASSWORD}
-      POSTGRES_DB: ${PGDATABASE}
-      DATABASE_URL: ${DATABASE_URL}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+  # Uncomment this if you want to run the database locally
+  # db:
+  #   image: postgres:15-alpine
+  #   restart: always
+  #   environment:
+  #     POSTGRES_USER: ${PGUSER}
+  #     POSTGRES_PASSWORD: ${PGPASSWORD}
+  #     POSTGRES_DB: ${PGDATABASE}
+  #     DATABASE_URL: ${DATABASE_URL}
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
 
 volumes:
   pgdata:
