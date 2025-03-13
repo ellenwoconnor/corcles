@@ -168,7 +168,7 @@ export default function CommunityWishlists() {
                 <CardDescription className="flex items-center gap-1 text-xs">
                   <User className="h-3 w-3" />
                   <span>
-                    {wishlist.userName || "Anonymous"} in{" "}
+                    {wishlist.userDisplayName || "Anonymous"} in{" "}
                     {wishlist.communityName}
                   </span>
                 </CardDescription>
