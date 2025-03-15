@@ -2,6 +2,8 @@ services:
   app:
     build:
       context: .
+      args:
+        PG_CA_CERT: ${PG_CA_CERT}
     ports:
       - "3000:3000" # Note replit config uses port 5000, this may cause issues
     env_file:
@@ -9,8 +11,6 @@ services:
     # depends_on:
     #   - db
     restart: always
-    volumes:
-      - ./ca-certificate.crt:/app/ca-certificate.crt
 
   # Uncomment this if you want to run the database locally
   # db:

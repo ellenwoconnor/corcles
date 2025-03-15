@@ -30,12 +30,15 @@ GOOGLE_CLIENT_ID (for Google oAuth)
 RESEND_API_KEY (for sending invitations)
 
 You also need to locally define a variable to capture the value of the local
-postgres db secret. This will be pulled in at build time.  You also need to define
-the value for BUILDKIT for that to work. 
+postgres db secret. This must be pulled in at build time in order to recreate the crt file in the continer.  
+
+You also need to define the value for BUILDKIT for that to work. 
 ```sh
 export PG_CA_CERT="$(cat ca-certificate.crt)" 
 export DOCKER_BUILDKIT=1
 ```
+
+TODO: Modify Dockerfile to allow local runs to access ca-certificate.crt directly instead of via PG_CA_CERT
 
 ### Prep Docker
 
@@ -46,46 +49,55 @@ brew install docker-compose
 
 Dockerfile sets the environment to production. To run in dev, change it to development. 
 
-To build images: 
-docker-compose build --no-cache
+To build images -- this passes in the value of the crt and logs detailed output: 
+```sh
+PG_CA_CERT=$PG_CA_CERT docker-compose build --no-cache --progress=plain  
+```
 
-Start containers: 
+Start containers and run the app: 
+```sh
 docker-compose up -d
-
-docker-compose build --no-cache && docker-compose up
+```
 
 You should be able to access the app at localhost:3000
 
 Other handy docker commands: 
 
-Stop and remove all containers
-docker stop $(docker ps -aq)
-docker rm $(docker ps -aq)
-docker rmi $(docker images -q)
-
+Prune all the old stuff: 
+```sh
+docker system prune -a 
+```
 Check running containers: 
+```sh
 docker ps
+```
 
-View logs
-docker logs [container] --follow 
+Debug:
+```sh
+docker logs [container] --follow
+docker exec -it [container] sh
+```
 
 ## Deploying to Fly.io
-
-docker build --no-cache -t registry.fly.io/corcles:latest .
 
 First authenticate with fly.io: 
 fly auth docker-login
 
 Tag the image and push it to Flyio registry
+```sh
 docker tag corcles-app registry.fly.io/corcles:latest
 docker push registry.fly.io/corcles:latest 
+```
 
 Then deploy (BUILDKIT is required for build time secrets)
+```sh
 DOCKER_BUILDKIT=1 flyctl deploy
+```
 
 Other useful commands
+```sh
 fly ssh console -a corcles
-
+```
 
 ### To run a local database
 
