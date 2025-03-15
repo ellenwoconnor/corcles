@@ -5,10 +5,12 @@ COPY package.json package-lock.json ./
 RUN npm install
 COPY . .
 
-# Create cert for postgres access out of build time variable
-# Use Fly.io build secrets
-RUN --mount=type=secret,id=PG_CA_CERT \
-    cat /run/secrets/PG_CA_CERT > /app/ca-certificate.crt
+# If PG_CA_CERT is available as a secret (Fly.io), use it; otherwise, use a normal ENV variable
+RUN if [ -f /run/secrets/PG_CA_CERT ]; then \
+        cat /run/secrets/PG_CA_CERT > /app/ca-certificate.crt; \
+    elif [ -n "$PG_CA_CERT" ]; then \
+        echo "$PG_CA_CERT" > /app/ca-certificate.crt; \
+    fi
 
 # Ensure esbuild is installed for amd64 architecture during the build step
 RUN npm install esbuild --platform=linux/amd64
