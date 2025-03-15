@@ -29,6 +29,14 @@ DO_SPACES_ENDPOINT (for image uploading)
 GOOGLE_CLIENT_ID (for Google oAuth)
 RESEND_API_KEY (for sending invitations)
 
+You also need to locally define a variable to capture the value of the local
+postgres db secret. This will be pulled in at build time.  You also need to define
+the value for BUILDKIT for that to work. 
+```sh
+export PG_CA_CERT="$(cat ca-certificate.crt)" 
+export DOCKER_BUILDKIT=1
+```
+
 ### Prep Docker
 
 Install docker and docker conmpose CLI as needed
@@ -72,8 +80,8 @@ Tag the image and push it to Flyio registry
 docker tag corcles-app registry.fly.io/corcles:latest
 docker push registry.fly.io/corcles:latest 
 
-Then deploy
-fly deploy
+Then deploy (BUILDKIT is required for build time secrets)
+DOCKER_BUILDKIT=1 flyctl deploy
 
 Other useful commands
 fly ssh console -a corcles
@@ -90,3 +98,6 @@ NODE_ENV=development npm run dev
 ```
 
 The migrations will automatically run on startup and create all the necessary tables in your local database. 
+
+fly ssh console
+ls -l /app/ca-certificate.crt

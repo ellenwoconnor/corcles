@@ -4,8 +4,11 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install
 COPY . .
-COPY entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+
+# Create cert for postgres access out of build time variable
+# Use Fly.io build secrets
+RUN --mount=type=secret,id=PG_CA_CERT \
+    cat /run/secrets/PG_CA_CERT > /app/ca-certificate.crt
 
 # Ensure esbuild is installed for amd64 architecture during the build step
 RUN npm install esbuild --platform=linux/amd64
@@ -27,12 +30,6 @@ COPY .env /app/.env
 # Expose the port the app runs on
 # Note replit config uses port 5000, we are changing to 3000
 EXPOSE 3000
-
-# If PG_CA_CERT is set, write the certificate and set SSLROOTCERT
-RUN if [ -n "$PG_CA_CERT" ]; then \
-    echo "$PG_CA_CERT" > /app/ca-certificate.crt && \
-    export SSLROOTCERT=/app/ca-certificate.crt; \
-    fi
 
 ENV NODE_ENV production
 
