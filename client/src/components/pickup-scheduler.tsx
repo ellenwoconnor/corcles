@@ -150,48 +150,6 @@ export default function PickupScheduler({
         </DrawerHeader>
         
         <div className="p-4 space-y-6">
-          {/* Selected Time Windows */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium">Selected Time Windows</h3>
-              <span className="text-sm text-muted-foreground">
-                {timeWindows.length}/10 windows
-              </span>
-            </div>
-            {timeWindows.length === 0 ? (
-              <Alert>
-                <AlertDescription>
-                  No time windows selected. Select a date and time below to add windows.
-                </AlertDescription>
-              </Alert>
-            ) : (
-              <div className="grid gap-2">
-                {timeWindows.map((window, index) => (
-                  <div 
-                    key={index} 
-                    className="flex items-center justify-between p-3 bg-secondary rounded-lg border border-border group"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        {format(window.date, "EEE, MMM d")} at{" "}
-                        {format(addHours(startOfHour(window.date), window.hour), "h:mm a")}
-                      </span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => removeTimeWindow(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
           {/* Date and Time Selection */}
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
@@ -247,7 +205,47 @@ export default function PickupScheduler({
               )}
             </div>
           </div>
-
+          {/* Selected Time Windows */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium">Selected Time Windows</h3>
+              <span className="text-sm text-muted-foreground">
+                {timeWindows.length}/10 windows
+              </span>
+            </div>
+            {timeWindows.length === 0 ? (
+              <Alert>
+                <AlertDescription>
+                  No time windows selected. Select a date and time below to add windows.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <div className="grid gap-2">
+                {timeWindows.map((window, index) => (
+                  <div 
+                    key={index} 
+                    className="flex items-center justify-between p-3 bg-secondary rounded-lg border border-border group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm">
+                        {format(window.date, "EEE, MMM d")} at{" "}
+                        {format(addHours(startOfHour(window.date), window.hour), "h:mm a")}
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => removeTimeWindow(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           {/* Submit Button */}
           <Button
             className="w-full"
