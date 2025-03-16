@@ -157,12 +157,8 @@ export default function CommunitiesPage() {
                       name="name"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Community Name</FormLabel>
                           <FormControl>
-                            <Input
-                              {...field}
-                              placeholder="Enter community name"
-                            />
+                            <Input {...field} placeholder="The blue cowboys" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -173,12 +169,11 @@ export default function CommunitiesPage() {
                       name="description"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Description</FormLabel>
                           <FormControl>
                             <textarea
                               {...field}
                               className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                              placeholder="Enter community description"
+                              placeholder="A group for sharing cowboy hats of different colors"
                             />
                           </FormControl>
                           <FormMessage />
@@ -206,7 +201,14 @@ export default function CommunitiesPage() {
                                   {field.value || "🏠"}
                                 </Button>
                                 {showEmojiPicker && (
-                                  <div className="fixed z-[100] mt-2 bg-background border rounded-lg shadow-lg" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+                                  <div
+                                    className="fixed z-[100] mt-2 bg-background border rounded-lg shadow-lg"
+                                    style={{
+                                      top: "50%",
+                                      left: "50%",
+                                      transform: "translate(-50%, -50%)",
+                                    }}
+                                  >
                                     <Picker
                                       onEmojiClick={(emojiData: any) => {
                                         field.onChange(emojiData.emoji);
