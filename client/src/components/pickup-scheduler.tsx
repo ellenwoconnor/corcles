@@ -66,7 +66,6 @@ export default function PickupScheduler({
 
   const scheduleMutation = useMutation({
     mutationFn: async () => {
-      console.log("foo", timeWindows);
       if (timeWindows.length === 0) return;
 
       const windows = timeWindows.map((window) => {
@@ -78,10 +77,12 @@ export default function PickupScheduler({
         };
       });
 
+      console.log("Sending windows:", windows);
+      
       const response = await apiRequest(
         "POST",
         `/api/items/${itemId}/schedule`,
-        { timeWindows: windows },
+        { proposedPickupWindows: windows },
       );
 
       if (!response.ok) {
