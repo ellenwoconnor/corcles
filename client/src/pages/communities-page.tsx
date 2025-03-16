@@ -41,7 +41,7 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 // Import the new component
 import CommunityInviteForm from "@/components/community-invite-form";
