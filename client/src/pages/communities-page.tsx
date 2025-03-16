@@ -45,7 +45,7 @@ import { useState } from "react";
 import { z } from "zod";
 // Import the new component
 import CommunityInviteForm from "@/components/community-invite-form";
-import Picker from 'emoji-picker-react';
+import Picker from "emoji-picker-react";
 
 export default function CommunitiesPage() {
   const { user } = useAuth();
@@ -164,9 +164,6 @@ export default function CommunitiesPage() {
                               placeholder="Enter community name"
                             />
                           </FormControl>
-                          <FormDescription>
-                            Choose a unique name for your community
-                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -183,9 +180,6 @@ export default function CommunitiesPage() {
                               placeholder="Enter community description"
                             />
                           </FormControl>
-                          <FormDescription>
-                            Briefly describe the purpose of this community
-                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -199,34 +193,35 @@ export default function CommunitiesPage() {
                           <FormControl>
                             <div className="relative">
                               <div className="relative">
-  <Button
-    type="button"
-    variant="outline" 
-    size="lg"
-    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-    className="w-16 h-16 text-3xl hover:bg-accent"
-  >
-    {field.value || "🏠"}
-  </Button>
-  {showEmojiPicker && (
-    <div className="absolute z-[100] mt-2 bg-background border rounded-lg shadow-lg">
-      <Picker 
-        onEmojiClick={(emojiData: any) => {
-          field.onChange(emojiData.emoji);
-          setShowEmojiPicker(false);
-        }}
-        theme="light"
-        skinTonePosition="none"
-        previewPosition="none"
-        height={350}
-        width={300}
-      />
-    </div>
-  )}
-</div>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="lg"
+                                  onClick={() =>
+                                    setShowEmojiPicker(!showEmojiPicker)
+                                  }
+                                  className="w-16 h-16 text-3xl hover:bg-accent"
+                                >
+                                  {field.value || "🏠"}
+                                </Button>
+                                {showEmojiPicker && (
+                                  <div className="absolute z-[100] mt-2 bg-background border rounded-lg shadow-lg">
+                                    <Picker
+                                      onEmojiClick={(emojiData: any) => {
+                                        field.onChange(emojiData.emoji);
+                                        setShowEmojiPicker(false);
+                                      }}
+                                      theme="light"
+                                      skinTonePosition="none"
+                                      previewPosition="none"
+                                      height={350}
+                                      width={300}
+                                    />
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </FormControl>
-                          <FormDescription>Pick an emoji to represent your community</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
