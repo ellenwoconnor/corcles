@@ -55,7 +55,29 @@ export default function CommunitiesPage() {
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(
     null,
   );
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false); // Added emoji picker state
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [placeholderText, setPlaceholderText] = useState({ name: "", description: "" });
+
+  const suggestions = [
+    { name: "Sock orphans", description: "Help lost socks find each other" },
+    { name: "The blue cowboys", description: "A group for people to share multicolored cowboy hats" },
+    { name: "Unnecessary lamps", description: "Have a lamp shaped like a pineapple? Exchange lighting fixtures that don't add up" },
+    { name: "High maintenance plant swap", description: "Exchange houseplants you regret buying along with your lessons learned" },
+    { name: "Better than no furniture", description: "Imperfect furniture for when you've just moved in because it's better than sitting on the floor" },
+    { name: "Fix-it hopefuls", description: "A project graveyard for aspirational fix-it ideas" },
+    { name: "Party favor graveyard", description: "Reuse useless plastic trinkets that probably shouldn't exist" }
+  ];
+
+  const getRandomPlaceholder = () => {
+    const randomIndex = Math.floor(Math.random() * suggestions.length);
+    return suggestions[randomIndex];
+  };
+
+  useEffect(() => {
+    if (createDialogOpen) {
+      setPlaceholderText(getRandomPlaceholder());
+    }
+  }, [createDialogOpen]); // Added emoji picker state
 
   const { data: communities, isLoading } = useQuery<
     (Community & { role: string; memberCount: number })[]
@@ -158,7 +180,7 @@ export default function CommunitiesPage() {
                       render={({ field }) => (
                         <FormItem>
                           <FormControl>
-                            <Input {...field} placeholder="The blue cowboys" />
+                            <Input {...field} placeholder={placeholderText.name} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -173,7 +195,7 @@ export default function CommunitiesPage() {
                             <textarea
                               {...field}
                               className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                              placeholder="A group for sharing cowboy hats of different colors"
+                              placeholder={placeholderText.description}
                             />
                           </FormControl>
                           <FormMessage />
