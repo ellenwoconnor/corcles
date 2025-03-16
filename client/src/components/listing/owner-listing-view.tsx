@@ -12,7 +12,6 @@ import { useState } from "react";
 import { CancelButton } from "@/components/cancel-button";
 import { ExtendedItem } from "@/pages/listing-page";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
-import { DelistButton } from "@/components/delist-button";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { UserCheck } from "lucide-react";
@@ -171,28 +170,36 @@ export default function OwnerListingView({
           </div>
         )}
 
-        <div>
+        <div className="border-b border-border pt-4">
           <p className="whitespace-pre-wrap">{item.description}</p>
         </div>
 
         {!isDelisted && (
           <div className="flex gap-2 mt-auto pt-4">
             <EditListingDialog item={item} />
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="icon"
               onClick={() => {
                 const delistItem = async () => {
-                  const response = await apiRequest("POST", `/api/items/${item.id}/delist`);
+                  const response = await apiRequest(
+                    "POST",
+                    `/api/items/${item.id}/delist`,
+                  );
                   if (!response.ok) {
                     throw new Error("Failed to delist item");
                   }
                   queryClient.invalidateQueries({ queryKey: ["/api/items"] });
-                  queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}`] });
-                  queryClient.invalidateQueries({ queryKey: ["/api/user/items"] });
+                  queryClient.invalidateQueries({
+                    queryKey: [`/api/items/${item.id}`],
+                  });
+                  queryClient.invalidateQueries({
+                    queryKey: ["/api/user/items"],
+                  });
                   toast({
                     title: "Item delisted",
-                    description: "The item has been removed from the marketplace.",
+                    description:
+                      "The item has been removed from the marketplace.",
                   });
                 };
                 delistItem().catch(() => {
