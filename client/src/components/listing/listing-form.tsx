@@ -144,7 +144,8 @@ export function ListingForm({
       }
 
       const method = mode === "create" ? "POST" : "PATCH";
-      const endpoint = mode === "create" ? "/api/items" : `/api/items/${itemId}`;
+      const endpoint =
+        mode === "create" ? "/api/items" : `/api/items/${itemId}`;
 
       const response = await apiRequest(method, endpoint, formData);
 
@@ -288,18 +289,18 @@ export function ListingForm({
                     <SelectTrigger>
                       <SelectValue placeholder="Select a community" />
                     </SelectTrigger>
-                    <SelectContent>
-                      {communities.map((community) => (
-                        <SelectItem
-                          key={community.id}
-                          value={community.id.toString()}
-                          defaultChecked={!community.isCustom} // Added defaultChecked prop
-                        >
-                          {community.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
                   </FormControl>
+                  <SelectContent>
+                    {communities.map((community) => (
+                      <SelectItem
+                        key={community.id}
+                        value={community.id.toString()}
+                        defaultChecked={!community.isCustom} // Added defaultChecked prop
+                      >
+                        {community.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
                 <FormMessage />
               </FormItem>
