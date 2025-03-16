@@ -190,7 +190,7 @@ export default function WishlistsPage() {
                         className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"
                       >
                         <Gift className="h-3 w-3" />
-                        Fulfilled
+                        Offers Available
                       </Badge>
                     )}
                   </div>

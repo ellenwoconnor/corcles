@@ -487,9 +487,7 @@ export default function ProfilePage() {
                               className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"
                             >
                               <Gift className="h-3 w-3" />
-                              {fulfillmentItems.length === 1
-                                ? "Fulfilled"
-                                : `${fulfillmentItems.length} Offers`}
+                              Offers Available
                             </Badge>
                           )}
                         </div>
