@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { format, addDays, addHours, isAfter, isBefore, startOfHour } from "date-fns";
+import {
+  format,
+  addDays,
+  addHours,
+  isAfter,
+  isBefore,
+  startOfHour,
+} from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Clock, X, Plus, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -49,17 +56,20 @@ export default function PickupScheduler({
   const now = new Date();
   const twoWeeksFromNow = addDays(now, 14);
 
-  const availableHours = Array.from({ length: 24 }, (_, i) => i).filter((hour) => {
-    if (!selectedDate) return false;
-    const date = addHours(selectedDate, hour);
-    return isAfter(date, now) && isBefore(date, twoWeeksFromNow);
-  });
+  const availableHours = Array.from({ length: 24 }, (_, i) => i).filter(
+    (hour) => {
+      if (!selectedDate) return false;
+      const date = addHours(selectedDate, hour);
+      return isAfter(date, now) && isBefore(date, twoWeeksFromNow);
+    },
+  );
 
   const scheduleMutation = useMutation({
     mutationFn: async () => {
+      console.log("foo", timeWindows);
       if (timeWindows.length === 0) return;
 
-      const windows = timeWindows.map(window => {
+      const windows = timeWindows.map((window) => {
         const pickupStart = startOfHour(addHours(window.date, window.hour));
         const pickupEnd = addHours(pickupStart, 1);
         return {
@@ -71,7 +81,7 @@ export default function PickupScheduler({
       const response = await apiRequest(
         "POST",
         `/api/items/${itemId}/schedule`,
-        { timeWindows: windows }
+        { timeWindows: windows },
       );
 
       if (!response.ok) {
@@ -85,10 +95,13 @@ export default function PickupScheduler({
       onScheduled();
       toast({
         title: "Pickup windows proposed!",
-        description: "The recipient will choose one of the proposed time windows.",
+        description:
+          "The recipient will choose one of the proposed time windows.",
       });
       queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/requests`] });
+      queryClient.invalidateQueries({
+        queryKey: [`/api/items/${itemId}/requests`],
+      });
     },
     onError: (error: Error) => {
       toast({
@@ -111,9 +124,9 @@ export default function PickupScheduler({
     }
 
     const exists = timeWindows.some(
-      window => 
-        window.date.getTime() === selectedDate.getTime() && 
-        window.hour === selectedHour
+      (window) =>
+        window.date.getTime() === selectedDate.getTime() &&
+        window.hour === selectedHour,
     );
 
     if (exists) {
@@ -125,7 +138,10 @@ export default function PickupScheduler({
       return;
     }
 
-    setTimeWindows([...timeWindows, { date: selectedDate, hour: selectedHour }]);
+    setTimeWindows([
+      ...timeWindows,
+      { date: selectedDate, hour: selectedHour },
+    ]);
     setSelectedHour(undefined);
   };
 
@@ -137,7 +153,9 @@ export default function PickupScheduler({
     <Drawer open={isOpen} onOpenChange={setIsOpen}>
       <DrawerTrigger asChild>
         <Button>
-          {['scheduling', 'scheduled'].includes(itemStatus) ? 'Update pickup times' : 'Set Pickup Times'}
+          {["scheduling", "scheduled"].includes(itemStatus)
+            ? "Update pickup times"
+            : "Set Pickup Times"}
         </Button>
       </DrawerTrigger>
       <DrawerContent>
@@ -160,9 +178,8 @@ export default function PickupScheduler({
                   setSelectedDate(date);
                   setSelectedHour(undefined);
                 }}
-                disabled={(date) => 
-                  isBefore(date, now) || 
-                  isAfter(date, twoWeeksFromNow)
+                disabled={(date) =>
+                  isBefore(date, now) || isAfter(date, twoWeeksFromNow)
                 }
                 className="rounded-md border"
               />
@@ -182,7 +199,10 @@ export default function PickupScheduler({
                     <SelectContent>
                       {availableHours.map((hour) => (
                         <SelectItem key={hour} value={hour.toString()}>
-                          {format(addHours(startOfHour(selectedDate), hour), "h:mm a")}
+                          {format(
+                            addHours(startOfHour(selectedDate), hour),
+                            "h:mm a",
+                          )}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -215,21 +235,25 @@ export default function PickupScheduler({
             {timeWindows.length === 0 ? (
               <Alert>
                 <AlertDescription>
-                  No time windows selected. Select a date and time below to add windows.
+                  No time windows selected. Select a date and time below to add
+                  windows.
                 </AlertDescription>
               </Alert>
             ) : (
               <div className="grid gap-2">
                 {timeWindows.map((window, index) => (
-                  <div 
-                    key={index} 
+                  <div
+                    key={index}
                     className="flex items-center justify-between p-3 bg-secondary rounded-lg border border-border group"
                   >
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4 text-muted-foreground" />
                       <span className="text-sm">
                         {format(window.date, "EEE, MMM d")} at{" "}
-                        {format(addHours(startOfHour(window.date), window.hour), "h:mm a")}
+                        {format(
+                          addHours(startOfHour(window.date), window.hour),
+                          "h:mm a",
+                        )}
                       </span>
                     </div>
                     <Button
@@ -257,7 +281,7 @@ export default function PickupScheduler({
                 Scheduling...
               </>
             ) : (
-              'Propose Time Windows'
+              "Propose Time Windows"
             )}
           </Button>
         </div>
