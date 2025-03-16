@@ -284,7 +284,8 @@ export default function CommunitiesPage() {
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="text-base truncate">
+                        <CardTitle className="text-base truncate flex items-center gap-2">
+                          <span className="text-xl">{community.mascot}</span>
                           {community.name}
                         </CardTitle>
                         <Badge
