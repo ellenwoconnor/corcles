@@ -250,7 +250,7 @@ export default function CommunitiesPage() {
                                   }
                                   className="w-12 h-12 text-2xl hover:bg-accent"
                                 >
-                                  {field.value || "🏠"}
+                                  {field.value || "❓"}
                                 </Button>
                                 {showEmojiPicker && (
                                   <div
