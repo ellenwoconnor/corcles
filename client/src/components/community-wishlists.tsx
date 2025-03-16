@@ -183,7 +183,7 @@ export default function CommunityWishlists() {
                 {hasUserFulfilledWishlist(wishlist.userId) && (
                   <Badge variant="outline" className="text-xs">
                     <Gift className="h-3 w-3 mr-1" />
-                    Fulfilled
+                    Offers Available
                   </Badge>
                 )}
               </CardFooter>
