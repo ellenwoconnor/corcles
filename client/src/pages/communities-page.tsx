@@ -179,6 +179,7 @@ export default function CommunitiesPage() {
                       name="name"
                       render={({ field }) => (
                         <FormItem>
+                          <FormLabel>Name</FormLabel>
                           <FormControl>
                             <Input {...field} placeholder={placeholderText.name} />
                           </FormControl>
@@ -191,6 +192,7 @@ export default function CommunitiesPage() {
                       name="description"
                       render={({ field }) => (
                         <FormItem>
+                          <FormLabel>Description</FormLabel>
                           <FormControl>
                             <textarea
                               {...field}
