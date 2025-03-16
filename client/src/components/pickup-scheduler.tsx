@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { format, addDays, addHours, isAfter, isBefore, startOfHour } from "date-fns";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -148,7 +147,7 @@ export default function PickupScheduler({
             Propose up to 10 one-hour windows for item pickup
           </DrawerDescription>
         </DrawerHeader>
-        
+
         <div className="p-4 space-y-6">
           {/* Date and Time Selection */}
           <div className="grid md:grid-cols-2 gap-6">
