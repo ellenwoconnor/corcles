@@ -43,7 +43,7 @@ export default function DelistedListingView({
             Posted on {format(new Date(item.createdAt), "MMMM d, yyyy")}
           </div>
 
-          <div className="border-b border-border pt-4">
+          <div className="border-b border-border pb-4">
             <p className="whitespace-pre-wrap">{item.description}</p>
           </div>
         </div>

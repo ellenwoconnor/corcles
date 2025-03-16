@@ -119,38 +119,19 @@ export default function OwnerListingView({
         />
       </div>
 
-      <div className="flex flex-col gap-4">
-        <div>
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl tracking-tight">{item.title}</h1>
-            <div className="flex items-center gap-2">
-              {isWishlistFulfillment && (
-                <Badge
-                  variant="outline"
-                  className="bg-green-50 text-green-700 border-green-200"
-                >
-                  Wishlist Fulfillment
-                </Badge>
-              )}
-              <Badge
-                variant={
-                  item.status === "pending_pickup" ||
-                  item.status === "scheduled"
-                    ? "outline"
-                    : "secondary"
-                }
-                className="text-sm h-6 px-2 font-normal"
-              >
-                {statusText[item.status]}
-              </Badge>
-            </div>
-          </div>
+      {/* Header Section */}
+      <div>
+        <h1 className="text-2xl tracking-tight mb-2">{item.title}</h1>
+        <div className="flex items-center gap-4">
           {item.isGift ? (
-            <Badge className="mt-2">Free</Badge>
+            <div className="inline-block bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
+              Free
+            </div>
           ) : (
-            <p className="text-2xl font-bold mt-2">${item.price}</p>
+            <p className="text-2xl font-bold text-primary">${item.price}</p>
           )}
         </div>
+      </div>
 
         {isDelisted && (
           <div className="p-4 bg-muted rounded-lg border border-muted-foreground/20">
@@ -170,7 +151,7 @@ export default function OwnerListingView({
           </div>
         )}
 
-        <div className="border-b border-border pt-4">
+        <div className="border-b border-border pb-4">
           <p className="whitespace-pre-wrap">{item.description}</p>
         </div>
 
