@@ -168,6 +168,7 @@ export default function CreateWishlistDialog({
                         <SelectItem
                           key={community.id}
                           value={community.id.toString()}
+                          defaultChecked={!community.isCustom} // Added defaultChecked prop
                         >
                           {community.name}
                         </SelectItem>
