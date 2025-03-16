@@ -198,9 +198,32 @@ export default function CommunitiesPage() {
                           <FormLabel>Community Mascot</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <Input {...field} type="text" placeholder="Choose an emoji (e.g. 🏠)" maxLength={2} readOnly />
-                              <Button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="absolute top-1/2 right-2 transform -translate-y-1/2">Select Emoji</Button>
-                              {showEmojiPicker && <Picker onEmojiClick={(e, emojiObject) => {field.onChange(emojiObject.emoji); setShowEmojiPicker(false)}} />}
+                              <div className="relative">
+  <Input 
+    {...field} 
+    type="text" 
+    placeholder="Choose an emoji (e.g. 🏠)" 
+    maxLength={2} 
+    readOnly 
+  />
+  <Button 
+    type="button"
+    onClick={() => setShowEmojiPicker(!showEmojiPicker)} 
+    className="absolute top-1/2 right-2 transform -translate-y-1/2"
+  >
+    Select Emoji
+  </Button>
+  {showEmojiPicker && (
+    <div className="absolute z-50 mt-1">
+      <Picker 
+        onEmojiSelect={(emoji) => {
+          field.onChange(emoji.native);
+          setShowEmojiPicker(false);
+        }}
+      />
+    </div>
+  )}
+</div>
                             </div>
                           </FormControl>
                           <FormDescription>Pick an emoji to represent your community</FormDescription>
