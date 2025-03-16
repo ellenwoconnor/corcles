@@ -205,6 +205,7 @@ export default function CommunitiesPage() {
     placeholder="Choose an emoji (e.g. 🏠)" 
     maxLength={2} 
     readOnly 
+    onClick={() => setShowEmojiPicker(true)}
   />
   <Button 
     type="button"
@@ -214,12 +215,24 @@ export default function CommunitiesPage() {
     Select Emoji
   </Button>
   {showEmojiPicker && (
-    <div className="absolute z-50 mt-1">
+    <div className="fixed z-[100] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background border rounded-lg shadow-lg">
+      <div className="flex justify-end p-2">
+        <Button 
+          size="sm" 
+          variant="ghost" 
+          onClick={() => setShowEmojiPicker(false)}
+        >
+          ✕
+        </Button>
+      </div>
       <Picker 
-        onEmojiSelect={(emoji) => {
+        onEmojiSelect={(emoji: any) => {
           field.onChange(emoji.native);
           setShowEmojiPicker(false);
         }}
+        theme="light"
+        skinTonePosition="none"
+        previewPosition="none"
       />
     </div>
   )}
