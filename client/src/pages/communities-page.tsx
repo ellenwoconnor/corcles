@@ -216,11 +216,11 @@ export default function CommunitiesPage() {
                                 <Button
                                   type="button"
                                   variant="outline"
-                                  size="lg"
+                                  size="sm"
                                   onClick={() =>
                                     setShowEmojiPicker(!showEmojiPicker)
                                   }
-                                  className="w-16 h-16 text-3xl hover:bg-accent"
+                                  className="w-12 h-12 text-2xl hover:bg-accent"
                                 >
                                   {field.value || "🏠"}
                                 </Button>
@@ -241,8 +241,8 @@ export default function CommunitiesPage() {
                                       theme="light"
                                       skinTonePosition="none"
                                       previewPosition="none"
-                                      height={350}
-                                      width={300}
+                                      height={300}
+                                      width={280}
                                     />
                                   </div>
                                 )}
