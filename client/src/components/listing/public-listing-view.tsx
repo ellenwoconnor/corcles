@@ -64,7 +64,7 @@ export default function PublicListingView({
         </div>
 
         {/* Description */}
-        <div className="border-b border-border pt-4">
+        <div className="border-b border-border pb-4">
           <p className="text-muted-foreground whitespace-pre-wrap">
             {item.description}
           </p>
