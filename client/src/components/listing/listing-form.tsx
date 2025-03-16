@@ -61,6 +61,7 @@ interface ListingFormProps {
     name: string;
     role: string;
     memberCount: number;
+    isCustom: boolean; // Added isCustom property
   }>;
   communityId?: number; // Added prop for direct community ID
   defaultValues?: any;
@@ -287,17 +288,18 @@ export function ListingForm({
                     <SelectTrigger>
                       <SelectValue placeholder="Select a community" />
                     </SelectTrigger>
+                    <SelectContent>
+                      {communities.map((community) => (
+                        <SelectItem
+                          key={community.id}
+                          value={community.id.toString()}
+                          defaultChecked={!community.isCustom} // Added defaultChecked prop
+                        >
+                          {community.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </FormControl>
-                  <SelectContent>
-                    {communities.map((community) => (
-                      <SelectItem
-                        key={community.id}
-                        value={community.id.toString()}
-                      >
-                        {community.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
                 </Select>
                 <FormMessage />
               </FormItem>
