@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { Label } from "@/components/ui/label";
@@ -13,7 +12,7 @@ interface PickupLocationInputProps {
 export default function PickupLocationInput({ value, onChange }: PickupLocationInputProps) {
   const { user } = useAuth();
   const [useUserAddress, setUseUserAddress] = useState(!value || value === user?.address);
-  
+
   // When the component loads, if no value is provided, use the user's address
   React.useEffect(() => {
     if (useUserAddress && user?.address) {
@@ -38,7 +37,7 @@ export default function PickupLocationInput({ value, onChange }: PickupLocationI
         />
         <Label htmlFor="use-address">Use my address as pickup location</Label>
       </div>
-      
+
       {!useUserAddress && (
         <div className="space-y-2">
           <Label htmlFor="custom-pickup-location">Specify pickup location</Label>
