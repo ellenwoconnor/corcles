@@ -46,7 +46,7 @@ export default function CommunityWishlists() {
   const [createItemDialogOpen, setCreateItemDialogOpen] = useState(false);
 
   const { data: communityWishlists = [], isLoading } = useQuery<
-    (Wishlist & { communityName?: string })[]
+    (Wishlist & { communityName?: string; communityMascot?: string })[]
   >({
     queryKey: ["/api/communities/wishlists"],
     enabled: !!user,
@@ -169,7 +169,7 @@ export default function CommunityWishlists() {
                   <User className="h-3 w-3" />
                   <span>
                     {wishlist.userDisplayName || "Anonymous"} in{" "}
-                    {wishlist.communityName}
+                    {wishlist.communityName} {wishlist.communityMascot || "🏠"}
                   </span>
                 </CardDescription>
               </CardHeader>

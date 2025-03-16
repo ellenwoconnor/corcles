@@ -236,10 +236,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const wishlists = await db
         .select({
           ...schema.wishlists,
-          userDisplayName: schema.users.displayName
+          userDisplayName: schema.users.displayName,
+          communityMascot: schema.communities.mascot
         })
         .from(schema.wishlists)
         .leftJoin(schema.users, eq(schema.wishlists.userId, schema.users.id))
+        .leftJoin(schema.communities, eq(schema.wishlists.communityId, schema.communities.id))
         .where(
           and(
             inArray(schema.wishlists.communityId, communityIds),
