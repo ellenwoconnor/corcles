@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Loader2, X, Plus } from "lucide-react";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Drawer,
   DrawerContent,
   DrawerDescription,
@@ -202,18 +209,21 @@ export default function PickupScheduler({
           {selectedDate && (
             <div className="space-y-2">
               <label className="text-sm font-medium">2. Select Hour</label>
-              <div className="grid grid-cols-4 gap-2">
-                {availableHours.map((hour) => (
-                  <Button
-                    key={hour}
-                    variant={selectedHour === hour ? "default" : "outline"}
-                    onClick={() => setSelectedHour(hour)}
-                    className={selectedHour === hour ? "ring-2 ring-primary" : ""}
-                  >
-                    {format(addHours(startOfHour(selectedDate), hour), "h:mm a")}
-                  </Button>
-                ))}
-              </div>
+              <Select
+                value={selectedHour?.toString()}
+                onValueChange={(value) => setSelectedHour(parseInt(value))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a time" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableHours.map((hour) => (
+                    <SelectItem key={hour} value={hour.toString()}>
+                      {format(addHours(startOfHour(selectedDate), hour), "h:mm a")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
