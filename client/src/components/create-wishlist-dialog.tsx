@@ -51,11 +51,16 @@ export default function CreateWishlistDialog({
     enabled: !!user,
   });
 
+  // Find default (non-custom) community
+  const defaultCommunity = userCommunities?.find(c => !c.isCustom);
+
   const form = useForm<InsertWishlist>({
     resolver: zodResolver(insertWishlistSchema),
     defaultValues: {
       title: "",
       description: "",
+      communityId: defaultCommunity?.id,
+      budget: undefined,
       urgency: "normal",
       isPrivate: false,
       userId: user?.id,
