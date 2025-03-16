@@ -199,32 +199,17 @@ export default function CommunitiesPage() {
                           <FormControl>
                             <div className="relative">
                               <div className="relative">
-  <Input 
-    {...field} 
-    type="text" 
-    placeholder="Choose an emoji (e.g. 🏠)" 
-    maxLength={2} 
-    readOnly 
-    onClick={() => setShowEmojiPicker(true)}
-  />
-  <Button 
+  <Button
     type="button"
-    onClick={() => setShowEmojiPicker(!showEmojiPicker)} 
-    className="absolute top-1/2 right-2 transform -translate-y-1/2"
+    variant="outline" 
+    size="lg"
+    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+    className="w-16 h-16 text-3xl hover:bg-accent"
   >
-    Select Emoji
+    {field.value || "🏠"}
   </Button>
   {showEmojiPicker && (
-    <div className="fixed z-[100] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background border rounded-lg shadow-lg">
-      <div className="flex justify-end p-2">
-        <Button 
-          size="sm" 
-          variant="ghost" 
-          onClick={() => setShowEmojiPicker(false)}
-        >
-          ✕
-        </Button>
-      </div>
+    <div className="absolute z-[100] mt-2 bg-background border rounded-lg shadow-lg">
       <Picker 
         onEmojiClick={(emojiData: any) => {
           field.onChange(emojiData.emoji);
@@ -233,6 +218,8 @@ export default function CommunitiesPage() {
         theme="light"
         skinTonePosition="none"
         previewPosition="none"
+        height={350}
+        width={300}
       />
     </div>
   )}
