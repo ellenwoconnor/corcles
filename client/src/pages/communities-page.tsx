@@ -45,8 +45,7 @@ import { useState } from "react";
 import { z } from "zod";
 // Import the new component
 import CommunityInviteForm from "@/components/community-invite-form";
-import data from '@emoji-mart/data'
-import Picker from '@emoji-mart/react'
+import Picker from 'emoji-picker-react';
 
 export default function CommunitiesPage() {
   const { user } = useAuth();
@@ -201,18 +200,7 @@ export default function CommunitiesPage() {
                             <div className="relative">
                               <Input {...field} type="text" placeholder="Choose an emoji (e.g. 🏠)" maxLength={2} readOnly />
                               <Button onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="absolute top-1/2 right-2 transform -translate-y-1/2">Select Emoji</Button>
-                              {showEmojiPicker && (
-                <div className="absolute z-50 top-full mt-1">
-                  <Picker 
-                    data={data} 
-                    onEmojiSelect={(emoji) => {
-                      field.onChange(emoji.native);
-                      setShowEmojiPicker(false);
-                    }}
-                    theme="light"
-                  />
-                </div>
-              )}
+                              {showEmojiPicker && <Picker onEmojiClick={(e, emojiObject) => {field.onChange(emojiObject.emoji); setShowEmojiPicker(false)}} />}
                             </div>
                           </FormControl>
                           <FormDescription>Pick an emoji to represent your community</FormDescription>
