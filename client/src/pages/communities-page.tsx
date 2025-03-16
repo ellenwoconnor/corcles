@@ -226,8 +226,8 @@ export default function CommunitiesPage() {
         </Button>
       </div>
       <Picker 
-        onEmojiSelect={(emoji: any) => {
-          field.onChange(emoji.native);
+        onEmojiClick={(emojiData: any) => {
+          field.onChange(emojiData.emoji);
           setShowEmojiPicker(false);
         }}
         theme="light"
