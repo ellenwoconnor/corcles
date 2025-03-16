@@ -171,21 +171,14 @@ export default function OwnerListingView({
           </div>
         )}
 
-        {item.pickupStart && item.pickupEnd && (
-          <div className="border border-border rounded-lg overflow-hidden">
-            <div className="bg-muted px-4 py-2 border-b border-border">
-              <h3 className="font-medium">Pickup Time</h3>
-            </div>
-            <div className="p-4 flex flex-col gap-3">
-              <div className="text-sm flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span>
-                  {format(new Date(item.pickupStart), "EEEE, MMMM d")} at{" "}
-                  {format(new Date(item.pickupStart), "h:mm a")} -{" "}
-                  {format(new Date(item.pickupEnd), "h:mm a")}
-                </span>
-              </div>
-            </div>
+        <div>
+          <p className="whitespace-pre-wrap">{item.description}</p>
+        </div>
+
+        {!isDelisted && (
+          <div className="flex gap-2 mt-auto pt-4">
+            <EditListingDialog item={item} />
+            <DelistButton itemId={item.id} />
           </div>
         )}
 
@@ -267,19 +260,6 @@ export default function OwnerListingView({
                 </p>
               )}
             </div>
-          </div>
-        )}
-
-        <div className="border-t border-border pt-4">
-          <p className="text-muted-foreground whitespace-pre-wrap">
-            {item.description}
-          </p>
-        </div>
-
-        {!isDelisted && (
-          <div className="flex gap-2 mt-auto pt-4">
-            <EditListingDialog item={item} />
-            <DelistButton itemId={item.id} />
           </div>
         )}
 
