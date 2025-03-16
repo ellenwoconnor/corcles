@@ -178,7 +178,34 @@ export default function OwnerListingView({
         {!isDelisted && (
           <div className="flex gap-2 mt-auto pt-4">
             <EditListingDialog item={item} />
-            <DelistButton itemId={item.id} />
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => {
+                const delistItem = async () => {
+                  const response = await apiRequest("POST", `/api/items/${item.id}/delist`);
+                  if (!response.ok) {
+                    throw new Error("Failed to delist item");
+                  }
+                  queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+                  queryClient.invalidateQueries({ queryKey: [`/api/items/${item.id}`] });
+                  queryClient.invalidateQueries({ queryKey: ["/api/user/items"] });
+                  toast({
+                    title: "Item delisted",
+                    description: "The item has been removed from the marketplace.",
+                  });
+                };
+                delistItem().catch(() => {
+                  toast({
+                    variant: "destructive",
+                    title: "Error",
+                    description: "Could not delist item",
+                  });
+                });
+              }}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         )}
 
