@@ -88,6 +88,9 @@ export function ListingForm({
   const schema = mode === "create" ? createItemSchema : editItemSchema;
 
   // Ensure communityId is properly set in form defaults
+  // Find default (non-custom) community
+  const defaultCommunity = communities?.find(c => !c.isCustom);
+  
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -97,8 +100,8 @@ export function ListingForm({
       isGift: true,
       imageUrl: "",
       userId: user?.id,
-      // Prioritize passed communityId
-      communityId: communityId,
+      // Prioritize passed communityId, then default community
+      communityId: communityId || defaultCommunity?.id,
       pickupLocation: defaultValues.pickupLocation || user?.address || "",
       ...defaultValues,
     },
