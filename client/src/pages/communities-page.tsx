@@ -56,16 +56,41 @@ export default function CommunitiesPage() {
     null,
   );
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [placeholderText, setPlaceholderText] = useState({ name: "", description: "" });
+  const [placeholderText, setPlaceholderText] = useState({
+    name: "",
+    description: "",
+  });
 
   const suggestions = [
     { name: "Sock orphans", description: "Help lost socks find each other" },
-    { name: "The blue cowboys", description: "A group for people to share multicolored cowboy hats" },
-    { name: "Unnecessary lamps", description: "Have a lamp shaped like a pineapple? Exchange lighting fixtures that don't add up" },
-    { name: "High maintenance plant swap", description: "Exchange houseplants you regret buying along with your lessons learned" },
-    { name: "Better than no furniture", description: "Imperfect furniture for when you've just moved in because it's better than sitting on the floor" },
-    { name: "Fix-it hopefuls", description: "A project graveyard for aspirational fix-it ideas" },
-    { name: "Party favor graveyard", description: "Reuse useless plastic trinkets that probably shouldn't exist" }
+    {
+      name: "The blue cowboys",
+      description: "A group for people to share multicolored cowboy hats",
+    },
+    {
+      name: "Unnecessary lamps",
+      description:
+        "Have a lamp shaped like a pineapple? Exchange lighting fixtures that don't add up",
+    },
+    {
+      name: "High maintenance plant swap",
+      description:
+        "Exchange houseplants you regret buying along with your lessons learned",
+    },
+    {
+      name: "Better than no furniture",
+      description:
+        "Imperfect furniture for when you've just moved in because it's better than sitting on the floor",
+    },
+    {
+      name: "Fix-it hopefuls",
+      description: "A project graveyard for aspirational fix-it ideas",
+    },
+    {
+      name: "Party favor graveyard",
+      description:
+        "Reuse useless plastic trinkets that probably shouldn't exist",
+    },
   ];
 
   const getRandomPlaceholder = () => {
@@ -181,7 +206,10 @@ export default function CommunitiesPage() {
                         <FormItem>
                           <FormLabel>Name</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder={placeholderText.name} />
+                            <Input
+                              {...field}
+                              placeholder={placeholderText.name}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -209,7 +237,7 @@ export default function CommunitiesPage() {
                       name="mascot"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Community Mascot</FormLabel>
+                          <FormLabel>Mascot</FormLabel>
                           <FormControl>
                             <div className="relative">
                               <div className="relative">
