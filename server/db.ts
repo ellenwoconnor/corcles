@@ -42,6 +42,7 @@ async function migrate() {
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
       description TEXT,
+      mascot TEXT DEFAULT '🏠',
       created_by INTEGER NOT NULL,
       created_at TIMESTAMP NOT NULL DEFAULT NOW(),
       is_custom BOOLEAN NOT NULL DEFAULT false
