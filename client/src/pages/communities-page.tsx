@@ -206,7 +206,7 @@ export default function CommunitiesPage() {
                                   {field.value || "🏠"}
                                 </Button>
                                 {showEmojiPicker && (
-                                  <div className="absolute z-[100] mt-2 bg-background border rounded-lg shadow-lg">
+                                  <div className="fixed z-[100] mt-2 bg-background border rounded-lg shadow-lg" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
                                     <Picker
                                       onEmojiClick={(emojiData: any) => {
                                         field.onChange(emojiData.emoji);
