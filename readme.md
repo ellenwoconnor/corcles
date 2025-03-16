@@ -2,6 +2,10 @@
 
 AI wrote this code, don't blame me
 
+How this bullshit works with DO
+- if you have ca-certificate.crt locally, you can connect to the database
+- the file won't exist in fly.io, so we need to create it 
+
 ## Downloads
 
 ### Install dependencies for dev environment
@@ -54,6 +58,11 @@ To build images -- this passes in the value of the crt and logs detailed output:
 PG_CA_CERT=$PG_CA_CERT docker-compose build --no-cache --progress=plain  
 ```
 
+or alternatively this one which lets you pass platform 
+```sh
+docker build --no-cache --build-arg PG_CA_CERT=$PG_CA_CERT -t corcles-app:latest .
+```
+
 Start containers and run the app: 
 ```sh
 docker-compose up -d
@@ -81,7 +90,16 @@ docker exec -it [container] sh
 ## Deploying to Fly.io
 
 First authenticate with fly.io: 
+```sh
 fly auth docker-login
+```
+
+Create an image with the right a
+
+```sh
+docker build --no-cache --build-arg PG_CA_CERT=$PG_CA_CERT -t corcles-app:latest . 
+```
+
 
 Tag the image and push it to Flyio registry
 ```sh
@@ -101,13 +119,7 @@ fly ssh console -a corcles
 
 ### To run a local database
 
-Uncomment the local database creation in docker-compose.yml. This will spin up a postgres container. Make sure the database url and parameters in .env are set correctly. 
-
-Run the initial migration which will create all the tables:
-
-```
-NODE_ENV=development npm run dev
-```
+Uncomment the local database creation in docker-compose.yml. This will spin up a postgres container. Make sure the database url and parameters in .env are correct. 
 
 The migrations will automatically run on startup and create all the necessary tables in your local database. 
 
