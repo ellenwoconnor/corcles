@@ -998,7 +998,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await db
         .update(schema.items)
         .set({
-          proposedPickupWindows: JSON.stringify(proposedWindows),
+          proposedPickupWindows: [proposedWindows],
           status: ITEM_STATUS.SCHEDULING,
           recipientId: activeRequest.requesterId,
         })
