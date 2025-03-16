@@ -867,6 +867,7 @@ export class DatabaseStorage implements IStorage {
           id: communities.id,
           name: communities.name,
           description: communities.description,
+          mascot: communities.mascot,
           createdBy: communities.createdBy,
           createdAt: communities.createdAt,
           isCustom: communities.isCustom,
@@ -1039,8 +1040,7 @@ export class DatabaseStorage implements IStorage {
   async getUserRole(userId: number, communityId: number): Promise<string | undefined> {
     try {
       const [membership] = await db
-        .select()
-        .from(userCommunities)
+        .select        .from(userCommunities)
         .where(
           and(
             eq(userCommunities.userId, userId),
