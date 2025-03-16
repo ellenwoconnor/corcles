@@ -69,6 +69,7 @@ export default function CommunitiesPage() {
       description: "",
       createdBy: user?.id,
       isCustom: true,
+      mascot: "", // Added default value for mascot
     },
   });
 
@@ -183,6 +184,20 @@ export default function CommunitiesPage() {
                           <FormDescription>
                             Briefly describe the purpose of this community
                           </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="mascot"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Community Mascot</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="text" placeholder="Choose an emoji (e.g. 🏠)" maxLength={2} />
+                          </FormControl>
+                          <FormDescription>Pick an emoji to represent your community</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}

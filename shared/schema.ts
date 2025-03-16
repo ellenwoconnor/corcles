@@ -28,6 +28,7 @@ export const communities = pgTable("communities", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
+  mascot: text("mascot").default("🏠"),
   createdBy: integer("created_by").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   isCustom: boolean("is_custom").notNull().default(true),
@@ -220,6 +221,7 @@ export const insertCommunitySchema = createInsertSchema(communities).omit({
 }).extend({
   name: z.string().min(3, "Community name must be at least 3 characters"),
   description: z.string().optional(),
+  mascot: z.string().min(1, "Please select an emoji mascot").max(2, "Only single emojis are allowed"),
 });
 
 export const insertUserCommunitySchema = createInsertSchema(userCommunities).omit({
