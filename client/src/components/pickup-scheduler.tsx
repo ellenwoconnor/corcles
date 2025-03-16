@@ -190,48 +190,42 @@ export default function PickupScheduler({
             </div>
           </div>
 
-          {/* Date and Time Selection */}
-          <div className="grid grid-cols-1 md:grid-cols-[auto,1fr] md:gap-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">1. Select Date</label>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => {
-                  setSelectedDate(date);
-                  setSelectedHour(undefined); // Reset hour when date changes
-                }}
-                disabled={(date) => isBefore(date, now) || isAfter(date, twoWeeksFromNow)}
-                className="rounded-md border"
-              />
-            </div>
-
-            {/* Time Selection */}
-            <div className="mt-4 md:mt-8 space-y-2">
-              <label className="text-sm font-medium">2. Select Hour</label>
-              {selectedDate ? (
-                <Select
-                  value={selectedHour?.toString()}
-                  onValueChange={(value) => setSelectedHour(parseInt(value))}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableHours.map((hour) => (
-                      <SelectItem key={hour} value={hour.toString()}>
-                        {format(addHours(startOfHour(selectedDate), hour), "h:mm a")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <div className="text-sm text-muted-foreground">
-                  Please select a date first
-                </div>
-              )}
-            </div>
+          {/* Date Selection */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">1. Select Date</label>
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(date) => {
+                setSelectedDate(date);
+                setSelectedHour(undefined); // Reset hour when date changes
+              }}
+              disabled={(date) => isBefore(date, now) || isAfter(date, twoWeeksFromNow)}
+              className="rounded-md border"
+            />
           </div>
+
+          {/* Time Selection */}
+          {selectedDate && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">2. Select Hour</label>
+              <Select
+                value={selectedHour?.toString()}
+                onValueChange={(value) => setSelectedHour(parseInt(value))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a time" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableHours.map((hour) => (
+                    <SelectItem key={hour} value={hour.toString()}>
+                      {format(addHours(startOfHour(selectedDate), hour), "h:mm a")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Add Window Button */}
           {selectedDate && selectedHour !== undefined && (
