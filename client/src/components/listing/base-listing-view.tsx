@@ -1,4 +1,3 @@
-
 import { Item } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 import { ReactNode } from "react";
@@ -11,7 +10,11 @@ interface BaseListingViewProps {
   className?: string;
 }
 
-export default function BaseListingView({ item, children, className }: BaseListingViewProps) {
+export default function BaseListingView({
+  item,
+  children,
+  className,
+}: BaseListingViewProps) {
   return (
     <div className={cn("grid md:grid-cols-2 gap-8", className)}>
       {/* Item Image */}
@@ -54,7 +57,7 @@ export default function BaseListingView({ item, children, className }: BaseListi
         {/* Description */}
         <div className="border-b border-border py-4">
           <p className="text-muted-foreground whitespace-pre-wrap">
-            {item.description}
+            {item.description || "No description provided"}
           </p>
         </div>
 
