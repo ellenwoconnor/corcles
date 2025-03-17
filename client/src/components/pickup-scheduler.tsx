@@ -78,7 +78,7 @@ export default function PickupScheduler({
       });
 
       console.log("Sending windows:", windows);
-      
+
       const response = await apiRequest(
         "POST",
         `/api/items/${itemId}/schedule`,
@@ -156,7 +156,7 @@ export default function PickupScheduler({
         <Button>
           {["scheduling", "scheduled"].includes(itemStatus)
             ? "Update pickup times"
-            : "Set Pickup Times"}
+            : "Send Pickup Times"}
         </Button>
       </DrawerTrigger>
       <DrawerContent>
