@@ -51,21 +51,13 @@ export default function NotificationCenter() {
   console.log("is open?", isOpen);
 
   return (
-    <div 
-      className="relative"
-      onClick={(e) => {
-        console.log('Wrapper clicked');
-        e.stopPropagation();
-        setIsOpen(!isOpen);
-      }}
-    >
+    <div className="relative">
       <Button
         variant="ghost"
         size="icon"
         className="relative"
-        onClick={(e) => {
+        onClick={() => {
           console.log('Button clicked');
-          e.stopPropagation();
           setIsOpen(!isOpen);
         }}
       >
