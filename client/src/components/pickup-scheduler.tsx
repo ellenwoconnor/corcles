@@ -235,11 +235,12 @@ export default function PickupScheduler({
 
                   <Button
                     onClick={() => {
+                      if (!selectedDate || selectedHour === undefined) return;
+                      addTimeWindow();
                       if (timeWindows.length > 0) {
                         setSelectedDate(undefined);
                         setSelectedHour(undefined);
                       }
-                      addTimeWindow();
                     }}
                     disabled={selectedHour === undefined}
                     className="w-full"
