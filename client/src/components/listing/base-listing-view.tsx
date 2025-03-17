@@ -2,6 +2,7 @@
 import { Item } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 import { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 interface BaseListingViewProps {
   item: Item;
