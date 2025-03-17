@@ -133,6 +133,7 @@ export default function OwnerListingView({
         </div>
       )}
 
+      {/* Pickup scheduler */}
       {canSchedule && (
         <div className="border rounded-md mt-5 p-4 mb-4">
           <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
@@ -148,7 +149,9 @@ export default function OwnerListingView({
               itemStatus={item.status}
               onScheduled={() => {
                 queryClient.invalidateQueries([`/api/items/${item.id}`]);
-                queryClient.invalidateQueries([`/api/items/${item.id}/requests`]);
+                queryClient.invalidateQueries([
+                  `/api/items/${item.id}/requests`,
+                ]);
               }}
             />
             {hasRecipient && activeRequest && (
