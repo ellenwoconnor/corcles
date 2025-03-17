@@ -67,7 +67,7 @@ export default function NotificationCenter() {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[300px]">
+      <DropdownMenuContent align="end" className="w-[300px]" forceMount>
         {notifications.length === 0 ? (
           <div className="p-4 text-sm text-muted-foreground text-center">
             No new notifications
