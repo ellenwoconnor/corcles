@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Bell } from "lucide-react";
@@ -30,11 +29,14 @@ export default function NotificationCenter() {
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
       if (data.type === "recipient_selected") {
-        setNotifications(prev => [...prev, {
-          type: data.type,
-          data: data.data,
-          timestamp: Date.now()
-        }]);
+        setNotifications((prev) => [
+          ...prev,
+          {
+            type: data.type,
+            data: data.data,
+            timestamp: Date.now(),
+          },
+        ]);
       }
     };
 
@@ -44,8 +46,8 @@ export default function NotificationCenter() {
   const handleNotificationClick = (notification: Notification) => {
     if (notification.data.itemId) {
       setLocation(`/item/${notification.data.itemId}`);
-      setNotifications(prev => 
-        prev.filter(n => n.timestamp !== notification.timestamp)
+      setNotifications((prev) =>
+        prev.filter((n) => n.timestamp !== notification.timestamp),
       );
     }
   };
@@ -54,10 +56,10 @@ export default function NotificationCenter() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5 stroke-[1.5px]" />
+          <Bell className="h-5 w-5" />
           {notifications.length > 0 && (
-            <Badge 
-              variant="default" 
+            <Badge
+              variant="default"
               className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center"
             >
               {notifications.length}
