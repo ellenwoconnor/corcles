@@ -159,7 +159,7 @@ export default function PickupScheduler({
             : "Send Pickup Times"}
         </Button>
       </DrawerTrigger>
-      <DrawerContent className="h-[85%] sm:h-[85%] sm:max-w-[600px] mx-auto">
+      <DrawerContent className="h-[85vh] sm:h-[85vh] sm:max-w-[600px] mx-auto overflow-y-auto">
         <DrawerHeader>
           <DrawerTitle>Schedule Item Pickup</DrawerTitle>
           <DrawerDescription>
@@ -174,7 +174,7 @@ export default function PickupScheduler({
           </button>
         </DrawerHeader>
 
-        <div className="p-4 space-y-6">
+        <div className="p-4 space-y-6 pb-20">
           {/* Date and Time Selection */}
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
