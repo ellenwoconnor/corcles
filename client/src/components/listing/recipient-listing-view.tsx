@@ -82,7 +82,7 @@ export default function RecipientListingView({
           <p>
             This item is pending pickup at <b>{item.pickupLocation}</b>.
           </p>
-          {item.status == "scheduling" && (
+          {item.status === "scheduling" ? (
             <PickupTimeSelector
               itemId={item.id}
               itemOwnerId={itemOwnerId}
@@ -94,7 +94,7 @@ export default function RecipientListingView({
                 onScheduled?.();
               }}
             />
-          )}
+          ) : null}
           <div className="flex items-center gap-4">
             <CancelButton
               itemId={item.id}
