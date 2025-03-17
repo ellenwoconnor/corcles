@@ -147,7 +147,8 @@ export default function OwnerListingView({
               itemId={item.id}
               itemStatus={item.status}
               onScheduled={() => {
-                throw new Error("Function not implemented.");
+                queryClient.invalidateQueries([`/api/items/${item.id}`]);
+                queryClient.invalidateQueries([`/api/items/${item.id}/requests`]);
               }}
             />
             {hasRecipient && activeRequest && (
