@@ -5,7 +5,7 @@ import { AuthProvider, useAuth } from "@/features/auth/hooks/use-auth";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AddressCompletionDialog } from "./components/address-completion-dialog";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { NotificationCenter } from "@/components/notification-center";
+import NotificationCenter from "@/components/notification-center";
 import { Router } from "@/components/router";
 import { queryClient } from "./lib/queryClient";
 import { ThemeProvider } from "@/components/theme-provider";
