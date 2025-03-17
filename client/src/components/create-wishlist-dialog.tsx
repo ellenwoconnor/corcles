@@ -46,13 +46,15 @@ export default function CreateWishlistDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: userCommunities = [] } = useQuery<{ id: number; name: string }[]>({
+  const { data: userCommunities = [] } = useQuery<
+    { id: number; name: string }[]
+  >({
     queryKey: ["/api/user/communities"],
     enabled: !!user,
   });
 
   // Find default (non-custom) community
-  const defaultCommunity = userCommunities?.find(c => !c.isCustom);
+  const defaultCommunity = userCommunities?.find((c) => !c.isCustom);
 
   const form = useForm<InsertWishlist>({
     resolver: zodResolver(insertWishlistSchema),
@@ -118,10 +120,8 @@ export default function CreateWishlistDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Wishlist</DialogTitle>
-          <DialogDescription>
-            Create a new wishlist to track items you're looking for.
-          </DialogDescription>
+          <DialogTitle>Create Wishlist Item</DialogTitle>
+          <DialogDescription>Add an item you're looking for</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -197,7 +197,7 @@ export default function CreateWishlistDialog({
                       {...field}
                       onChange={(e) =>
                         field.onChange(
-                          e.target.value ? parseInt(e.target.value) : undefined
+                          e.target.value ? parseInt(e.target.value) : undefined,
                         )
                       }
                     />
@@ -239,9 +239,10 @@ export default function CreateWishlistDialog({
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-0.5">
-                    <FormLabel>Private Wishlist</FormLabel>
+                    <FormLabel>Private Wishlist Item</FormLabel>
                     <FormDescription>
-                      Only you can see private wishlists
+                      Notify me about matches, but don't post it to the
+                      community.
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -262,10 +263,7 @@ export default function CreateWishlistDialog({
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={createWishlist.isPending}
-              >
+              <Button type="submit" disabled={createWishlist.isPending}>
                 Create Wishlist
               </Button>
             </div>
