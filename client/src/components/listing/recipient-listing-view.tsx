@@ -60,21 +60,19 @@ export default function RecipientListingView({
 
   return (
     <BaseListingView item={item} isOwner={false}>
-      {isWishlistFullfillment && (
-      <div className="border rounded-md p-4 bg-green-50 border-green-200 mb-4">
-        <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
-          {/* <UserCheck className="h-5 w-5 text-green-600" /> */}
-          <span>Recipient Selected</span>
-        </h2>
-        <p className="text-sm mb-3">
-          This item is being offered to{" "}
-          <span className="font-medium">FOO</span>
-        </p>
-      </div>
+      {isWishlistFulfillment && (
+        <div className="border rounded-md p-4 bg-green-50 border-green-200 mb-4">
+          <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
+            {/* <UserCheck className="h-5 w-5 text-green-600" /> */}
+            <span>Recipient Selected</span>
+          </h2>
+          <p className="text-sm mb-3">
+            This item is being offered to{" "}
+            <span className="font-medium">FOO</span>
+          </p>
+        </div>
       )}
-    </BaseListingView>
-    
-    {/* Show confirmed pickup time */}
+      {/* Show confirmed pickup time */}
       {item.pickupStart && item.pickupEnd && (
         <div className="border-t border-border pt-4">
           <h3 className="font-medium mb-2">Confirmed Pickup Time</h3>
@@ -90,7 +88,7 @@ export default function RecipientListingView({
           </div>
         </div>
       )}
-      
+
       {/* Interactions Section */}
       <div className="border-t border-border pt-4">
         {/* Only show pickup scheduler if pickup time is not already confirmed */}
@@ -135,5 +133,6 @@ export default function RecipientListingView({
           </div>
         )}
       </div>
+    </BaseListingView>
   );
 }
