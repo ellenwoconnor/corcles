@@ -143,7 +143,11 @@ export default function PickupScheduler({
       ...timeWindows,
       { date: selectedDate, hour: selectedHour },
     ]);
-    setSelectedHour(undefined);
+    setSelectedHour(undefined); // Reset just the hour
+    const hourSelect = document.querySelector('select');
+    if (hourSelect) {
+      setTimeout(() => hourSelect.focus(), 0);
+    }
   };
 
   const removeTimeWindow = (index: number) => {
