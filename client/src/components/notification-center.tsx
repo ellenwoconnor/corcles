@@ -3,6 +3,11 @@ import { useLocation } from "wouter";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Notification {
   type: string;
@@ -48,50 +53,49 @@ export default function NotificationCenter() {
     setIsOpen(false);
   };
 
-  console.log("is open?", isOpen);
-
   return (
-    <div className="relative">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="relative"
-        onClick={() => {
-          console.log("Button clicked");
-          setIsOpen((prev) => !prev);
-        }}
-      >
-        <Bell className="h-5 w-5 text-foreground fill-foreground stroke-foreground pointer-events-none" />
-        {notifications.length > 0 && (
-          <Badge
-            variant="default"
-            className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center"
-          >
-            {notifications.length}
-          </Badge>
-        )}
-      </Button>
-
-      {isOpen && (
-        <div className="absolute right-0 mt-2 w-[300px] rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
-          {notifications.length === 0 ? (
-            <div className="p-4 text-sm text-muted-foreground text-center">
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative"
+          onClick={() => setIsOpen((prev) => !prev)}
+        >
+          <Bell className="h-5 w-5" />
+          {notifications.length > 0 && (
+            <Badge
+              variant="default"
+              className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center"
+            >
+              {notifications.length}
+            </Badge>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-[300px]">
+        {notifications.length === 0 ? (
+          <div className="flex flex-col items-center justify-center space-y-2 py-6">
+            <Bell className="h-8 w-8 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
               No new notifications
-            </div>
-          ) : (
-            notifications.map((notification) => (
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-col space-y-4 p-4">
+            {notifications.map((notification) => (
               <div
                 key={notification.timestamp}
                 onClick={() => handleNotificationClick(notification)}
                 className="flex items-center gap-2 p-3 cursor-pointer hover:bg-accent rounded-sm"
               >
                 <Bell className="h-4 w-4 fill-foreground" />
-                <span>You've been selected for an item!</span>
+                <span>{notification.data.title || "New notification"}</span>
               </div>
-            ))
-          )}
-        </div>
-      )}
-    </div>
+            ))}
+          </div>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
