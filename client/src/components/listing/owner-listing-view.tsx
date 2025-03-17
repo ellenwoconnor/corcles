@@ -18,8 +18,6 @@ import { Item, ItemBid } from "@shared/schema";
 import BaseListingView from "./base-listing-view";
 import { apiRequest } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
-import { DrawWinnerDialog } from "./draw-winner-dialog";
-import { SchedulePickupDialog } from "./schedule-pickup-dialog";
 
 interface OwnerListingViewProps {
   item: Item; // Changed to Item from ExtendedItem
@@ -45,7 +43,7 @@ export default function OwnerListingView({
   const hasRequests = requests.length > 0;
   const hasRecipient = !!item.recipientId;
   const canDraw = hasRequests && !hasRecipient && item.isGift && !isDelisted;
-  const canSchedule = hasRequests && !hasRecipient && !isDelisted;
+  const canSchedule = hasRequests && !isDelisted;
   const hasBids = bids.length > 0;
 
   const activeRequest = item.recipientId
@@ -94,66 +92,89 @@ export default function OwnerListingView({
   //const { data: wishlist } = useQuery({ ... });
 
   return (
-    <BaseListingView item={item} isOwner={true}>
-      <div className="space-y-6">
-        {!isDelisted && (
-          <div className="flex flex-wrap gap-3">
-            <EditListingDialog item={item} />
-            <Button variant="destructive" onClick={handleDelist}>
-              Delist Item
-            </Button>
-          </div>
-        )}
-
-        {hasBids && (
-          <div>
-            <h2 className="font-medium mb-2">Bids ({bids.length})</h2>
-            <div className="space-y-3">
-              {bids.map((bid) => (
-                <div
-                  key={bid.id}
-                  className="p-4 border rounded-lg flex items-center justify-between"
-                >
-                  <div>
-                    <p className="font-medium">${bid.amount}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDistanceToNow(new Date(bid.createdAt), {
-                        addSuffix: true,
-                      })}
-                    </p>
-                  </div>
-                </div>
-              ))}
+    <div>
+      <BaseListingView item={item} isOwner={true}>
+        <div className="space-y-6">
+          {!isDelisted && (
+            <div className="flex flex-wrap gap-3">
+              <EditListingDialog item={item} />
+              <Button variant="destructive" onClick={handleDelist}>
+                Delist Item
+              </Button>
             </div>
+          )}
+        </div>
+        {hasRequests && (
+          <div className="border rounded-md p-4 bg-green-50 border-green-200 mb-4">
+            <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-green-600" />
+              <span>Requests Pending</span>
+            </h2>
+            <p className="text-sm mb-3">
+              You have {requests.length} active requests for this item.
+            </p>
           </div>
         )}
+      </BaseListingView>
 
-        {canSchedule && (
-          <div>
-            <h2 className="font-medium mb-2">Schedule Pickup</h2>
-            <SchedulePickupDialog
+      {hasBids && (
+        <div>
+          <h2 className="font-medium mb-2">Bids ({bids.length})</h2>
+          <div className="space-y-3">
+            {bids.map((bid) => (
+              <div
+                key={bid.id}
+                className="p-4 border rounded-lg flex items-center justify-between"
+              >
+                <div>
+                  <p className="font-medium">${bid.amount}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {formatDistanceToNow(new Date(bid.createdAt), {
+                      addSuffix: true,
+                    })}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {canSchedule && (
+        <div className="border rounded-md mt-5 p-4 mb-4">
+          <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
+            Schedule pickup
+          </h2>
+          <p className="flex gap-1">
+            This item is pending pickup at <MapPin className="h-4 w-4" />
+            {item.pickupLocation}.
+          </p>
+          <div className="pt-4">
+            <PickupScheduler
               itemId={item.id}
-              requests={requests}
-              existingWindows={item.proposedPickupWindows}
+              itemStatus={item.status}
+              onScheduled={function (): void {
+                throw new Error("Function not implemented.");
+              }}
             />
           </div>
-        )}
+        </div>
+      )}
 
-        {showMessageAndCancel && activeRequest && (
-          <div className="space-y-3">
-            <Button onClick={() => setMessageDialogOpen(true)}>
-              Message Recipient
-            </Button>
-          </div>
-        )}
+      {showMessageAndCancel && activeRequest && (
+        <div className="space-y-3">
+          <Button onClick={() => setMessageDialogOpen(true)}>
+            Message Recipient
+          </Button>
+        </div>
+      )}
 
-        <MessageDialog
-          open={messageDialogOpen}
-          onOpenChange={setMessageDialogOpen}
-          request={activeRequest}
-          currentUserId={currentUserId}
-        />
-      </div>
-    </BaseListingView>
+      <MessageDialog
+        open={messageDialogOpen}
+        onOpenChange={setMessageDialogOpen}
+        request={activeRequest}
+        currentUserId={currentUserId}
+      />
+    </div>
   );
 }
