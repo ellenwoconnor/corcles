@@ -179,18 +179,31 @@ export default function PickupScheduler({
           <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-sm font-medium">1. Select Date</label>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => {
-                  setSelectedDate(date);
-                  setSelectedHour(undefined);
-                }}
-                disabled={(date) =>
-                  isBefore(date, now) || isAfter(date, twoWeeksFromNow)
-                }
-                className="rounded-md border"
-              />
+              {!selectedDate ? (
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => {
+                    setSelectedDate(date);
+                    setSelectedHour(undefined);
+                  }}
+                  disabled={(date) =>
+                    isBefore(date, now) || isAfter(date, twoWeeksFromNow)
+                  }
+                  className="rounded-md border"
+                />
+              ) : (
+                <div className="flex items-center justify-between p-3 bg-secondary rounded-lg border border-border">
+                  <span>{format(selectedDate, "EEE, MMM d")}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setSelectedDate(undefined)}
+                  >
+                    Change
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
