@@ -56,7 +56,10 @@ export default function NotificationCenter() {
         variant="ghost"
         size="icon"
         className="relative"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          setIsOpen(!isOpen);
+          console.log('isOpen:', !isOpen);
+        }}
       >
         <Bell className="h-5 w-5 text-foreground fill-foreground stroke-foreground" />
         {notifications.length > 0 && (
