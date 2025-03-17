@@ -1,4 +1,3 @@
-import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { NotificationCenter } from "@/components/notification-center";
 import { Router } from "@/components/router";
