@@ -7,11 +7,12 @@ interface BaseListingViewProps {
   item: Item;
   isOwner: boolean;
   children?: ReactNode;
+  className?: string;
 }
 
 export default function BaseListingView({ item, children }: BaseListingViewProps) {
   return (
-    <div className="grid md:grid-cols-2 gap-8">
+    <div className={cn("grid md:grid-cols-2 gap-8", className)}>
       {/* Item Image */}
       <div>
         <img
