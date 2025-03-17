@@ -1,8 +1,15 @@
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { Bell } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 
 interface Notification {
   type: string;
@@ -43,20 +50,41 @@ export default function NotificationCenter() {
     }
   };
 
-  if (notifications.length === 0) return null;
-
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
-      {notifications.map((notification) => (
-        <Button
-          key={notification.timestamp}
-          className="bg-primary text-white flex items-center gap-2 shadow-lg"
-          onClick={() => handleNotificationClick(notification)}
-        >
-          <Bell className="h-4 w-4" />
-          <span>You've been selected for an item!</span>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
+          {notifications.length > 0 && (
+            <Badge 
+              variant="default" 
+              className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center"
+            >
+              {notifications.length}
+            </Badge>
+          )}
         </Button>
-      ))}
-    </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-[300px]">
+        {notifications.length === 0 ? (
+          <div className="p-4 text-sm text-muted-foreground text-center">
+            No new notifications
+          </div>
+        ) : (
+          notifications.map((notification) => (
+            <DropdownMenuItem
+              key={notification.timestamp}
+              onClick={() => handleNotificationClick(notification)}
+              className="p-3 cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <Bell className="h-4 w-4" />
+                <span>You've been selected for an item!</span>
+              </div>
+            </DropdownMenuItem>
+          ))
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
