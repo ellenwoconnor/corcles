@@ -61,6 +61,7 @@ interface ListingFormProps {
     name: string;
     role: string;
     memberCount: number;
+    isCustom: boolean; // Added isCustom property
   }>;
   communityId?: number; // Added prop for direct community ID
   defaultValues?: any;
@@ -87,6 +88,9 @@ export function ListingForm({
   const schema = mode === "create" ? createItemSchema : editItemSchema;
 
   // Ensure communityId is properly set in form defaults
+  // Find default (non-custom) community
+  const defaultCommunity = communities?.find(c => !c.isCustom);
+  
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -96,8 +100,8 @@ export function ListingForm({
       isGift: true,
       imageUrl: "",
       userId: user?.id,
-      // Prioritize passed communityId
-      communityId: communityId,
+      // Prioritize passed communityId, then default community
+      communityId: communityId || defaultCommunity?.id,
       pickupLocation: defaultValues.pickupLocation || user?.address || "",
       ...defaultValues,
     },
@@ -143,7 +147,8 @@ export function ListingForm({
       }
 
       const method = mode === "create" ? "POST" : "PATCH";
-      const endpoint = mode === "create" ? "/api/items" : `/api/items/${itemId}`;
+      const endpoint =
+        mode === "create" ? "/api/items" : `/api/items/${itemId}`;
 
       const response = await apiRequest(method, endpoint, formData);
 
@@ -293,6 +298,7 @@ export function ListingForm({
                       <SelectItem
                         key={community.id}
                         value={community.id.toString()}
+                        defaultChecked={!community.isCustom} // Added defaultChecked prop
                       >
                         {community.name}
                       </SelectItem>

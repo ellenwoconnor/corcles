@@ -28,12 +28,12 @@ export default function PickupTimeSelector({
   const { toast } = useToast();
   const [selectedWindow, setSelectedWindow] = useState<number>();
 
-  console.log('PickupTimeSelector mounted:', {
+  console.log("PickupTimeSelector mounted:", {
     itemId,
     itemOwnerId,
     currentUserId,
     requestId,
-    windowsCount: windows?.length
+    windowsCount: windows?.length,
   });
 
   const selectTimeMutation = useMutation({
@@ -41,19 +41,23 @@ export default function PickupTimeSelector({
       const response = await apiRequest(
         "POST",
         `/api/items/${itemId}/select-pickup-time`,
-        { windowIndex }
+        { windowIndex },
       );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || "Failed to process pickup time selection");
+        throw new Error(
+          error.error || "Failed to process pickup time selection",
+        );
       }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}/my-requests`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/user/requests'] });
+      queryClient.invalidateQueries({
+        queryKey: [`/api/items/${itemId}/my-requests`],
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/requests"] });
 
       onSelected();
     },
@@ -67,8 +71,9 @@ export default function PickupTimeSelector({
   });
 
   return (
-    <div className="space-y-8 py-6">
+    <div className="space-y-8 py-4">
       <div className="space-y-2">
+        <p>Select a pickup time window from the options below.</p>
         <div className="grid grid-cols-1 gap-2">
           {windows.map((window: PickupWindow, index: number) => (
             <button
@@ -79,9 +84,11 @@ export default function PickupTimeSelector({
               }}
               disabled={selectTimeMutation.isPending}
               className={`text-left px-3 py-2 rounded-md text-sm transition-colors
-                ${selectedWindow === index
-                  ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-secondary border border-border'}`}
+                ${
+                  selectedWindow === index
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-secondary border border-border"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5" />

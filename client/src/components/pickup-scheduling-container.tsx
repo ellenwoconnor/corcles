@@ -44,6 +44,14 @@ export default function PickupSchedulingContainer({
   const showScheduler =
     isOwner && ["requested", "scheduling", "scheduled"].includes(item.status);
 
+  console.log("Pickup scheduler visibility:", {
+    isOwner,
+    itemStatus: item.status,
+    showScheduler,
+    userId: user?.id,
+    itemUserId: item.userId
+  });
+
   if (!user) return null;
 
   return (

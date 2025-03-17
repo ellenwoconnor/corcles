@@ -931,14 +931,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: activeRequest.status,
       });
 
-      const { timeWindows } = req.body;
+      const { proposedPickupWindows } = req.body;
 
-      logger.debug("Received time windows:", timeWindows);
+      logger.debug("Received time windows:", proposedPickupWindows);
 
       if (
-        !Array.isArray(timeWindows) ||
-        timeWindows.length === 0 ||
-        timeWindows.length > 10
+        !Array.isArray(proposedPickupWindows) ||
+        proposedPickupWindows.length === 0 ||
+        proposedPickupWindows.length > 10
       ) {
         return res
           .status(400)
@@ -949,7 +949,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const twoWeeksFromNow = addDays(now, 14);
 
       const validatedWindows = [];
-      for (const window of timeWindows) {
+      for (const window of proposedPickupWindows) {
         try {
           const startDate = new Date(window.pickupStart);
           const endDate = new Date(window.pickupEnd);
@@ -995,13 +995,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       logger.debug("Validated windows:", proposedWindows);
 
+      const updates = {
+        proposedPickupWindows: proposedWindows,
+        status: ITEM_STATUS.SCHEDULING,
+        recipientId: activeRequest.requesterId,
+      };
+
       await db
         .update(schema.items)
-        .set({
-          proposedPickupWindows: JSON.stringify(proposedWindows),
-          status: ITEM_STATUS.SCHEDULING,
-          recipientId: activeRequest.requesterId,
-        })
+        .set(updates)
         .where(eq(schema.items.id, itemId));
 
       await db

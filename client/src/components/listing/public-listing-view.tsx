@@ -5,6 +5,7 @@ import RequestForm from "@/components/request-form";
 import BidForm from "@/components/bid-form";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import BaseListingView from "./base-listing-view";
 
 interface PublicListingViewProps {
   item: Item & { userHasFavorited?: boolean };
@@ -23,81 +24,42 @@ export default function PublicListingView({
 
   // Don't show request/bid buttons if the user is the owner
   const isOwner = currentUserId === item.userId;
+  const isWishlistFulfillment = item.wishlistId;
 
   return (
-    <div className="grid md:grid-cols-2 gap-8">
-      {/* Item Image */}
-      <div>
-        <img
-          src={item.imageUrl}
-          alt={item.title}
-          className="w-full rounded-lg object-cover aspect-square"
-        />
-      </div>
-
-      {/* Item Details */}
-      <div className="space-y-6">
-        {/* Header Section */}
-        <div>
-          <h1 className="text-2xl tracking-tight mb-2">{item.title}</h1>
-          <div className="flex items-center gap-4">
-            {item.isGift ? (
-              <div className="inline-block bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
-                Free
-              </div>
-            ) : (
-              <p className="text-2xl font-bold text-primary">${item.price}</p>
-            )}
-          </div>
+    <BaseListingView item={item} isOwner={isOwner}>
+      {/* Action Button */}
+      {!isOwner && (
+        <div className="flex gap-4">
+          {item.isGift ? (
+            <RequestForm
+              itemId={item.id}
+              itemOwnerId={item.userId}
+              hasRequested={hasRequested}
+              isOpen={requestDialogOpen}
+              onOpenChange={setRequestDialogOpen}
+            />
+          ) : (
+            <BidForm
+              itemId={item.id}
+              hasBid={hasBid}
+              isOpen={requestDialogOpen}
+              onOpenChange={setRequestDialogOpen}
+            />
+          )}
         </div>
-
-        {/* User Info */}
-        <div>
-          <p className="font-medium">
-            Listed by {item.userDisplayName || "Anonymous"}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {formatDistanceToNow(new Date(item.createdAt), {
-              addSuffix: true,
-            })}
+      )}
+      {isWishlistFulfillment && (
+        <div className="border rounded-md p-4 bg-green-50 border-green-200 mb-4">
+          <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
+            {/* <UserCheck className="h-5 w-5 text-green-600" /> */}
+            <span>Wishlist Offer</span>
+          </h2>
+          <p className="text-sm mb-3">
+            This item was offered to you privately. Request to initiate pickup.
           </p>
         </div>
-
-        {/* Description */}
-        <div className="border-t border-border pt-4">
-          <p className="text-muted-foreground whitespace-pre-wrap">
-            {item.description}
-          </p>
-        </div>
-
-        {/* Action Button */}
-        {!isOwner && (
-          <div className="flex gap-4">
-            {item.isGift ? (
-              hasRequested ? (
-                <Button variant="secondary" disabled>
-                  Requested
-                </Button>
-              ) : (
-                <RequestForm
-                  itemId={item.id}
-                  itemOwnerId={item.userId}
-                  hasRequested={hasRequested}
-                  isOpen={requestDialogOpen}
-                  onOpenChange={setRequestDialogOpen}
-                />
-              )
-            ) : (
-              <BidForm
-                itemId={item.id}
-                hasBid={hasBid}
-                isOpen={requestDialogOpen}
-                onOpenChange={setRequestDialogOpen}
-              />
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+      )}
+    </BaseListingView>
   );
 }

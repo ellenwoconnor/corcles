@@ -140,7 +140,8 @@ export default function WishlistsPage() {
           <div>
             <h1 className="text-2xl tracking-tight">Wishlists</h1>
             <p className="text-muted-foreground">
-              Post items you're looking for
+              Keep track of items you're looking for and get notified about
+              matching listings.
             </p>
           </div>
           <div>
@@ -190,7 +191,7 @@ export default function WishlistsPage() {
                         className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"
                       >
                         <Gift className="h-3 w-3" />
-                        Fulfilled
+                        Offers Available
                       </Badge>
                     )}
                   </div>
