@@ -234,12 +234,18 @@ export default function PickupScheduler({
                   </Select>
 
                   <Button
-                    onClick={addTimeWindow}
+                    onClick={() => {
+                      if (timeWindows.length > 0) {
+                        setSelectedDate(undefined);
+                        setSelectedHour(undefined);
+                      }
+                      addTimeWindow();
+                    }}
                     disabled={selectedHour === undefined}
                     className="w-full"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Add Time Window
+                    {timeWindows.length > 0 ? "Add More Times" : "Add Time Window"}
                   </Button>
                 </div>
               ) : (
