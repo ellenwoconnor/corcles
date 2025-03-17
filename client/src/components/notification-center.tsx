@@ -54,7 +54,7 @@ export default function NotificationCenter() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger asChild={true}>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5 text-foreground fill-foreground stroke-foreground" />
           {notifications.length > 0 && (
