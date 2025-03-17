@@ -56,7 +56,7 @@ export default function NotificationCenter() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
+          <Bell className="h-5 w-5 fill-foreground" />
           {notifications.length > 0 && (
             <Badge
               variant="default"
@@ -80,7 +80,7 @@ export default function NotificationCenter() {
               className="p-3 cursor-pointer"
             >
               <div className="flex items-center gap-2">
-                <Bell className="h-4 w-4" />
+                <Bell className="h-4 w-4 fill-foreground" />
                 <span>You've been selected for an item!</span>
               </div>
             </DropdownMenuItem>
