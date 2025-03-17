@@ -158,10 +158,26 @@ export default function OwnerListingView({
               }}
             />
           </div>
-        </div>
+          
+          {hasRecipient && (
+          <div className="flex items-center gap-4">
+            <CancelButton
+              itemId={item.id}
+              requestId={request.id}
+              variant="outline"
+            />
+            <MessageDialog
+              requestId={activeRequest.id}
+              currentUserId={currentUserId}
+              recipientId={item.recipientId}
+              isOpen={messageDialogOpen}
+              onOpenChange={setMessageDialogOpen}
+              trigger={<Button variant="outline">Send Message</Button>}
+            />
+          </div>)}
       )}
 
-      {showMessageAndCancel && activeRequest && (
+      {/* {showMessageAndCancel && activeRequest && (
         <div className="space-y-3">
           <Button onClick={() => setMessageDialogOpen(true)}>
             Message Recipient
@@ -174,7 +190,7 @@ export default function OwnerListingView({
         onOpenChange={setMessageDialogOpen}
         request={activeRequest}
         currentUserId={currentUserId}
-      />
+      /> */}
     </div>
-  );
-}
+  )
+      }
