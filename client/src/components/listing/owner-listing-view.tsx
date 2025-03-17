@@ -133,189 +133,194 @@ export default function OwnerListingView({
         </div>
       </div>
 
-        {isDelisted && (
-          <div className="p-4 bg-muted rounded-lg border border-muted-foreground/20">
-            <h3 className="font-medium mb-2 text-muted-foreground">
-              This item has been delisted
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Delisted items cannot be edited or requested by users.
-            </p>
-          </div>
-        )}
-
-        {item.pickupLocation && (
-          <div className="flex gap-2 items-center text-sm text-muted-foreground">
-            <MapPin className="h-4 w-4" />
-            <span>{item.pickupLocation}</span>
-          </div>
-        )}
-
-        <div className="border-b border-border pb-4">
-          <p className="whitespace-pre-wrap">{item.description}</p>
+      {/* Delist warning Section */}
+      {isDelisted && (
+        <div className="p-4 bg-muted rounded-lg border border-muted-foreground/20">
+          <h3 className="font-medium mb-2 text-muted-foreground">
+            This item has been delisted
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Delisted items cannot be edited or requested by users.
+          </p>
         </div>
+      )}
 
-        {!isDelisted && (
-          <div className="flex gap-2 mt-auto pt-4">
-            <EditListingDialog item={item} />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                const delistItem = async () => {
-                  const response = await apiRequest(
-                    "POST",
-                    `/api/items/${item.id}/delist`,
-                  );
-                  if (!response.ok) {
-                    throw new Error("Failed to delist item");
-                  }
-                  queryClient.invalidateQueries({ queryKey: ["/api/items"] });
-                  queryClient.invalidateQueries({
-                    queryKey: [`/api/items/${item.id}`],
-                  });
-                  queryClient.invalidateQueries({
-                    queryKey: ["/api/user/items"],
-                  });
-                  toast({
-                    title: "Item delisted",
-                    description:
-                      "The item has been removed from the marketplace.",
-                  });
-                };
-                delistItem().catch(() => {
-                  toast({
-                    variant: "destructive",
-                    title: "Error",
-                    description: "Could not delist item",
-                  });
+      {/* Pickup location Section */}
+      {item.pickupLocation && (
+        <div className="flex gap-2 items-center text-sm text-muted-foreground">
+          <MapPin className="h-4 w-4" />
+          <span>{item.pickupLocation}</span>
+        </div>
+      )}
+
+      {/* Description Section */}
+      <div className="border-b border-border pb-4">
+        <p className="whitespace-pre-wrap">{item.description}</p>
+      </div>
+
+      {/* Edit & delete Section */}
+      {!isDelisted && (
+        <div className="flex gap-2 mt-auto pt-4">
+          <EditListingDialog item={item} />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              const delistItem = async () => {
+                const response = await apiRequest(
+                  "POST",
+                  `/api/items/${item.id}/delist`,
+                );
+                if (!response.ok) {
+                  throw new Error("Failed to delist item");
+                }
+                queryClient.invalidateQueries({ queryKey: ["/api/items"] });
+                queryClient.invalidateQueries({
+                  queryKey: [`/api/items/${item.id}`],
                 });
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
+                queryClient.invalidateQueries({
+                  queryKey: ["/api/user/items"],
+                });
+                toast({
+                  title: "Item delisted",
+                  description:
+                    "The item has been removed from the marketplace.",
+                });
+              };
+              delistItem().catch(() => {
+                toast({
+                  variant: "destructive",
+                  title: "Error",
+                  description: "Could not delist item",
+                });
+              });
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
-        {showPickupScheduler && (
-          <div className="border border-border rounded-lg overflow-hidden">
-            <div className="bg-muted px-4 py-2 border-b border-border">
-              <h3 className="font-medium">
-                {activeRequest
-                  ? "Active Request"
-                  : hasRequests
-                    ? `Requests (${requests.length})`
-                    : "No Requests Yet"}
-              </h3>
-            </div>
-            <div className="p-4">
-              {hasRecipient && activeRequest ? (
-                <div className="flex flex-col gap-3">
-                  <p className="text-sm">
-                    Request from{" "}
-                    <span className="font-medium">
-                      {activeRequest.requesterId}
-                    </span>
-                  </p>
-                  {showMessageAndCancel && (
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setMessageDialogOpen(true)}
-                      >
-                        Message
-                      </Button>
-                      <CancelButton
-                        itemId={item.id}
-                        requestId={activeRequest.id}
-                      />
-                    </div>
-                  )}
-                </div>
-              ) : hasRequests && canSchedule ? (
-                <PickupScheduler
-                  itemId={item.id}
-                  recipientId={requests[0].requesterId}
-                />
-              ) : hasRequests && canDraw ? (
-                <RequestsList
-                  itemId={item.id}
-                  requests={requests}
-                  currentUserId={currentUserId}
-                />
-              ) : hasRequests ? (
-                <RequestsList
-                  itemId={item.id}
-                  requests={requests}
-                  currentUserId={currentUserId}
-                />
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No requests for this item yet.
-                </p>
-              )}
-            </div>
+      {/* Requests Section */}
+      {showPickupScheduler && (
+        <div className="border border-border rounded-lg overflow-hidden">
+          <div className="bg-muted px-4 py-2 border-b border-border">
+            <h3 className="font-medium">
+              {activeRequest
+                ? "Active Request"
+                : hasRequests
+                  ? `Requests (${requests.length})`
+                  : "No Requests Yet"}
+            </h3>
           </div>
-        )}
-
-        {!item.isGift && (
-          <div className="border border-border rounded-lg overflow-hidden">
-            <div className="bg-muted px-4 py-2 border-b border-border">
-              <h3 className="font-medium">
-                {hasBids ? `Bids (${bids.length})` : "No Bids Yet"}
-              </h3>
-            </div>
-            <div className="p-4">
-              {hasBids ? (
-                <BidsList bids={bids} currentUserId={currentUserId} />
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No bids for this item yet.
+          <div className="p-4">
+            {hasRecipient && activeRequest ? (
+              <div className="flex flex-col gap-3">
+                <p className="text-sm">
+                  Request from{" "}
+                  <span className="font-medium">
+                    {activeRequest.requesterId}
+                  </span>
                 </p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {item.recipientId && (
-          <div className="border rounded-md p-4 bg-green-50 border-green-200 mb-4">
-            <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
-              <UserCheck className="h-5 w-5 text-green-600" />
-              <span>Recipient Selected</span>
-            </h2>
-            <p className="text-sm mb-3">
-              This item is being offered to{" "}
-              <span className="font-medium">{recipientUsername}</span>
-              {item.wishlistId && wishlist && (
-                <span className="ml-1">
-                  for their wishlist "
-                  <span className="font-medium">{wishlist.title}</span>"
-                </span>
-              )}
-            </p>
-            {item.pickupStart && (
-              <div className="mt-3 p-3 bg-white rounded-sm border border-green-100">
-                <h4 className="text-sm font-medium mb-1">Pickup Time</h4>
-                <p className="text-sm text-muted-foreground">
-                  {format(new Date(item.pickupStart), "EEEE, MMMM d")} at{" "}
-                  {format(new Date(item.pickupStart), "h:mm a")} -{" "}
-                  {format(new Date(item.pickupEnd!), "h:mm a")}
-                </p>
+                {showMessageAndCancel && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMessageDialogOpen(true)}
+                    >
+                      Message
+                    </Button>
+                    <CancelButton
+                      itemId={item.id}
+                      requestId={activeRequest.id}
+                    />
+                  </div>
+                )}
               </div>
+            ) : hasRequests && canSchedule ? (
+              <PickupScheduler
+                itemId={item.id}
+                recipientId={requests[0].requesterId}
+              />
+            ) : hasRequests && canDraw ? (
+              <RequestsList
+                itemId={item.id}
+                requests={requests}
+                currentUserId={currentUserId}
+              />
+            ) : hasRequests ? (
+              <RequestsList
+                itemId={item.id}
+                requests={requests}
+                currentUserId={currentUserId}
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No requests for this item yet.
+              </p>
             )}
           </div>
-        )}
+        </div>
+      )}
 
-        {activeRequest && (
-          <MessageDialog
-            recipientId={activeRequest.requesterId}
-            requestId={activeRequest.id}
-            open={messageDialogOpen}
-            onOpenChange={setMessageDialogOpen}
-          />
-        )}
-      </div>
+      {!item.isGift && (
+        <div className="border border-border rounded-lg overflow-hidden">
+          <div className="bg-muted px-4 py-2 border-b border-border">
+            <h3 className="font-medium">
+              {hasBids ? `Bids (${bids.length})` : "No Bids Yet"}
+            </h3>
+          </div>
+          <div className="p-4">
+            {hasBids ? (
+              <BidsList bids={bids} currentUserId={currentUserId} />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No bids for this item yet.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Recipient info */}
+      {item.recipientId && (
+        <div className="border rounded-md p-4 bg-green-50 border-green-200 mb-4">
+          <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
+            <UserCheck className="h-5 w-5 text-green-600" />
+            <span>Recipient Selected</span>
+          </h2>
+          <p className="text-sm mb-3">
+            This item is being offered to{" "}
+            <span className="font-medium">{recipientUsername}</span>
+            {item.wishlistId && wishlist && (
+              <span className="ml-1">
+                for their wishlist "
+                <span className="font-medium">{wishlist.title}</span>"
+              </span>
+            )}
+          </p>
+          {item.pickupStart && (
+            <div className="mt-3 p-3 bg-white rounded-sm border border-green-100">
+              <h4 className="text-sm font-medium mb-1">Pickup Time</h4>
+              <p className="text-sm text-muted-foreground">
+                {format(new Date(item.pickupStart), "EEEE, MMMM d")} at{" "}
+                {format(new Date(item.pickupStart), "h:mm a")} -{" "}
+                {format(new Date(item.pickupEnd!), "h:mm a")}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeRequest && (
+        <MessageDialog
+          recipientId={activeRequest.requesterId}
+          requestId={activeRequest.id}
+          open={messageDialogOpen}
+          onOpenChange={setMessageDialogOpen}
+        />
+      )}
     </div>
   );
 }
