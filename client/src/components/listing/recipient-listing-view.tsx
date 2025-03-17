@@ -1,11 +1,9 @@
 import { Item, ItemRequest } from "@shared/schema";
-import { Badge } from "@/components/ui/badge";
-import { formatDistanceToNow, format } from "date-fns";
+import { format } from "date-fns";
 import { Clock, MapPin } from "lucide-react";
 import PickupTimeSelector from "@/components/pickup-time-selector";
 import { MessageDialog } from "@/components/message-dialog";
 import { Button } from "@/components/ui/button";
-import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { CancelButton } from "@/components/cancel-button";
 import { useQuery } from "@tanstack/react-query";
@@ -30,7 +28,7 @@ export default function RecipientListingView({
   // Only show pickup scheduler if we have a valid request in the right status
   const showPickupScheduler =
     request?.status === "awaiting_pickup_confirmation";
-  const showCancelAndMessage =
+  const itemInTransaction =
     request && ["scheduling", "scheduled"].includes(item?.status || "");
 
   if (!request || !item) {
@@ -60,18 +58,61 @@ export default function RecipientListingView({
   });
 
   return (
-    <BaseListingView item={item} isOwner={false}>
-      {
-        <div className="border rounded-md p-4 bg-green-50 border-green-200 mb-4">
+    <div>
+      <BaseListingView item={item} isOwner={false}>
+        {
+          <div className="border rounded-md p-4 bg-green-50 border-green-200 mb-4">
+            <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
+              {/* <UserCheck className="h-5 w-5 text-green-600" /> */}
+              <span>Request Accepted</span>
+            </h2>
+            <p className="text-sm mb-3">
+              You have been selected as the recipient of this item.
+            </p>
+          </div>
+        }
+      </BaseListingView>
+
+      {/* Pickup scheduling Section */}
+      {itemInTransaction && (
+        <div className="border rounded-md mt-5 p-4 mb-4">
           <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
-            {/* <UserCheck className="h-5 w-5 text-green-600" /> */}
-            <span>Request Accepted</span>
+            Schedule pickup
           </h2>
-          <p className="text-sm mb-3">
-            You have been selected to pick up this item.
+          <p>
+            This item is pending pickup at <b>{item.pickupLocation}</b>.
           </p>
+          {item.status == "scheduling" && (
+            <PickupTimeSelector
+              itemId={item.id}
+              itemOwnerId={itemOwnerId}
+              currentUserId={currentUserId}
+              requestId={request.id}
+              windows={item.proposedPickupWindows}
+              onSelected={() => {
+                setSchedulingComplete(true);
+                onScheduled?.();
+              }}
+            />
+          )}
+          <div className="flex items-center gap-4">
+            <CancelButton
+              itemId={item.id}
+              requestId={request.id}
+              variant="outline"
+            />
+            <MessageDialog
+              requestId={request.id}
+              currentUserId={currentUserId}
+              recipientId={itemOwnerId}
+              isOpen={messageDialogOpen}
+              onOpenChange={setMessageDialogOpen}
+              trigger={<Button variant="outline">Send Message</Button>}
+            />
+          </div>
         </div>
-      }
+      )}
+
       {/* Show confirmed pickup time */}
       {item.pickupStart && item.pickupEnd && (
         <div className="border-t border-border pt-4">
@@ -86,50 +127,6 @@ export default function RecipientListingView({
               </span>
             </div>
           </div>
-        </div>
-      )}
-    </BaseListingView>
-    {/* Interactions Section */}
-    <div className="border-t border-border pt-4">
-      {/* Only show pickup scheduler if pickup time is not already confirmed */}
-      {showPickupScheduler && !item.pickupStart && !item.pickupEnd && (
-        <div className="space-y-4">
-          <PickupTimeSelector
-            itemId={item.id}
-            itemOwnerId={itemOwnerId}
-            currentUserId={currentUserId}
-            requestId={request.id}
-            windows={item.proposedPickupWindows}
-            onSelected={() => {
-              setSchedulingComplete(true);
-              onScheduled?.();
-            }}
-          />
-        </div>
-      )}
-      {/* Show cancel and message buttons for scheduling/scheduled status */}
-      {showCancelAndMessage && (
-        <div className="flex items-center gap-4">
-          <CancelButton
-            itemId={item.id}
-            requestId={request.id}
-            variant="outline"
-          />
-          <MessageDialog
-            requestId={request.id}
-            currentUserId={currentUserId}
-            recipientId={itemOwnerId}
-            isOpen={messageDialogOpen}
-            onOpenChange={setMessageDialogOpen}
-            trigger={<Button variant="outline">Message</Button>}
-          />
-        </div>
-      )}
-      {/* Pickup Location */}
-      {item.pickupLocation && (
-        <div className="flex text-sm text-muted-foreground">
-          <MapPin className="w-4 h-4 mr-1" />
-          <span>Pickup: {item.pickupLocation}</span>
         </div>
       )}
     </div>
