@@ -39,26 +39,27 @@ try {
 }
 
 const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info', // Default to info level regardless of environment
+  level: process.env.LOG_LEVEL || 'info',
   format: customFormat,
   transports: [
-    // Write all logs with importance level of 'error' or less to 'error.log'
     new winston.transports.File({
       filename: join(logsDir, 'error.log'),
       level: 'error',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
+      maxsize: 1024 * 1024, // 1MB
+      maxFiles: 3,
+      tailable: true,
+      zippedArchive: true
     }),
-    // Write all logs with importance level of 'info' or less to 'combined.log'
     new winston.transports.File({
       filename: join(logsDir, 'combined.log'),
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
+      maxsize: 1024 * 1024, // 1MB
+      maxFiles: 3,
+      tailable: true,
+      zippedArchive: true
     }),
-    // Console transport with custom format
     new winston.transports.Console({
       format: consoleFormat,
-      level: process.env.LOG_LEVEL || 'info', // Consistent level for console
+      level: process.env.LOG_LEVEL || 'info',
     }),
   ],
 });
