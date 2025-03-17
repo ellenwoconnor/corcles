@@ -9,6 +9,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 import { CancelButton } from "@/components/cancel-button";
 import { useQuery } from "@tanstack/react-query";
+import BaseListingView from "./base-listing-view";
 
 interface RecipientListingViewProps {
   item: Item & { userHasFavorited?: boolean };
@@ -58,93 +59,9 @@ export default function RecipientListingView({
   });
 
   return (
-    <div className="grid md:grid-cols-2 gap-8">
-      {/* Item Image */}
-      <div>
-        <img
-          src={item.imageUrl}
-          alt={item.title}
-          className="w-full rounded-lg object-cover aspect-square"
-        />
-      </div>
-
-      {/* Item Details */}
-      <div className="space-y-6">
-        {/* Header Section */}
-        <div>
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl tracking-tight">{item.title}</h1>
-            <div className="flex items-center gap-2">
-              {isWishlistFulfillment && (
-                <Badge
-                  variant="outline"
-                  className="bg-green-50 text-green-700 border-green-200"
-                >
-                  From Your Wishlist
-                </Badge>
-              )}
-              <Badge variant="outline" className="text-sm h-6 px-2 font-normal">
-                {pickupScheduled ? "Pickup Scheduled" : "Pickup Pending"}
-              </Badge>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            {item.isGift ? (
-              <div className="inline-block bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
-                Free
-              </div>
-            ) : (
-              <p className="text-2xl font-bold text-primary">${item.price}</p>
-            )}
-          </div>
-        </div>
-
-        {/* User Info */}
-        <div>
-          <p className="font-medium">
-            Listed by {item.userDisplayName || "Anonymous"}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {formatDistanceToNow(new Date(item.createdAt), {
-              addSuffix: true,
-            })}
-          </p>
-        </div>
-
-        {/* Description */}
-        <div className="border-b border-border pb-4">
-          <p className="text-muted-foreground whitespace-pre-wrap">
-            {item.description}
-          </p>
-        </div>
-
-        {/* Pickup Location */}
-        {item.pickupLocation && (
-          <div className="mb-4 flex items-center text-sm text-muted-foreground">
-            <MapPin className="w-4 h-4 mr-1" />
-            <span>Pickup: {item.pickupLocation}</span>
-          </div>
-        )}
-
-        {/* Show confirmed pickup time */}
-        {item.pickupStart && item.pickupEnd && (
-          <div className="border-t border-border pt-4">
-            <h3 className="font-medium mb-2">Confirmed Pickup Time</h3>
-            <div className="p-3 bg-secondary rounded-lg border border-border">
-              <div className="flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5" />
-                <span className="text-sm">
-                  {format(new Date(item.pickupStart), "EEE, MMM d")} at{" "}
-                  {format(new Date(item.pickupStart), "h:mm a")} -{" "}
-                  {format(new Date(item.pickupEnd), "h:mm a")}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Interactions Section */}
-        <div className="border-t border-border pt-4">
+    <BaseListingView item={item} isOwner={false}>
+      {/* Interactions Section */}
+      <div className="border-t border-border pt-4">
           {/* Only show pickup scheduler if pickup time is not already confirmed */}
           {showPickupScheduler && !item.pickupStart && !item.pickupEnd && (
             <div className="space-y-4">
@@ -181,7 +98,6 @@ export default function RecipientListingView({
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </BaseListingView>
   );
 }
