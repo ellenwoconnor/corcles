@@ -49,3 +49,11 @@
     @apply px-8 py-12 mx-auto max-w-7xl;
   }
 }
+.btn-dark-sage {
+  background-color: #4D4D46;
+  color: white;
+}
+
+.btn-dark-sage:hover {
+  background-color: #3d3d37;
+}
