@@ -163,8 +163,8 @@ export default function PickupScheduler({
             : "Send Pickup Times"}
         </Button>
       </DrawerTrigger>
-      <DrawerContent className="h-[85vh] sm:h-[85vh] sm:max-w-[600px] mx-auto overflow-y-auto">
-        <DrawerHeader className="relative sticky top-0 bg-background z-10">
+      <DrawerContent className="h-[85vh] sm:h-[85vh] sm:max-w-[600px] mx-auto">
+        <DrawerHeader className="relative">
           <DrawerTitle>Schedule Item Pickup</DrawerTitle>
           <DrawerDescription>
             Propose up to 10 one-hour windows for item pickup
