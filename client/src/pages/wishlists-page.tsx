@@ -140,7 +140,8 @@ export default function WishlistsPage() {
           <div>
             <h1 className="text-2xl tracking-tight">Wishlists</h1>
             <p className="text-muted-foreground">
-              Post items you're looking for
+              Keep track of items you're looking for and get notified about
+              matching listings.
             </p>
           </div>
           <div>
