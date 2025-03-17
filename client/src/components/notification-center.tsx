@@ -57,11 +57,11 @@ export default function NotificationCenter() {
         size="icon"
         className="relative"
         onClick={() => {
-          console.log('Button clicked');
-          setIsOpen(!isOpen);
+          console.log("Button clicked");
+          setIsOpen((prev) => !prev);
         }}
       >
-        <Bell className="h-5 w-5 text-foreground fill-foreground stroke-foreground" />
+        <Bell className="h-5 w-5 text-foreground fill-foreground stroke-foreground pointer-events-none" />
         {notifications.length > 0 && (
           <Badge
             variant="default"
