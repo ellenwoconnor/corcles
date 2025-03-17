@@ -26,6 +26,21 @@ export default function NotificationCenter() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
+    // Fetch existing notifications
+    const fetchNotifications = async () => {
+      try {
+        const response = await apiRequest('GET', '/api/notifications');
+        // Ensure we always set an array, even if empty
+        setNotifications(Array.isArray(response) ? response : []);
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+        setNotifications([]);
+      }
+    };
+
+    fetchNotifications();
+
+    // Set up SSE for new notifications
     const eventSource = new EventSource("/api/events");
 
     eventSource.onmessage = (event) => {
@@ -52,18 +67,22 @@ export default function NotificationCenter() {
 
   const handleNotificationClick = async (notification: Notification) => {
     if (notification.data.itemId) {
-      // Mark as read
-      await apiRequest('POST', `/api/notifications/${notification.id}/acknowledge`);
+      try {
+        // Mark as read
+        await apiRequest('POST', `/api/notifications/${notification.id}/acknowledge`);
 
-      // Update local state
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === notification.id ? { ...n, read: true } : n
-        )
-      );
+        // Update local state
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.id === notification.id ? { ...n, read: true } : n
+          )
+        );
 
-      // Navigate to item
-      setLocation(`/item/${notification.data.itemId}`);
+        // Navigate to item
+        setLocation(`/item/${notification.data.itemId}`);
+      } catch (error) {
+        console.error('Failed to acknowledge notification:', error);
+      }
     }
   };
 

@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import * as schema from "@shared/schema";
 import { ITEM_STATUS, REQUEST_STATUS } from "@shared/constants";
 import { z } from "zod";
-import { eq, and, not, or, inArray } from "drizzle-orm";
+import { eq, and, not, or, inArray, desc } from "drizzle-orm";
 import { addDays, addHours, isBefore, isAfter } from "date-fns";
 import {
   insertItemBidSchema,
@@ -237,11 +237,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .select({
           ...schema.wishlists,
           userDisplayName: schema.users.displayName,
-          communityMascot: schema.communities.mascot
+          communityMascot: schema.communities.mascot,
         })
         .from(schema.wishlists)
         .leftJoin(schema.users, eq(schema.wishlists.userId, schema.users.id))
-        .leftJoin(schema.communities, eq(schema.wishlists.communityId, schema.communities.id))
+        .leftJoin(
+          schema.communities,
+          eq(schema.wishlists.communityId, schema.communities.id)
+        )
         .where(
           and(
             inArray(schema.wishlists.communityId, communityIds),
@@ -872,6 +875,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.items.id, itemId));
 
+      // Create notification for the recipient
+      await db.insert(schema.notifications).values({
+        userId: winningRequest.requesterId,
+        type: "recipient_selected",
+        data: {
+          itemId: itemId,
+          itemTitle: item.title
+        },
+      });
+
+      // Send SSE notification
+      sendSSEMessage(winningRequest.requesterId, {
+        type: "recipient_selected",
+        data: {
+          itemId: itemId,
+          title: item.title
+        }
+      });
+
+
       for (const request of requests) {
         await storage.updateItemRequestStatus(
           request.id,
@@ -937,7 +960,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (
         !Array.isArray(proposedPickupWindows) ||
-        proposedPickupWindows.length === 0 ||
+        proposedPickupWindows.length ===0 ||
         proposedPickupWindows.length > 10
       ) {
         return res
@@ -1790,7 +1813,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add SSE endpoint
-  //This line was already in the edited code, no need to add it again
+  // Get user notifications
+  app.get("/api/notifications", requireAuth, async (req, res) => {
+    try {
+      const notifications = await db
+        .select()
+        .from(schema.notifications)
+        .where(eq(schema.notifications.userId, req.user.id))
+        .orderBy(desc(schema.notifications.createdAt));
+
+      res.json(notifications);
+    } catch (error) {
+      logger.error("Error fetching notifications:", error);
+      res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
+  // Mark notification as read
+  app.post("/api/notifications/:id/acknowledge", requireAuth, async (req, res) => {
+    try {
+      const notificationId = parseInt(req.params.id);
+      if (isNaN(notificationId)) {
+        return res.status(400).json({ error: "Invalid notification ID" });
+      }
+
+      await db
+        .update(schema.notifications)
+        .set({ read: true })
+        .where(
+          and(
+            eq(schema.notifications.id, notificationId),
+            eq(schema.notifications.userId, req.user.id)
+          )
+        );
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Error acknowledging notification:", error);
+      res.status(500).json({ error: "Failed to acknowledge notification" });
+    }
+  });
 
   app.delete("/api/items/:id", requireAuth, async (req, res) => {
     try {

@@ -101,6 +101,15 @@ export const messages = pgTable("messages", {
   readAt: timestamp("read_at"),
 });
 
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(),
+  data: jsonb("data").notNull(),
+  read: boolean("read").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).extend({
   password: z.string().min(6, "Password must be at least 6 characters"),
   displayName: z.string().min(2, "Display name must be at least 2 characters"),
@@ -116,6 +125,12 @@ export const insertUserSchema = createInsertSchema(users).extend({
     .max(5, "Zip code must be 5 digits")
     .refine((val) => /^\d{5}$/.test(val), "Zip code must be exactly 5 digits"),
   email: z.string().email("Invalid email format"),
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+  read: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -138,6 +153,8 @@ export type InsertCommunity = z.infer<typeof insertCommunitySchema>;
 export type Community = typeof communities.$inferSelect;
 export type UserCommunity = typeof userCommunities.$inferSelect;
 export type CommunityInvite = typeof communityInvites.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
 
 export const MOCK_COMMUNITIES = [
   "Downtown Seattle",
@@ -184,7 +201,7 @@ export const insertItemSchema = createInsertSchema(items).omit({
 export const editItemSchema = (insertItemSchema as z.ZodEffects<z.ZodObject<any>>)
   .innerType()
   .extend({
-    imageFile: typeof File !== 'undefined' 
+    imageFile: typeof File !== 'undefined'
       ? z.instanceof(File).optional()
       : z.any().optional(),
   });
