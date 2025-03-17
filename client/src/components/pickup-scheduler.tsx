@@ -144,7 +144,7 @@ export default function PickupScheduler({
       { date: selectedDate, hour: selectedHour },
     ]);
     setSelectedHour(undefined); // Reset just the hour
-    const hourSelect = document.querySelector('select');
+    const hourSelect = document.querySelector("select");
     if (hourSelect) {
       setTimeout(() => hourSelect.focus(), 0);
     }
@@ -159,7 +159,7 @@ export default function PickupScheduler({
       <DrawerTrigger asChild>
         <Button variant="outline">
           {["scheduling", "scheduled"].includes(itemStatus)
-            ? "Update pickup times"
+            ? "Update Schedule"
             : "Send Pickup Times"}
         </Button>
       </DrawerTrigger>
@@ -169,7 +169,7 @@ export default function PickupScheduler({
           <DrawerDescription>
             Propose up to 10 one-hour windows for item pickup
           </DrawerDescription>
-          <button 
+          <button
             onClick={() => setIsOpen(false)}
             className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
           >
@@ -199,9 +199,9 @@ export default function PickupScheduler({
               ) : (
                 <div className="flex items-center justify-between p-3 bg-secondary rounded-lg border border-border">
                   <span>{format(selectedDate, "EEE, MMM d")}</span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setSelectedDate(undefined)}
                   >
                     Change
@@ -221,7 +221,11 @@ export default function PickupScheduler({
                     <SelectTrigger>
                       <SelectValue placeholder="Choose a time" />
                     </SelectTrigger>
-                    <SelectContent side="bottom" align="start" className="max-h-[200px] overflow-y-auto z-50">
+                    <SelectContent
+                      side="bottom"
+                      align="start"
+                      className="max-h-[200px] overflow-y-auto z-50"
+                    >
                       {availableHours.map((hour) => (
                         <SelectItem key={hour} value={hour.toString()}>
                           {format(
@@ -246,7 +250,9 @@ export default function PickupScheduler({
                     className="w-full"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    {timeWindows.length > 0 ? "Add More Times" : "Add Time Window"}
+                    {timeWindows.length > 0
+                      ? "Add More Times"
+                      : "Add Time Window"}
                   </Button>
                 </div>
               ) : (

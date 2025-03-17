@@ -49,14 +49,19 @@ export default function OwnerListingView({
   const activeRequest = item.recipientId
     ? requests.find((r) => r.requesterId === item.recipientId)
     : requests.find((r) =>
-        ["pending", "accepted", "awaiting_pickup_confirmation", "scheduled"].includes(r.status)
+        [
+          "pending",
+          "accepted",
+          "awaiting_pickup_confirmation",
+          "scheduled",
+        ].includes(r.status),
       );
 
   const showPickupScheduler = ["requested", "scheduling", "scheduled"].includes(
-    item.status || ""
+    item.status || "",
   );
   const showMessageAndCancel = ["scheduling", "scheduled"].includes(
-    item.status || ""
+    item.status || "",
   );
 
   async function handleDelist() {
@@ -137,7 +142,7 @@ export default function OwnerListingView({
             This item is pending pickup at <MapPin className="h-4 w-4" />
             {item.pickupLocation}.
           </p>
-          <div className="pt-4">
+          <div className="flex items-center gap-4 pt-4">
             <PickupScheduler
               itemId={item.id}
               itemStatus={item.status}
@@ -145,9 +150,26 @@ export default function OwnerListingView({
                 throw new Error("Function not implemented.");
               }}
             />
+            {hasRecipient && activeRequest && (
+              <CancelButton
+                itemId={item.id}
+                requestId={activeRequest.id}
+                variant="outline"
+              />
+            )}
+            {hasRecipient && activeRequest && (
+              <MessageDialog
+                requestId={activeRequest.id}
+                currentUserId={currentUserId}
+                recipientId={item.recipientId}
+                isOpen={messageDialogOpen}
+                onOpenChange={setMessageDialogOpen}
+                trigger={<Button variant="outline">Send Message</Button>}
+              />
+            )}
           </div>
 
-          {hasRecipient && activeRequest && (
+          {/* {hasRecipient && activeRequest && (
             <div className="flex items-center gap-4">
               <CancelButton
                 itemId={item.id}
@@ -163,7 +185,7 @@ export default function OwnerListingView({
                 trigger={<Button variant="outline">Send Message</Button>}
               />
             </div>
-          )}
+          )} */}
         </div>
       )}
     </div>
