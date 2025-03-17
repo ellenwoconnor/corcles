@@ -4,6 +4,7 @@ import { Pencil } from "lucide-react";
 import { useState } from "react";
 import { type Item } from "@shared/schema";
 import { ListingForm } from "./listing/listing-form";
+import { useQueryClient } from "@tanstack/react-query";
 
 import {
   Dialog,
@@ -22,6 +23,7 @@ interface EditListingDialogProps {
 
 export function EditListingDialog({ item }: EditListingDialogProps) {
   const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   // Disable editing for delisted items
   if (item.status === "delisted") {
@@ -69,7 +71,10 @@ export function EditListingDialog({ item }: EditListingDialogProps) {
             ...item,
             communityName: item.communityName || `Community ${item.communityId}`
           }}
-          onSuccess={() => setOpen(false)}
+          onSuccess={() => {
+            setOpen(false);
+            queryClient.invalidateQueries([`/api/items/${item.id}`]);
+          }}
           buttonText="Update Listing"
         />
       </DialogContent>
