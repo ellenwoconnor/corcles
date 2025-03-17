@@ -9,14 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, User, Users, Gift } from "lucide-react";
-
-// Placeholder NotificationCenter component
-const NotificationCenter = () => (
-  <Button variant="ghost">
-    <span>🔔</span>
-  </Button>
-);
-
+import NotificationCenter from "./notification-center";
 
 export default function Navbar() {
   const { user, logoutMutation } = useAuth();
@@ -45,7 +38,7 @@ export default function Navbar() {
             </Link>
           </div>
           <nav className="flex items-center space-x-2">
-            <div className="flex items-center gap-2"> {/* Added div for NotificationCenter and UserNav */}
+            <div className="flex items-center gap-2">
               <NotificationCenter />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
