@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Bell } from "lucide-react";
@@ -49,11 +48,13 @@ export default function NotificationCenter() {
     setIsOpen(false);
   };
 
+  console.log("is open?", isOpen);
+
   return (
     <div className="relative">
-      <Button 
-        variant="ghost" 
-        size="icon" 
+      <Button
+        variant="ghost"
+        size="icon"
         className="relative"
         onClick={() => setIsOpen(!isOpen)}
       >
