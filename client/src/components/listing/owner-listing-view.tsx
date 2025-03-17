@@ -21,7 +21,6 @@ import { formatDistanceToNow } from "date-fns";
 import { DrawWinnerDialog } from "./draw-winner-dialog";
 import { SchedulePickupDialog } from "./schedule-pickup-dialog";
 
-
 interface OwnerListingViewProps {
   item: Item; // Changed to Item from ExtendedItem
   requests: ItemRequest[];
@@ -94,7 +93,6 @@ export default function OwnerListingView({
   //const isWishlistFulfillment = item.wishlistId && item.recipientId;
   //const { data: wishlist } = useQuery({ ... });
 
-
   return (
     <BaseListingView item={item} isOwner={true}>
       <div className="space-y-6">
@@ -104,13 +102,6 @@ export default function OwnerListingView({
             <Button variant="destructive" onClick={handleDelist}>
               Delist Item
             </Button>
-          </div>
-        )}
-
-        {canDraw && (
-          <div>
-            <h2 className="font-medium mb-2">Requests ({requests.length})</h2>
-            <DrawWinnerDialog requests={requests} itemId={item.id} />
           </div>
         )}
 
