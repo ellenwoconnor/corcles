@@ -27,33 +27,27 @@ export default function PublicListingView({
 
   return (
     <BaseListingView item={item} isOwner={isOwner}>
-        {/* Action Button */}
-        {!isOwner && (
-          <div className="flex gap-4">
-            {item.isGift ? (
-              hasRequested ? (
-                <Button variant="secondary" disabled>
-                  Requested
-                </Button>
-              ) : (
-                <RequestForm
-                  itemId={item.id}
-                  itemOwnerId={item.userId}
-                  hasRequested={hasRequested}
-                  isOpen={requestDialogOpen}
-                  onOpenChange={setRequestDialogOpen}
-                />
-              )
-            ) : (
-              <BidForm
-                itemId={item.id}
-                hasBid={hasBid}
-                isOpen={requestDialogOpen}
-                onOpenChange={setRequestDialogOpen}
-              />
-            )}
-          </div>
-        )}
+      {/* Action Button */}
+      {!isOwner && (
+        <div className="flex gap-4">
+          {item.isGift ? (
+            <RequestForm
+              itemId={item.id}
+              itemOwnerId={item.userId}
+              hasRequested={hasRequested}
+              isOpen={requestDialogOpen}
+              onOpenChange={setRequestDialogOpen}
+            />
+          ) : (
+            <BidForm
+              itemId={item.id}
+              hasBid={hasBid}
+              isOpen={requestDialogOpen}
+              onOpenChange={setRequestDialogOpen}
+            />
+          )}
+        </div>
+      )}
     </BaseListingView>
   );
 }
