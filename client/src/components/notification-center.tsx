@@ -30,6 +30,7 @@ export default function NotificationCenter() {
     const fetchNotifications = async () => {
       try {
         const response = await apiRequest('GET', '/api/notifications');
+        console.log('Fetched notifications:', response); // Debug log
         // Ensure we always set an array, even if empty
         setNotifications(Array.isArray(response) ? response : []);
       } catch (error) {
@@ -45,6 +46,7 @@ export default function NotificationCenter() {
 
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
+      console.log('Received SSE message:', data); // Debug log
       if (data.type === "recipient_selected") {
         setNotifications((prev) => [
           ...prev,

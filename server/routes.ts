@@ -1161,6 +1161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .where(eq(schema.wishlists.id, parseInt(wishlistId.toString())))
           .limit(1);
         
+
         if (wishlist.length > 0) {
           validWishlistId = parseInt(wishlistId.toString());
         }
@@ -1816,13 +1817,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user notifications
   app.get("/api/notifications", requireAuth, async (req, res) => {
     try {
+      logger.debug("Fetching notifications for user:", { userId: req.user?.id });
+
       const notifications = await db
         .select()
         .from(schema.notifications)
         .where(eq(schema.notifications.userId, req.user.id))
         .orderBy(desc(schema.notifications.createdAt));
 
-      res.json(notifications);
+      logger.debug("Found notifications:", { count: notifications.length });
+
+      res.json(notifications.map(notification => ({
+        id: notification.id.toString(),
+        type: notification.type,
+        data: notification.data,
+        timestamp: new Date(notification.createdAt).getTime(),
+        read: notification.read
+      })));
     } catch (error) {
       logger.error("Error fetching notifications:", error);
       res.status(500).json({ error: "Failed to fetch notifications" });
@@ -1943,6 +1954,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.user?.id 
       });
       
+
       res.json({ success: true });
     } catch (error) {
       logger.error("Error delisting item:", error);
