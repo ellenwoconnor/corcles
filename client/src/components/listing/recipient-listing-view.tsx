@@ -51,6 +51,7 @@ export default function RecipientListingView({
 
   // Check if this item is a wishlist fulfillment
   const isWishlistFulfillment = item.wishlistId;
+  console.log("FO?", isWishlistFulfillment);
 
   // Get wishlist information if this item is fulfilling a wishlist
   const { data: wishlist } = useQuery({
@@ -60,18 +61,17 @@ export default function RecipientListingView({
 
   return (
     <BaseListingView item={item} isOwner={false}>
-      {isWishlistFulfillment && (
+      {
         <div className="border rounded-md p-4 bg-green-50 border-green-200 mb-4">
           <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
             {/* <UserCheck className="h-5 w-5 text-green-600" /> */}
-            <span>Recipient Selected</span>
+            <span>Request Accepted</span>
           </h2>
           <p className="text-sm mb-3">
-            This item is being offered to{" "}
-            <span className="font-medium">FOO</span>
+            You have been selected to pick up this item.
           </p>
         </div>
-      )}
+      }
       {/* Show confirmed pickup time */}
       {item.pickupStart && item.pickupEnd && (
         <div className="border-t border-border pt-4">
@@ -88,51 +88,50 @@ export default function RecipientListingView({
           </div>
         </div>
       )}
-
-      {/* Interactions Section */}
-      <div className="border-t border-border pt-4">
-        {/* Only show pickup scheduler if pickup time is not already confirmed */}
-        {showPickupScheduler && !item.pickupStart && !item.pickupEnd && (
-          <div className="space-y-4">
-            <PickupTimeSelector
-              itemId={item.id}
-              itemOwnerId={itemOwnerId}
-              currentUserId={currentUserId}
-              requestId={request.id}
-              windows={item.proposedPickupWindows}
-              onSelected={() => {
-                setSchedulingComplete(true);
-                onScheduled?.();
-              }}
-            />
-          </div>
-        )}
-        {/* Show cancel and message buttons for scheduling/scheduled status */}
-        {showCancelAndMessage && (
-          <div className="flex items-center gap-4">
-            <CancelButton
-              itemId={item.id}
-              requestId={request.id}
-              variant="outline"
-            />
-            <MessageDialog
-              requestId={request.id}
-              currentUserId={currentUserId}
-              recipientId={itemOwnerId}
-              isOpen={messageDialogOpen}
-              onOpenChange={setMessageDialogOpen}
-              trigger={<Button variant="outline">Message</Button>}
-            />
-          </div>
-        )}
-        {/* Pickup Location */}
-        {item.pickupLocation && (
-          <div className="flex text-sm text-muted-foreground">
-            <MapPin className="w-4 h-4 mr-1" />
-            <span>Pickup: {item.pickupLocation}</span>
-          </div>
-        )}
-      </div>
     </BaseListingView>
+    {/* Interactions Section */}
+    <div className="border-t border-border pt-4">
+      {/* Only show pickup scheduler if pickup time is not already confirmed */}
+      {showPickupScheduler && !item.pickupStart && !item.pickupEnd && (
+        <div className="space-y-4">
+          <PickupTimeSelector
+            itemId={item.id}
+            itemOwnerId={itemOwnerId}
+            currentUserId={currentUserId}
+            requestId={request.id}
+            windows={item.proposedPickupWindows}
+            onSelected={() => {
+              setSchedulingComplete(true);
+              onScheduled?.();
+            }}
+          />
+        </div>
+      )}
+      {/* Show cancel and message buttons for scheduling/scheduled status */}
+      {showCancelAndMessage && (
+        <div className="flex items-center gap-4">
+          <CancelButton
+            itemId={item.id}
+            requestId={request.id}
+            variant="outline"
+          />
+          <MessageDialog
+            requestId={request.id}
+            currentUserId={currentUserId}
+            recipientId={itemOwnerId}
+            isOpen={messageDialogOpen}
+            onOpenChange={setMessageDialogOpen}
+            trigger={<Button variant="outline">Message</Button>}
+          />
+        </div>
+      )}
+      {/* Pickup Location */}
+      {item.pickupLocation && (
+        <div className="flex text-sm text-muted-foreground">
+          <MapPin className="w-4 h-4 mr-1" />
+          <span>Pickup: {item.pickupLocation}</span>
+        </div>
+      )}
+    </div>
   );
 }
