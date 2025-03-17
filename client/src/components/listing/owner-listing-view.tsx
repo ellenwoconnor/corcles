@@ -1,7 +1,7 @@
 import { ItemRequest } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Clock, Pencil, MapPin, Trash2 } from "lucide-react";
+import { Clock, Pencil, MapPin, Trash2, UserCheck } from "lucide-react";
 import { EditListingDialog } from "@/components/edit-listing-dialog";
 import RequestsList from "@/components/requests-list";
 import BidsList from "@/components/bids-list";
@@ -14,12 +14,18 @@ import { ExtendedItem } from "@/pages/listing-page";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { UserCheck } from "lucide-react";
+import { Item, ItemBid } from "@shared/schema";
+import BaseListingView from "./base-listing-view";
+import { apiRequest } from "@/lib/queryClient";
+import { formatDistanceToNow } from "date-fns";
+import { DrawWinnerDialog } from "./draw-winner-dialog";
+import { SchedulePickupDialog } from "./schedule-pickup-dialog";
+
 
 interface OwnerListingViewProps {
-  item: ExtendedItem;
-  requests: (ItemRequest & { userId?: number })[];
-  bids?: any[];
+  item: Item; // Changed to Item from ExtendedItem
+  requests: ItemRequest[];
+  bids: ItemBid[];
   currentUserId: number;
 }
 
@@ -61,266 +67,102 @@ export default function OwnerListingView({
     item.status || "",
   );
 
-  const deleteItemMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest("DELETE", `/api/items/${item.id}`);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to delete item");
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/items"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/user/items"] });
+  async function handleDelist() {
+    try {
+      await apiRequest(`/api/items/${item.id}/delist`, {
+        method: "POST",
+      });
+      queryClient.invalidateQueries([`/api/items/${item.id}`]);
       toast({
-        title: "Item deleted",
-        description: "Your item has been deleted successfully.",
+        title: "Item delisted",
+        description: "Your item has been delisted successfully.",
       });
       navigate("/");
-    },
-    onError: (error: Error) => {
+    } catch (error) {
       toast({
-        variant: "destructive",
         title: "Error",
-        description: error.message || "Could not delete item",
+        description: "Failed to delist item. Please try again.",
+        variant: "destructive",
       });
-    },
-  });
-
-  const statusText = {
-    completed: "Transaction Complete",
-    scheduled: "Pickup Scheduled",
-    scheduling: "Setting Pickup Time",
-    requested: "Requests Received",
-    available: "Available",
-    delisted: "Delisted",
-    pending_pickup: "Pending Pickup",
-  };
-
-  // Check if this item is a wishlist fulfillment
-  const isWishlistFulfillment = item.wishlistId && item.recipientId;
-
-  // Get wishlist information if this item is fulfilling a wishlist
-  const { data: wishlist } = useQuery({
-    queryKey: [`/api/wishlists/${item.wishlistId}`],
-    enabled: !!item.wishlistId,
-  });
+    }
+  }
 
   const recipientUsername = "Unknown"; // Placeholder, replace with actual fetching logic
 
+  //The following lines were part of the original code, but are not needed after refactoring
+  //const statusText = { ... };
+  //const isWishlistFulfillment = item.wishlistId && item.recipientId;
+  //const { data: wishlist } = useQuery({ ... });
+
+
   return (
-    <div className="grid md:grid-cols-2 gap-8">
-      <div>
-        <img
-          src={item.imageUrl}
-          alt={item.title}
-          className="w-full rounded-lg object-cover aspect-square"
-        />
-      </div>
-
-      {/* Header Section */}
-      <div>
-        <h1 className="text-2xl tracking-tight mb-2">{item.title}</h1>
-        <div className="flex items-center gap-4">
-          {item.isGift ? (
-            <div className="inline-block bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
-              Free
-            </div>
-          ) : (
-            <p className="text-2xl font-bold text-primary">${item.price}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Delist warning Section */}
-      {isDelisted && (
-        <div className="p-4 bg-muted rounded-lg border border-muted-foreground/20">
-          <h3 className="font-medium mb-2 text-muted-foreground">
-            This item has been delisted
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            Delisted items cannot be edited or requested by users.
-          </p>
-        </div>
-      )}
-
-      {/* Pickup location Section */}
-      {item.pickupLocation && (
-        <div className="flex gap-2 items-center text-sm text-muted-foreground">
-          <MapPin className="h-4 w-4" />
-          <span>{item.pickupLocation}</span>
-        </div>
-      )}
-
-      {/* Description Section */}
-      <div className="border-b border-border pb-4">
-        <p className="whitespace-pre-wrap">{item.description}</p>
-      </div>
-
-      {/* Edit & delete Section */}
-      {!isDelisted && (
-        <div className="flex gap-2 mt-auto pt-4">
-          <EditListingDialog item={item} />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              const delistItem = async () => {
-                const response = await apiRequest(
-                  "POST",
-                  `/api/items/${item.id}/delist`,
-                );
-                if (!response.ok) {
-                  throw new Error("Failed to delist item");
-                }
-                queryClient.invalidateQueries({ queryKey: ["/api/items"] });
-                queryClient.invalidateQueries({
-                  queryKey: [`/api/items/${item.id}`],
-                });
-                queryClient.invalidateQueries({
-                  queryKey: ["/api/user/items"],
-                });
-                toast({
-                  title: "Item delisted",
-                  description:
-                    "The item has been removed from the marketplace.",
-                });
-              };
-              delistItem().catch(() => {
-                toast({
-                  variant: "destructive",
-                  title: "Error",
-                  description: "Could not delist item",
-                });
-              });
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-
-      {/* Requests Section */}
-      {showPickupScheduler && (
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className="bg-muted px-4 py-2 border-b border-border">
-            <h3 className="font-medium">
-              {activeRequest
-                ? "Active Request"
-                : hasRequests
-                  ? `Requests (${requests.length})`
-                  : "No Requests Yet"}
-            </h3>
+    <BaseListingView item={item} isOwner={true}>
+      <div className="space-y-6">
+        {!isDelisted && (
+          <div className="flex flex-wrap gap-3">
+            <EditListingDialog item={item} />
+            <Button variant="destructive" onClick={handleDelist}>
+              Delist Item
+            </Button>
           </div>
-          <div className="p-4">
-            {hasRecipient && activeRequest ? (
-              <div className="flex flex-col gap-3">
-                <p className="text-sm">
-                  Request from{" "}
-                  <span className="font-medium">
-                    {activeRequest.requesterId}
-                  </span>
-                </p>
-                {showMessageAndCancel && (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setMessageDialogOpen(true)}
-                    >
-                      Message
-                    </Button>
-                    <CancelButton
-                      itemId={item.id}
-                      requestId={activeRequest.id}
-                    />
+        )}
+
+        {canDraw && (
+          <div>
+            <h2 className="font-medium mb-2">Requests ({requests.length})</h2>
+            <DrawWinnerDialog requests={requests} itemId={item.id} />
+          </div>
+        )}
+
+        {hasBids && (
+          <div>
+            <h2 className="font-medium mb-2">Bids ({bids.length})</h2>
+            <div className="space-y-3">
+              {bids.map((bid) => (
+                <div
+                  key={bid.id}
+                  className="p-4 border rounded-lg flex items-center justify-between"
+                >
+                  <div>
+                    <p className="font-medium">${bid.amount}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {formatDistanceToNow(new Date(bid.createdAt), {
+                        addSuffix: true,
+                      })}
+                    </p>
                   </div>
-                )}
-              </div>
-            ) : hasRequests && canSchedule ? (
-              <PickupScheduler
-                itemId={item.id}
-                recipientId={requests[0].requesterId}
-              />
-            ) : hasRequests && canDraw ? (
-              <RequestsList
-                itemId={item.id}
-                requests={requests}
-                currentUserId={currentUserId}
-              />
-            ) : hasRequests ? (
-              <RequestsList
-                itemId={item.id}
-                requests={requests}
-                currentUserId={currentUserId}
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No requests for this item yet.
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {!item.isGift && (
-        <div className="border border-border rounded-lg overflow-hidden">
-          <div className="bg-muted px-4 py-2 border-b border-border">
-            <h3 className="font-medium">
-              {hasBids ? `Bids (${bids.length})` : "No Bids Yet"}
-            </h3>
-          </div>
-          <div className="p-4">
-            {hasBids ? (
-              <BidsList bids={bids} currentUserId={currentUserId} />
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                No bids for this item yet.
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Recipient info */}
-      {item.recipientId && (
-        <div className="border rounded-md p-4 bg-green-50 border-green-200 mb-4">
-          <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
-            <UserCheck className="h-5 w-5 text-green-600" />
-            <span>Recipient Selected</span>
-          </h2>
-          <p className="text-sm mb-3">
-            This item is being offered to{" "}
-            <span className="font-medium">{recipientUsername}</span>
-            {item.wishlistId && wishlist && (
-              <span className="ml-1">
-                for their wishlist "
-                <span className="font-medium">{wishlist.title}</span>"
-              </span>
-            )}
-          </p>
-          {item.pickupStart && (
-            <div className="mt-3 p-3 bg-white rounded-sm border border-green-100">
-              <h4 className="text-sm font-medium mb-1">Pickup Time</h4>
-              <p className="text-sm text-muted-foreground">
-                {format(new Date(item.pickupStart), "EEEE, MMMM d")} at{" "}
-                {format(new Date(item.pickupStart), "h:mm a")} -{" "}
-                {format(new Date(item.pickupEnd!), "h:mm a")}
-              </p>
+                </div>
+              ))}
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
 
-      {activeRequest && (
+        {canSchedule && (
+          <div>
+            <h2 className="font-medium mb-2">Schedule Pickup</h2>
+            <SchedulePickupDialog
+              itemId={item.id}
+              requests={requests}
+              existingWindows={item.proposedPickupWindows}
+            />
+          </div>
+        )}
+
+        {showMessageAndCancel && activeRequest && (
+          <div className="space-y-3">
+            <Button onClick={() => setMessageDialogOpen(true)}>
+              Message Recipient
+            </Button>
+          </div>
+        )}
+
         <MessageDialog
-          recipientId={activeRequest.requesterId}
-          requestId={activeRequest.id}
           open={messageDialogOpen}
           onOpenChange={setMessageDialogOpen}
+          request={activeRequest}
+          currentUserId={currentUserId}
         />
-      )}
-    </div>
+      </div>
+    </BaseListingView>
   );
 }
