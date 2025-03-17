@@ -142,30 +142,37 @@ export default function OwnerListingView({
             This item is pending pickup at <MapPin className="h-4 w-4" />
             {item.pickupLocation}.
           </p>
-          <div className="flex items-center gap-4 pt-4">
-            <PickupScheduler
-              itemId={item.id}
-              itemStatus={item.status}
-              onScheduled={() => {
-                throw new Error("Function not implemented.");
-              }}
-            />
-            {hasRecipient && activeRequest && (
-              <CancelButton
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            <div className="w-full sm:w-auto">
+              <PickupScheduler
                 itemId={item.id}
-                requestId={activeRequest.id}
-                variant="outline"
+                itemStatus={item.status}
+                onScheduled={() => {
+                  throw new Error("Function not implemented.");
+                }}
               />
+            </div>
+            {hasRecipient && activeRequest && (
+              <div className="w-full sm:w-auto">
+                <CancelButton
+                  itemId={item.id}
+                  requestId={activeRequest.id}
+                  variant="outline"
+                  className="w-full"
+                />
+              </div>
             )}
             {hasRecipient && activeRequest && (
-              <MessageDialog
-                requestId={activeRequest.id}
-                currentUserId={currentUserId}
-                recipientId={item.recipientId}
-                isOpen={messageDialogOpen}
-                onOpenChange={setMessageDialogOpen}
-                trigger={<Button variant="outline">Send Message</Button>}
-              />
+              <div className="w-full sm:w-auto">
+                <MessageDialog
+                  requestId={activeRequest.id}
+                  currentUserId={currentUserId}
+                  recipientId={item.recipientId}
+                  isOpen={messageDialogOpen}
+                  onOpenChange={setMessageDialogOpen}
+                  trigger={<Button variant="outline" className="w-full">Send Message</Button>}
+                />
+              </div>
             )}
           </div>
 
