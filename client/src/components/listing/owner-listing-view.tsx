@@ -139,11 +139,46 @@ export default function OwnerListingView({
           <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
             Schedule pickup
           </h2>
-          <p className="flex gap-1">
+          <p className="flex gap-1 mb-4">
             This item is pending pickup at <MapPin className="h-4 w-4" />
             {item.pickupLocation}.
           </p>
-          <div className="flex items-center gap-4 pt-4">
+
+          {item.pickupStart && item.pickupEnd ? (
+            <div className="mb-4">
+              <h3 className="text-sm font-medium mb-2">Confirmed Pickup Time</h3>
+              <div className="p-3 bg-secondary rounded-lg border border-border">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  <span>
+                    {format(new Date(item.pickupStart), "EEE, MMM d")} at{" "}
+                    {format(new Date(item.pickupStart), "h:mm a")} -{" "}
+                    {format(new Date(item.pickupEnd), "h:mm a")}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : item.proposedPickupWindows?.length > 0 ? (
+            <div className="mb-4">
+              <h3 className="text-sm font-medium mb-2">Proposed Pickup Windows</h3>
+              <div className="space-y-2">
+                {item.proposedPickupWindows.map((window, index) => (
+                  <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      <span>
+                        {format(new Date(window.pickupStart), "EEE, MMM d")} at{" "}
+                        {format(new Date(window.pickupStart), "h:mm a")} -{" "}
+                        {format(new Date(window.pickupEnd), "h:mm a")}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="flex items-center gap-4">
             <PickupScheduler
               itemId={item.id}
               itemStatus={item.status}
