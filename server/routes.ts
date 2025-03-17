@@ -1152,6 +1152,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.items.id, itemId));
 
+      // Send notification to recipient
+      const notificationPayload = {
+        type: "recipient_selected",
+        data: {
+          itemId,
+          title: item.title
+        },
+      };
+
+      if (recipientId) {
+        sendSSEMessage(recipientId, notificationPayload);
+      }
+
       logger.info("Set recipient for item:", {
         itemId,
         recipientId,
