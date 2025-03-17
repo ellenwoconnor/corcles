@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { apiRequest } from "@/lib/queryClient";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface Notification {
   id: string;
@@ -22,63 +23,42 @@ interface Notification {
 }
 
 export default function NotificationCenter() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+
+  // Fetch notifications using React Query
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/notifications');
+      console.log('Fetched notifications:', response);
+      return Array.isArray(response) ? response : [];
+    }
+  });
 
   useEffect(() => {
-    // Fetch existing notifications
-    const fetchNotifications = async () => {
-      try {
-        const response = await apiRequest('GET', '/api/notifications');
-        console.log('Fetched notifications:', response); // Debug log
-        // Ensure we always set an array, even if empty
-        setNotifications(Array.isArray(response) ? response : []);
-      } catch (error) {
-        console.error('Failed to fetch notifications:', error);
-        setNotifications([]);
-      }
-    };
-
-    fetchNotifications();
-
     // Set up SSE for new notifications
     const eventSource = new EventSource("/api/events");
 
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log('Received SSE message:', data); // Debug log
+      console.log('Received SSE message:', data);
       if (data.type === "recipient_selected") {
-        setNotifications((prev) => [
-          ...prev,
-          {
-            id: `${Date.now()}`,
-            type: data.type,
-            data: {
-              itemId: data.data.itemId,
-              itemTitle: data.data.title || "an item",
-            },
-            timestamp: Date.now(),
-            read: false,
-          },
-        ]);
+        // Invalidate the notifications query to trigger a refetch
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
       }
     };
 
     return () => eventSource.close();
-  }, []);
+  }, [queryClient]);
 
   const handleNotificationClick = async (notification: Notification) => {
     if (notification.data.itemId) {
       try {
-        // Mark as read
         await apiRequest('POST', `/api/notifications/${notification.id}/acknowledge`);
 
-        // Update local state
-        setNotifications((prev) =>
-          prev.map((n) =>
-            n.id === notification.id ? { ...n, read: true } : n
-          )
-        );
+        // Invalidate queries to refetch the updated data
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
 
         // Navigate to item
         setLocation(`/item/${notification.data.itemId}`);
