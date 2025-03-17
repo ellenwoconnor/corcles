@@ -16,6 +16,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AddressCompletionDialog } from "./components/address-completion-dialog";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useState, useEffect } from "react";
+import { NotificationCenter } from "@/components/notification-center"; // Assuming this component exists
 
 // Configuration error component
 function ConfigurationError({ message }: { message: string }) {
@@ -51,6 +52,7 @@ function AppContent() {
     <>
       <Router />
       <Toaster />
+      <NotificationCenter /> {/* Added NotificationCenter here */}
       {needsAddressInfo && pendingGoogleUser && (
         <AddressCompletionDialog
           open={needsAddressInfo}
