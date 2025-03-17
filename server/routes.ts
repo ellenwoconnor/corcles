@@ -995,13 +995,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       logger.debug("Validated windows:", proposedWindows);
 
+      const updates = {
+        proposedPickupWindows: proposedWindows,
+        status: ITEM_STATUS.SCHEDULING,
+        recipientId: activeRequest.requesterId,
+      };
+
       await db
         .update(schema.items)
-        .set({
-          proposedPickupWindows: proposedWindows,
-          status: ITEM_STATUS.SCHEDULING,
-          recipientId: activeRequest.requesterId,
-        })
+        .set(updates)
         .where(eq(schema.items.id, itemId));
 
       await db
