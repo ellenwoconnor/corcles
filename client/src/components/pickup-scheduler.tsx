@@ -204,7 +204,7 @@ export default function PickupScheduler({
                     <SelectTrigger>
                       <SelectValue placeholder="Choose a time" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-[200px] overflow-y-auto" position="popper">
                       {availableHours.map((hour) => (
                         <SelectItem key={hour} value={hour.toString()}>
                           {format(
