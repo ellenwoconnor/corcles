@@ -159,7 +159,7 @@ export default function PickupScheduler({
       <DrawerTrigger asChild>
         <Button variant="outline">
           {["scheduling", "scheduled"].includes(itemStatus)
-            ? "Update Schedule"
+            ? "Change Times"
             : "Send Pickup Times"}
         </Button>
       </DrawerTrigger>
