@@ -1,14 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface Notification {
   type: string;
@@ -21,6 +16,7 @@ interface Notification {
 
 export default function NotificationCenter() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -50,43 +46,48 @@ export default function NotificationCenter() {
         prev.filter((n) => n.timestamp !== notification.timestamp),
       );
     }
+    setIsOpen(false);
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild={true}>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5 text-foreground fill-foreground stroke-foreground" />
-          {notifications.length > 0 && (
-            <Badge
-              variant="default"
-              className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center"
-            >
-              {notifications.length}
-            </Badge>
-          )}
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[300px]" forceMount>
-        {notifications.length === 0 ? (
-          <div className="p-4 text-sm text-muted-foreground text-center">
-            No new notifications
-          </div>
-        ) : (
-          notifications.map((notification) => (
-            <DropdownMenuItem
-              key={notification.timestamp}
-              onClick={() => handleNotificationClick(notification)}
-              className="p-3 cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
+    <div className="relative">
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        className="relative"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <Bell className="h-5 w-5 text-foreground fill-foreground stroke-foreground" />
+        {notifications.length > 0 && (
+          <Badge
+            variant="default"
+            className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center"
+          >
+            {notifications.length}
+          </Badge>
+        )}
+      </Button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-[300px] rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
+          {notifications.length === 0 ? (
+            <div className="p-4 text-sm text-muted-foreground text-center">
+              No new notifications
+            </div>
+          ) : (
+            notifications.map((notification) => (
+              <div
+                key={notification.timestamp}
+                onClick={() => handleNotificationClick(notification)}
+                className="flex items-center gap-2 p-3 cursor-pointer hover:bg-accent rounded-sm"
+              >
                 <Bell className="h-4 w-4 fill-foreground" />
                 <span>You've been selected for an item!</span>
               </div>
-            </DropdownMenuItem>
-          ))
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+            ))
+          )}
+        </div>
+      )}
+    </div>
   );
 }
