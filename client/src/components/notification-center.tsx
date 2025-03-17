@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { Bell } from "lucide-react";
+import { Bell, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -8,19 +8,21 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Notification {
+  id: string;
   type: string;
   data: {
     itemId: number;
-    title?: string;
+    itemTitle: string;
   };
   timestamp: number;
+  read: boolean;
 }
 
 export default function NotificationCenter() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -32,9 +34,14 @@ export default function NotificationCenter() {
         setNotifications((prev) => [
           ...prev,
           {
+            id: `${Date.now()}`,
             type: data.type,
-            data: data.data,
+            data: {
+              itemId: data.data.itemId,
+              itemTitle: data.data.title || "an item",
+            },
             timestamp: Date.now(),
+            read: false,
           },
         ]);
       }
@@ -43,15 +50,24 @@ export default function NotificationCenter() {
     return () => eventSource.close();
   }, []);
 
-  const handleNotificationClick = (notification: Notification) => {
+  const handleNotificationClick = async (notification: Notification) => {
     if (notification.data.itemId) {
-      setLocation(`/item/${notification.data.itemId}`);
+      // Mark as read
+      await apiRequest('POST', `/api/notifications/${notification.id}/acknowledge`);
+
+      // Update local state
       setNotifications((prev) =>
-        prev.filter((n) => n.timestamp !== notification.timestamp),
+        prev.map((n) =>
+          n.id === notification.id ? { ...n, read: true } : n
+        )
       );
+
+      // Navigate to item
+      setLocation(`/item/${notification.data.itemId}`);
     }
-    setIsOpen(false);
   };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
     <DropdownMenu>
@@ -60,15 +76,14 @@ export default function NotificationCenter() {
           variant="ghost"
           size="icon"
           className="relative"
-          onClick={() => setIsOpen((prev) => !prev)}
         >
           <Bell className="h-5 w-5" />
-          {notifications.length > 0 && (
+          {unreadCount > 0 && (
             <Badge
               variant="default"
               className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center"
             >
-              {notifications.length}
+              {unreadCount}
             </Badge>
           )}
         </Button>
@@ -85,12 +100,21 @@ export default function NotificationCenter() {
           <div className="flex flex-col space-y-4 p-4">
             {notifications.map((notification) => (
               <div
-                key={notification.timestamp}
+                key={notification.id}
                 onClick={() => handleNotificationClick(notification)}
-                className="flex items-center gap-2 p-3 cursor-pointer hover:bg-accent rounded-sm"
+                className={`flex items-center justify-between p-3 cursor-pointer hover:bg-accent rounded-sm ${
+                  notification.read ? 'opacity-50' : ''
+                }`}
               >
-                <Bell className="h-4 w-4 fill-foreground" />
-                <span>{notification.data.title || "New notification"}</span>
+                <div className="flex items-center gap-2">
+                  <Bell className="h-4 w-4" />
+                  <span>
+                    You've been selected for {notification.data.itemTitle}!
+                  </span>
+                </div>
+                {notification.read && (
+                  <Check className="h-4 w-4 text-green-500" />
+                )}
               </div>
             ))}
           </div>
