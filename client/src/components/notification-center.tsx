@@ -1,15 +1,15 @@
 
 import { useState, useEffect } from "react";
-import { Bell } from "lucide-react";
 import { useLocation } from "wouter";
+import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 
 interface Notification {
   type: string;
