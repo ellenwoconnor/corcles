@@ -11,7 +11,7 @@ interface BaseListingViewProps {
   className?: string;
 }
 
-export default function BaseListingView({ item, children }: BaseListingViewProps) {
+export default function BaseListingView({ item, children, className }: BaseListingViewProps) {
   return (
     <div className={cn("grid md:grid-cols-2 gap-8", className)}>
       {/* Item Image */}
