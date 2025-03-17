@@ -159,8 +159,8 @@ export default function PickupScheduler({
             : "Send Pickup Times"}
         </Button>
       </DrawerTrigger>
-      <DrawerContent className="h-[85vh] sm:h-[85vh] sm:max-w-[600px] mx-auto overflow-y-auto">
-        <DrawerHeader>
+      <DrawerContent className="h-[85vh] sm:h-[85vh] sm:max-w-[600px] mx-auto">
+        <DrawerHeader className="relative">
           <DrawerTitle>Schedule Item Pickup</DrawerTitle>
           <DrawerDescription>
             Propose up to 10 one-hour windows for item pickup
@@ -204,7 +204,7 @@ export default function PickupScheduler({
                     <SelectTrigger>
                       <SelectValue placeholder="Choose a time" />
                     </SelectTrigger>
-                    <SelectContent className="max-h-[200px] overflow-y-auto" position="popper">
+                    <SelectContent side="bottom" align="start" className="max-h-[200px] overflow-y-auto z-50">
                       {availableHours.map((hour) => (
                         <SelectItem key={hour} value={hour.toString()}>
                           {format(
