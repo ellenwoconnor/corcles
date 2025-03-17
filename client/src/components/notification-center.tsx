@@ -54,7 +54,7 @@ export default function NotificationCenter() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
+          <Bell className="h-5 w-5 stroke-[1.5px]" />
           {notifications.length > 0 && (
             <Badge 
               variant="default" 
