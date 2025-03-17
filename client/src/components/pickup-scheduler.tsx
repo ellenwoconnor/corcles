@@ -157,7 +157,7 @@ export default function PickupScheduler({
   return (
     <Drawer open={isOpen} onOpenChange={setIsOpen}>
       <DrawerTrigger asChild>
-        <Button>
+        <Button variant="outline">
           {["scheduling", "scheduled"].includes(itemStatus)
             ? "Update pickup times"
             : "Send Pickup Times"}
