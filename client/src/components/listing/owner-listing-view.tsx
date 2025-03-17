@@ -89,10 +89,16 @@ export default function OwnerListingView({
       <BaseListingView item={item} isOwner={true}>
         <div className="space-y-6">
           {!isDelisted && (
-            <div className="flex flex-wrap gap-3">
+            <div className="flex items-center gap-2">
               <EditListingDialog item={item} />
-              <Button variant="destructive" onClick={handleDelist}>
-                Delist Item
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="text-muted-foreground hover:text-destructive"
+                onClick={handleDelist}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="sr-only">Delist Item</span>
               </Button>
             </div>
           )}
