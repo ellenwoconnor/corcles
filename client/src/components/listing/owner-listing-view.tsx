@@ -87,12 +87,12 @@ export default function OwnerListingView({
   return (
     <div>
       <BaseListingView item={item} isOwner={true}>
-        <div className="space-y-6">
+        <div>
           {!isDelisted && (
             <div className="flex items-center gap-2">
               <EditListingDialog item={item} />
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="icon"
                 className="text-muted-foreground hover:text-destructive"
                 onClick={handleDelist}
@@ -110,7 +110,8 @@ export default function OwnerListingView({
               <span>Requests Pending</span>
             </h2>
             <p className="text-sm mb-3">
-              You have {requests.length} active requests for this item.
+              You have {requests.length > 0 ? requests.length : "no"} active
+              requests for this item.
             </p>
           </div>
         )}
@@ -152,7 +153,9 @@ export default function OwnerListingView({
 
           {item.pickupStart && item.pickupEnd ? (
             <div className="mb-4">
-              <h3 className="text-sm font-medium mb-2">Confirmed Pickup Time</h3>
+              <h3 className="text-sm font-medium mb-2">
+                Confirmed Pickup Time
+              </h3>
               <div className="p-3 bg-secondary rounded-lg border border-border">
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4" />
@@ -166,10 +169,15 @@ export default function OwnerListingView({
             </div>
           ) : item.proposedPickupWindows?.length > 0 ? (
             <div className="mb-4">
-              <h3 className="text-sm font-medium mb-2">Proposed Pickup Windows</h3>
+              <h3 className="text-sm font-medium mb-2">
+                Proposed Pickup Windows
+              </h3>
               <div className="space-y-2">
                 {item.proposedPickupWindows.map((window, index) => (
-                  <div key={index} className="p-3 bg-secondary rounded-lg border border-border">
+                  <div
+                    key={index}
+                    className="p-3 bg-secondary rounded-lg border border-border"
+                  >
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />
                       <span>
