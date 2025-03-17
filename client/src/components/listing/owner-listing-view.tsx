@@ -20,7 +20,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { formatDistanceToNow } from "date-fns";
 
 interface OwnerListingViewProps {
-  item: Item; // Changed to Item from ExtendedItem
+  item: Item;
   requests: ItemRequest[];
   bids: ItemBid[];
   currentUserId: number;
@@ -49,19 +49,14 @@ export default function OwnerListingView({
   const activeRequest = item.recipientId
     ? requests.find((r) => r.requesterId === item.recipientId)
     : requests.find((r) =>
-        [
-          "pending",
-          "accepted",
-          "awaiting_pickup_confirmation",
-          "scheduled",
-        ].includes(r.status),
+        ["pending", "accepted", "awaiting_pickup_confirmation", "scheduled"].includes(r.status)
       );
 
   const showPickupScheduler = ["requested", "scheduling", "scheduled"].includes(
-    item.status || "",
+    item.status || ""
   );
   const showMessageAndCancel = ["scheduling", "scheduled"].includes(
-    item.status || "",
+    item.status || ""
   );
 
   async function handleDelist() {
@@ -83,13 +78,6 @@ export default function OwnerListingView({
       });
     }
   }
-
-  const recipientUsername = "Unknown"; // Placeholder, replace with actual fetching logic
-
-  //The following lines were part of the original code, but are not needed after refactoring
-  //const statusText = { ... };
-  //const isWishlistFulfillment = item.wishlistId && item.recipientId;
-  //const { data: wishlist } = useQuery({ ... });
 
   return (
     <div>
@@ -153,44 +141,31 @@ export default function OwnerListingView({
             <PickupScheduler
               itemId={item.id}
               itemStatus={item.status}
-              onScheduled={function (): void {
+              onScheduled={() => {
                 throw new Error("Function not implemented.");
               }}
             />
           </div>
-          
-          {hasRecipient && (
-          <div className="flex items-center gap-4">
-            <CancelButton
-              itemId={item.id}
-              requestId={request.id}
-              variant="outline"
-            />
-            <MessageDialog
-              requestId={activeRequest.id}
-              currentUserId={currentUserId}
-              recipientId={item.recipientId}
-              isOpen={messageDialogOpen}
-              onOpenChange={setMessageDialogOpen}
-              trigger={<Button variant="outline">Send Message</Button>}
-            />
-          </div>)}
-      )}
 
-      {/* {showMessageAndCancel && activeRequest && (
-        <div className="space-y-3">
-          <Button onClick={() => setMessageDialogOpen(true)}>
-            Message Recipient
-          </Button>
+          {hasRecipient && activeRequest && (
+            <div className="flex items-center gap-4">
+              <CancelButton
+                itemId={item.id}
+                requestId={activeRequest.id}
+                variant="outline"
+              />
+              <MessageDialog
+                requestId={activeRequest.id}
+                currentUserId={currentUserId}
+                recipientId={item.recipientId}
+                isOpen={messageDialogOpen}
+                onOpenChange={setMessageDialogOpen}
+                trigger={<Button variant="outline">Send Message</Button>}
+              />
+            </div>
+          )}
         </div>
       )}
-
-      <MessageDialog
-        open={messageDialogOpen}
-        onOpenChange={setMessageDialogOpen}
-        request={activeRequest}
-        currentUserId={currentUserId}
-      /> */}
     </div>
-  )
-      }
+  );
+}
