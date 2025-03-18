@@ -18,6 +18,8 @@ import FadeIn from "@/components/fade-in";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import CreateWishlistDialog from "@/components/create-wishlist-dialog"; // Added import
+
 
 // Add 'use client' directive for Next.js strict mode
 ("use client");
@@ -27,6 +29,7 @@ export default function HomePage() {
   const [searchValue, setSearchValue] = useState("");
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [createWishlistDialogOpen, setCreateWishlistDialogOpen] = useState(false); // Added state
   const debouncedSearchValue = useDebounce(searchValue, 300);
   const { data: userCommunities = [] } = useQuery<
     (Community & { role: string; memberCount: number })[]
@@ -147,7 +150,9 @@ export default function HomePage() {
                       variant="default"
                       size="sm"
                       className="flex items-center gap-2"
+                      onClick={() => setCreateWishlistDialogOpen(true)} // Added onClick handler
                     >
+                      <Plus className="h-4 w-4" />
                       Post Item
                     </Button>
                   </div>
@@ -160,6 +165,7 @@ export default function HomePage() {
           </div>
         </div>
       </main>
+      <CreateWishlistDialog open={createWishlistDialogOpen} onClose={() => setCreateWishlistDialogOpen(false)} /> {/* Added CreateWishlistDialog */}
     </div>
   );
 }
