@@ -38,6 +38,7 @@ const FadeIn = ({ children, delay }) => {
 
 export default function CommunityWishlists() {
   const { user } = useAuth();
+  const currentUserId = user?.id;
   const [selectedWishlist, setSelectedWishlist] = useState<
     Wishlist | undefined
   >(undefined);
