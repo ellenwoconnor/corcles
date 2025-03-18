@@ -34,7 +34,6 @@ export default function WishlistDetailsDialog({
     <Dialog 
       open={open} 
       onOpenChange={(value) => {
-        if (!value && onClose) onClose();
         if (onOpenChange) onOpenChange(value);
       }}
     >
