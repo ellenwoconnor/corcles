@@ -105,10 +105,19 @@ export default function NotificationCenter() {
                   notification.read ? "opacity-50" : ""
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <span>
-                    You've been selected for {notification.data.itemTitle}!
-                  </span>
+                <div className="flex flex-col gap-1">
+                  {notification.type === 'pickup_scheduled' ? (
+                    <>
+                      <span>Pickup scheduled for {notification.data.itemTitle}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(notification.data.pickupStart).toLocaleString()} - {new Date(notification.data.pickupEnd).toLocaleTimeString()}
+                      </span>
+                    </>
+                  ) : (
+                    <span>
+                      You've been selected for {notification.data.itemTitle}!
+                    </span>
+                  )}
                 </div>
                 {notification.read && (
                   <Check className="h-4 w-4 text-green-500" />
