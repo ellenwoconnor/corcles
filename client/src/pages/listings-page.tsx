@@ -78,7 +78,7 @@ export default function ListingsPage() {
                       className="w-16 h-16 rounded object-cover"
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center justify-between gap-2">
                         <CardTitle className="text-lg">
                           <Link
                             href={`/item/${item.id}`}
@@ -87,15 +87,15 @@ export default function ListingsPage() {
                             {item.title}
                           </Link>
                         </CardTitle>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>Listed on {item.createdAt}</span>
                         {getStatusBadge(item.status)}
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        Listed {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
                       </div>
                       {item.pickupStart && (
                         <div className="mt-2 text-sm text-muted-foreground">
                           Pickup scheduled for{" "}
-                          {new Date(item.pickupStart).toLocaleString()}
+                          {format(new Date(item.pickupStart), "PPP 'at' p")}
                         </div>
                       )}
                     </div>
