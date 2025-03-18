@@ -37,7 +37,11 @@ export function useServerEvents({ endpoint = '/api/events', enabled = true }: Us
     eventSource.addEventListener('message', (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('Received SSE message:', data);
+        if (data.type === 'connected') {
+          console.log('SSE connection confirmed');
+        } else {
+          console.log('Received SSE notification:', data);
+        }
 
         switch (data.type) {
           case 'new_message':
