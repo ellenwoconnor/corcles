@@ -197,7 +197,14 @@ export default function RequestsPage() {
             <TabsContent value="wishlists">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {userWishlists.map((wishlist) => (
-                  <Card key={wishlist.id}>
+                  <Card 
+                    key={wishlist.id} 
+                    className="cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all"
+                    onClick={() => {
+                      setSelectedWishlist(wishlist);
+                      setDetailsDialogOpen(true);
+                    }}
+                  >
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         {wishlist.title}
@@ -265,7 +272,11 @@ export default function RequestsPage() {
                   </Card>
                 ) : (
                   userRequests.map((request) => (
-                    <Card key={request.id}>
+                    <Card 
+                      key={request.id}
+                      className="cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all"
+                      onClick={() => window.location.href = `/item/${request.item.id}`}
+                    >
                       <CardHeader className="py-3">
                         <div className="flex items-center gap-3">
                           <img
@@ -308,7 +319,11 @@ export default function RequestsPage() {
                   </Card>
                 ) : (
                   userBids.map((bid) => (
-                    <Card key={bid.id}>
+                    <Card 
+                      key={bid.id}
+                      className="cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all"
+                      onClick={() => window.location.href = `/item/${bid.item.id}`}
+                    >
                       <CardHeader className="py-3">
                         <div className="flex items-center gap-3">
                           <img
