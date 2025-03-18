@@ -65,6 +65,7 @@ export default function CommunityWishlists() {
 
   // Filter items that were created to fulfill wishlists (those with recipients)
   const fulfilledWishlistItems = userItems.filter((item) => item.recipientId);
+  console.log("fulfilledWishlistItems", fulfilledWishlistItems);
 
   // Associate community names with wishlists
   const wishlistsWithCommunityNames = communityWishlists.map((wishlist) => {
@@ -237,19 +238,26 @@ export default function CommunityWishlists() {
             {selectedWishlist && user?.id === selectedWishlist.userId && (
               <div className="border-t pt-4">
                 <h4 className="font-medium mb-2">Offers</h4>
-                {fulfilledWishlistItems.filter(item => item.wishlistId === selectedWishlist.id).length > 0 ? (
+                {fulfilledWishlistItems.filter(
+                  (item) => item.wishlistId === selectedWishlist.id,
+                ).length > 0 ? (
                   <div className="space-y-2">
                     {fulfilledWishlistItems
-                      .filter(item => item.wishlistId === selectedWishlist.id)
-                      .map(item => (
-                        <div key={item.id} className="flex items-center gap-3 bg-muted/50 rounded-lg p-2">
+                      .filter((item) => item.wishlistId === selectedWishlist.id)
+                      .map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-3 bg-muted/50 rounded-lg p-2"
+                        >
                           <img
                             src={item.imageUrl}
                             alt={item.title}
                             className="w-10 h-10 rounded object-cover"
                           />
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate">{item.title}</div>
+                            <div className="font-medium truncate">
+                              {item.title}
+                            </div>
                             <div className="text-sm text-muted-foreground">
                               {formatDate(item.createdAt)}
                             </div>
