@@ -164,8 +164,25 @@ export default function RequestsPage() {
             </CardHeader>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {userWishlists.map((wishlist) => (
+          <Tabs defaultValue="wishlists">
+            <TabsList className="mb-4">
+              <TabsTrigger value="wishlists" className="flex items-center gap-2">
+                <ListChecks className="h-4 w-4" />
+                Wishlists
+              </TabsTrigger>
+              <TabsTrigger value="requests" className="flex items-center gap-2">
+                <Gift className="h-4 w-4" />
+                My Requests
+              </TabsTrigger>
+              <TabsTrigger value="bids" className="flex items-center gap-2">
+                <Tag className="h-4 w-4" />
+                My Bids
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="wishlists">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {userWishlists.map((wishlist) => (
               <Card key={wishlist.id}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -216,7 +233,95 @@ export default function RequestsPage() {
                 </CardContent>
               </Card>
             ))}
-          </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="requests">
+              <div className="space-y-4">
+                {!userRequests || userRequests.length === 0 ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">No Requests</CardTitle>
+                      <CardDescription>
+                        You haven't requested any items yet.
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+                ) : (
+                  userRequests.map((request) => (
+                    <Card key={request.id}>
+                      <CardHeader className="py-3">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={request.item.imageUrl}
+                            alt={request.item.title}
+                            className="w-12 h-12 rounded object-cover"
+                          />
+                          <div>
+                            <h3 className="font-medium text-sm">
+                              {request.item.title}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {formatTimeAgo(new Date(request.createdAt))}
+                            </p>
+                          </div>
+                          <Badge
+                            variant={getRequestStatusVariant(request.status)}
+                            className="ml-auto"
+                          >
+                            {formatRequestStatus(request.status)}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="bids">
+              <div className="space-y-4">
+                {!userBids || userBids.length === 0 ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">No Bids</CardTitle>
+                      <CardDescription>
+                        You haven't placed any bids yet.
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+                ) : (
+                  userBids.map((bid) => (
+                    <Card key={bid.id}>
+                      <CardHeader className="py-3">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={bid.item.imageUrl}
+                            alt={bid.item.title}
+                            className="w-12 h-12 rounded object-cover"
+                          />
+                          <div>
+                            <h3 className="font-medium text-sm">
+                              {bid.item.title}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              Bid amount: ${bid.amount}
+                            </p>
+                          </div>
+                          <Badge
+                            variant={bid.status === 'accepted' ? 'success' : 'secondary'}
+                            className="ml-auto"
+                          >
+                            {bid.status.charAt(0).toUpperCase() + bid.status.slice(1)}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         )}
 
         <CreateWishlistDialog open={dialogOpen} onOpenChange={setDialogOpen} />
