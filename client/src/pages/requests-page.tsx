@@ -6,10 +6,7 @@ import {
   getRequestStatusVariant,
   formatRequestStatus,
 } from "@/lib/request-utils";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import CreateWishlistDialog from "@/components/create-wishlist-dialog";
-import { Loader2, Lock, Eye, Gift, ExternalLink } from "lucide-react";
+import { Loader2, Gift, Tag } from "lucide-react";
 import { useLocation } from "wouter";
 import {
   Card,
@@ -20,7 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ListChecks, Tag } from "lucide-react";
+import { ListChecks } from "lucide-react";
 
 // Format time ago function
 function formatTimeAgo(date: Date): string {
@@ -57,7 +54,6 @@ function formatTimeAgo(date: Date): string {
 
 export default function RequestsPage() {
   const { user } = useAuth();
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
 
   const { data: userWishlists = [], isLoading: isLoadingUserWishlists } =
