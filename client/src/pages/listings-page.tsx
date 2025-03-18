@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/navbar";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format } from "date-fns";
 
 export default function ListingsPage() {
   const { data: userItems, isLoading } = useQuery({
