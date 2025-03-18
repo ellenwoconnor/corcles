@@ -113,6 +113,10 @@ export default function NotificationCenter() {
                         {new Date(notification.data.pickupStart).toLocaleString()} - {new Date(notification.data.pickupEnd).toLocaleTimeString()}
                       </span>
                     </>
+                  ) : notification.type === 'new_message' ? (
+                    <span>
+                      New message: {notification.data.content}
+                    </span>
                   ) : (
                     <span>
                       You've been selected for {notification.data.itemTitle}!
