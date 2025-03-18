@@ -26,6 +26,11 @@ export default function Navbar() {
         </div>
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
           <div className="hidden md:flex md:items-center md:space-x-4">
+            <Link href="/listings">
+              <Button variant="ghost" className="flex items-center space-x-2">
+                <span>Listings</span>
+              </Button>
+            </Link>
             <Link href="/communities">
               <Button variant="ghost" className="flex items-center space-x-2">
                 <span>Communities</span>
@@ -52,7 +57,7 @@ export default function Navbar() {
                         alt={user?.displayName}
                       />
                       <AvatarFallback>
-                        {(user?.displayName && user.displayName.trim() !== "")
+                        {user?.displayName && user.displayName.trim() !== ""
                           ? user.displayName.charAt(0).toUpperCase()
                           : "?"}
                       </AvatarFallback>
@@ -64,6 +69,12 @@ export default function Navbar() {
                     <Link href="/profile" className="flex items-center">
                       <User className="mr-2 h-4 w-4" />
                       <span>Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/listings" className="flex items-center">
+                      <Users className="mr-2 h-4 w-4" />
+                      <span>Listings</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
