@@ -73,8 +73,6 @@ export default function NotificationCenter() {
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
-  console.log("?", unreadCount);
-  console.log(notifications);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
