@@ -90,9 +90,10 @@ export default function ListingsPage() {
                           <span className="text-sm font-medium">${item.price}</span>
                         )}
                         <span className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(item.createdAt), {
-                          addSuffix: true,
-                        })}
+                          {formatDistanceToNow(new Date(item.createdAt), {
+                            addSuffix: true,
+                          })}
+                        </span>
                       </div>
                       {item.pickupStart && (
                         <div className="mt-2 text-sm text-muted-foreground">
