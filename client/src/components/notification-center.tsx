@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import MessageDialog from "./message-dialog";
 import { useLocation } from "wouter";
 import { Bell, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -53,6 +54,10 @@ export default function NotificationCenter() {
     return () => eventSource.close();
   }, [queryClient]);
 
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+  const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
+  const [selectedRecipientId, setSelectedRecipientId] = useState<number | null>(null);
+
   const handleNotificationClick = async (notification: Notification) => {
     if (notification.data.itemId) {
       try {
@@ -64,6 +69,13 @@ export default function NotificationCenter() {
         // Invalidate queries to refetch the updated data
         queryClient.invalidateQueries({ queryKey: ["notifications"] });
 
+        // For message notifications, open the message dialog
+        if (notification.type === 'new_message') {
+          setSelectedRequestId(notification.data.requestId);
+          setSelectedRecipientId(notification.data.senderId);
+          setMessageDialogOpen(true);
+        }
+        
         // Navigate to item
         setLocation(`/item/${notification.data.itemId}`);
       } catch (error) {
@@ -132,5 +144,14 @@ export default function NotificationCenter() {
         )}
       </DropdownMenuContent>
     </DropdownMenu>
+    {selectedRequestId && selectedRecipientId && (
+      <MessageDialog
+        requestId={selectedRequestId}
+        recipientId={selectedRecipientId}
+        currentUserId={currentUserId}
+        isOpen={messageDialogOpen}
+        onOpenChange={setMessageDialogOpen}
+      />
+    )}
   );
 }
