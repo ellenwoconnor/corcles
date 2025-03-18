@@ -341,6 +341,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data: message,
       };
 
+      // Create notification for recipient
+      await db.insert(schema.notifications).values({
+        userId: recipientId,
+        type: "new_message",
+        data: {
+          messageId: message.id,
+          senderId: req.user?.id,
+          content: content.substring(0, 100), // First 100 chars of message
+          requestId: requestId
+        },
+      });
+
       // Notify recipient
       sendSSEMessage(recipientId, notificationPayload);
 
