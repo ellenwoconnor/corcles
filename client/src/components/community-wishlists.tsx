@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
-import { Gift, Clock, User, Lock } from "lucide-react";
+import { Check, Clock, User, Lock } from "lucide-react";
 import FulfillWishlistDialog from "./fulfill-wishlist-dialog";
 import { motion } from "framer-motion"; //Import Framer Motion
 
@@ -165,25 +165,19 @@ export default function CommunityWishlists() {
                     <Lock className="h-4 w-4 text-muted-foreground" />
                   )}
                 </CardTitle>
-                <CardDescription className="flex items-center gap-1 text-xs">
-                  <User className="h-3 w-3" />
-                  <span>
-                    {wishlist.userDisplayName || "Anonymous"} in{" "}
-                    {wishlist.communityName} {wishlist.communityMascot || "🏠"}
-                  </span>
+                <CardDescription>
+                  <div className="flex items-center gap-2">
+                    <span>{wishlist.communityMascot || "🏠"}</span>
+                    <span>Requested on {formatDate(wishlist.createdAt)}</span>
+                  </div>
                 </CardDescription>
               </CardHeader>
 
               <CardFooter className="pt-3 pb-3 flex items-center justify-between text-xs text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {formatDate(wishlist.createdAt)}
-                </div>
-
                 {hasUserFulfilledWishlist(wishlist.userId) && (
                   <Badge variant="outline" className="text-xs">
-                    <Gift className="h-3 w-3 mr-1" />
-                    Offers Available
+                    <Check className="h-3 w-3 mr-1" />
+                    Offer sent
                   </Badge>
                 )}
               </CardFooter>
@@ -194,16 +188,16 @@ export default function CommunityWishlists() {
 
       {/* Wishlist Details Dialog */}
       <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent className="sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle>
               {selectedWishlist?.title}
               {selectedWishlist?.isPrivate && (
                 <Lock className="h-4 w-4 text-muted-foreground" />
               )}
             </DialogTitle>
             <DialogDescription>
-              By {selectedWishlist?.userName || "Anonymous"} in{" "}
+              By {selectedWishlist?.userDisplayName || "Anonymous"} in{" "}
               {selectedWishlist?.communityName}
             </DialogDescription>
           </DialogHeader>
@@ -240,40 +234,26 @@ export default function CommunityWishlists() {
             </div>
 
             <div className="border-t pt-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h4 className="font-medium">Status</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {selectedWishlist &&
-                    hasUserFulfilledWishlist(selectedWishlist.userId)
-                      ? "You've already fulfilled this wishlist"
-                      : "You can help fulfill this wishlist"}
-                  </p>
-                </div>
-                <Button
-                  disabled={
-                    selectedWishlist
-                      ? hasUserFulfilledWishlist(selectedWishlist.userId)
-                      : false
+              <Button
+                disabled={
+                  selectedWishlist
+                    ? hasUserFulfilledWishlist(selectedWishlist.userId)
+                    : false
+                }
+                onClick={() => {
+                  setDetailsDialogOpen(false);
+                  if (selectedWishlist) {
+                    onFulfillWishlist(selectedWishlist);
                   }
-                  onClick={() => {
-                    setDetailsDialogOpen(false);
-                    if (selectedWishlist) {
-                      onFulfillWishlist(selectedWishlist);
-                    }
-                  }}
-                >
-                  {selectedWishlist &&
-                  hasUserFulfilledWishlist(selectedWishlist.userId) ? (
-                    "Already Fulfilled"
-                  ) : (
-                    <>
-                      <Gift className="h-4 w-4 mr-2" />
-                      Fulfill This Wishlist
-                    </>
-                  )}
-                </Button>
-              </div>
+                }}
+              >
+                {selectedWishlist &&
+                hasUserFulfilledWishlist(selectedWishlist.userId) ? (
+                  "Already Fulfilled"
+                ) : (
+                  <>Fulfill This Wishlist</>
+                )}
+              </Button>
             </div>
           </div>
         </DialogContent>
