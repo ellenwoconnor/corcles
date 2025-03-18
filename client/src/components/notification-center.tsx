@@ -86,6 +86,7 @@ export default function NotificationCenter() {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
@@ -153,5 +154,6 @@ export default function NotificationCenter() {
         onOpenChange={setMessageDialogOpen}
       />
     )}
+    </>
   );
 }
