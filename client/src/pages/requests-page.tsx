@@ -61,6 +61,12 @@ export default function RequestsPage() {
   const [selectedWishlist, setSelectedWishlist] = useState<any>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
+  // Handle clicking on a wishlist
+  const handleWishlistClick = (wishlist: any) => {
+    setSelectedWishlist(wishlist);
+    setDetailsDialogOpen(true);
+  };
+
   const { data: userWishlists = [], isLoading: isLoadingUserWishlists } =
     useQuery<Wishlist[]>({
       queryKey: ["/api/user/wishlists"],
@@ -201,10 +207,7 @@ export default function RequestsPage() {
                   <Card 
                     key={wishlist.id} 
                     className="cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all"
-                    onClick={() => {
-                      setSelectedWishlist(wishlist);
-                      setDetailsDialogOpen(true);
-                    }}
+                    onClick={() => handleWishlistClick(wishlist)}
                   >
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
@@ -342,6 +345,42 @@ export default function RequestsPage() {
                           </div>
                           <Badge
                             variant={
+
+
+      {/* Wishlist Details Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedWishlist?.title}
+              {selectedWishlist?.isPrivate && (
+                <Lock className="h-4 w-4 text-muted-foreground" />
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              Posted {selectedWishlist && formatDate(selectedWishlist.createdAt)}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {selectedWishlist?.budget && (
+                <Badge variant="outline">
+                  Budget: ${selectedWishlist.budget}
+                </Badge>
+              )}
+            </div>
+
+            <div className="border-t pt-4">
+              <h4 className="font-medium mb-2">Description</h4>
+              <p className="text-muted-foreground whitespace-pre-wrap">
+                {selectedWishlist?.description || "No description provided"}
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
                               bid.status === "accepted"
                                 ? "success"
                                 : "secondary"
