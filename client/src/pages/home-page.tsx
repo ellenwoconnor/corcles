@@ -15,10 +15,9 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import ItemCard from "@/components/item-card";
 import FadeIn from "@/components/fade-in";
-import { Button } from "@/components/ui/button"; // Added import
-import { Plus } from "lucide-react"; // Added import
-import { Badge } from "@/components/ui/badge"; // Added import
-import Link from "next/link"; // Added import, assuming next/link
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 // Add 'use client' directive for Next.js strict mode
 ("use client");
@@ -143,14 +142,14 @@ export default function HomePage() {
                   <p className="text-muted-foreground">
                     Items your neighbors are looking for
                   </p>
-                  <div className="flex items-center gap-4"> {/* Added div for button */}
-                    <Badge variant="outline">My Wishlists</Badge>
-                    <Link href="/listings">
-                      <Button variant="default" size="sm" className="flex items-center gap-2">
-                        <Plus className="h-4 w-4" />
-                        Post Item
-                      </Button>
-                    </Link>
+                  <div className="flex items-center gap-4">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      Post Item
+                    </Button>
                   </div>
                 </div>
               </div>
