@@ -165,7 +165,7 @@ export default function HomePage() {
           </div>
         </div>
       </main>
-      <CreateWishlistDialog open={createWishlistDialogOpen} onClose={() => setCreateWishlistDialogOpen(false)} /> {/* Added CreateWishlistDialog */}
+      <CreateWishlistDialog open={createWishlistDialogOpen} onOpenChange={setCreateWishlistDialogOpen} /> {/* Added CreateWishlistDialog */}
     </div>
   );
 }
