@@ -1,7 +1,7 @@
 
 import { db } from "./db";
 import * as schema from "@shared/schema";
-import { eq, and, isNotNull } from "drizzle-orm";
+import { eq, and, isNotNull, sql } from "drizzle-orm";
 import logger from "./logger";
 
 async function backfillPickupNotifications() {
