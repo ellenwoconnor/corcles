@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Loader2 } from "lucide-react";
+import { Loader2, Gift } from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -16,8 +16,19 @@ export default function ListingsPage() {
     queryKey: ["/api/user/items"],
   });
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const getStatusBadge = (item: any) => {
+    // First check if item is fulfilling a wishlist
+    if (item.wishlistId) {
+      return (
+        <Badge variant="outline" className="text-center flex items-center gap-1 bg-green-50 text-green-700 border-green-200">
+          <Gift className="h-3 w-3" />
+          For {item.recipientDisplayName || "Someone's Wishlist"}
+        </Badge>
+      );
+    }
+
+    // Otherwise show regular status
+    switch (item.status) {
       case "available":
         return <Badge variant="outline" className="text-center">Pending Requests</Badge>;
       case "requested":
@@ -31,7 +42,7 @@ export default function ListingsPage() {
       case "scheduled":
         return <Badge variant="default" className="text-center">Pickup Scheduled</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">{item.status}</Badge>;
     }
   };
 
@@ -81,7 +92,7 @@ export default function ListingsPage() {
                             {item.title}
                           </Link>
                         </CardTitle>
-                        {getStatusBadge(item.status)}
+                        {getStatusBadge(item)}
                       </div>
                       <div className="flex items-center gap-2 mt-1">
                         {item.isGift ? (
