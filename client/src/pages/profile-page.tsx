@@ -134,17 +134,9 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <Tabs defaultValue="listings">
+        <Tabs defaultValue="requests">
           <TabsList className="mb-4">
-            <TabsTrigger value="listings" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              My Listings{" "}
-              {requestedItems && requestedItems.length > 0 && (
-                <Badge variant="default" className="ml-2">
-                  {requestedItems.length}
-                </Badge>
-              )}
-            </TabsTrigger>
+
             <TabsTrigger value="requests" className="flex items-center gap-2">
               <Gift className="h-4 w-4" />
               My Requests{" "}
@@ -164,100 +156,6 @@ export default function ProfilePage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="listings">
-            <div className="grid gap-4">
-              {!userItems || userItems.length === 0 ? (
-                <Card>
-                  <CardHeader className="py-3">
-                    <CardTitle className="text-base">No Listings</CardTitle>
-                    <CardDescription>
-                      You haven't listed any items yet.
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              ) : (
-                <div className="grid gap-4">
-                  {userItems.map((item) => (
-                    <Card key={item.id}>
-                      <CardHeader className="py-3">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={item.imageUrl}
-                            alt={item.title}
-                            className="w-12 h-12 rounded object-cover"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <CardTitle className="text-base truncate">
-                                <Link
-                                  href={`/item/${item.id}`}
-                                  className="hover:underline"
-                                >
-                                  {item.title}
-                                </Link>
-                              </CardTitle>
-                              <Badge
-                                variant={
-                                  item.status === "completed"
-                                    ? "outline"
-                                    : item.status === "pending_pickup"
-                                      ? "secondary"
-                                      : "secondary"
-                                }
-                                className={
-                                  item.status === "pending_pickup"
-                                    ? "bg-background text-foreground border"
-                                    : ""
-                                }
-                              >
-                                {statusText[item.status]}
-                              </Badge>
-                            </div>
-                            <CardDescription className="text-sm">
-                              Listed{" "}
-                              {formatDistanceToNow(new Date(item.createdAt), {
-                                addSuffix: true,
-                              })}
-                            </CardDescription>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        {item.status === "delisted" ? (
-                          <div className="p-4 bg-muted rounded-lg border border-muted-foreground/20">
-                            <h3 className="font-medium mb-2 text-muted-foreground">
-                              This item has been delisted
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              Delisted items cannot be edited or requested by
-                              users.
-                            </p>
-                          </div>
-                        ) : (
-                          item.pickupStart && (
-                            <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
-                              <h3 className="font-medium mb-2">
-                                Pickup Scheduled
-                              </h3>
-                              <p className="text-sm text-muted-foreground">
-                                {format(
-                                  new Date(item.pickupStart),
-                                  "EEEE, MMMM d",
-                                )}{" "}
-                                at{" "}
-                                {format(new Date(item.pickupStart), "h:mm a")} -{" "}
-                                {format(new Date(item.pickupEnd!), "h:mm a")}
-                              </p>
-                            </div>
-                          )
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          </TabsContent>
 
           <TabsContent value="requests">
             <div className="grid gap-4">
