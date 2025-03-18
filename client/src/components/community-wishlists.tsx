@@ -63,9 +63,31 @@ export default function CommunityWishlists() {
     enabled: !!user,
   });
 
-  // Filter items that were created to fulfill wishlists (those with recipients)
+  const { data: allItems = [] } = useQuery<any[]>({
+    queryKey: ["/api/items", communities],
+    enabled: !!user && communities.length > 0,
+    queryFn: async () => {
+      if (!communities.length) return [];
+      const communityIds = communities.map((c) => c.id).join(",");
+      const response = await fetch(
+        `/api/items?communities=${communityIds}&includeWithRecipients=true`,
+      );
+      if (!response.ok) return [];
+      return response.json();
+    },
+  });
+
+  // Function to get fulfillment items for a specific wishlist
+  const getFulfillmentItemsForWishlist = (wishlistId: number) => {
+    return allItems.filter(
+      (item) =>
+        item.wishlistId === wishlistId && item.recipientId === user?.id
+    );
+  };
+
+  // Filter items that were created to fulfill wishlists
   const fulfilledWishlistItems = userItems.filter((item) => item.recipientId);
-  console.log("fulfilledWishlistItems", fulfilledWishlistItems);
+
 
   // Associate community names with wishlists
   const wishlistsWithCommunityNames = communityWishlists.map((wishlist) => {
@@ -239,42 +261,38 @@ export default function CommunityWishlists() {
             {selectedWishlist && user?.id === selectedWishlist.userId && (
               <div className="border-t pt-4">
                 <h4 className="font-medium mb-2">Offers</h4>
-                {fulfilledWishlistItems.filter(
-                  (item) => item.wishlistId === selectedWishlist.id,
-                ).length > 0 ? (
+                {getFulfillmentItemsForWishlist(selectedWishlist.id).length > 0 ? (
                   <div className="space-y-2">
-                    {fulfilledWishlistItems
-                      .filter((item) => item.wishlistId === selectedWishlist.id)
-                      .map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center gap-3 bg-muted/50 rounded-lg p-2"
-                        >
-                          <img
-                            src={item.imageUrl}
-                            alt={item.title}
-                            className="w-10 h-10 rounded object-cover"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate">
-                              {item.title}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {formatDate(item.createdAt)}
-                            </div>
+                    {getFulfillmentItemsForWishlist(selectedWishlist.id).map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center gap-3 bg-muted/50 rounded-lg p-2"
+                      >
+                        <img
+                          src={item.imageUrl}
+                          alt={item.title}
+                          className="w-10 h-10 rounded object-cover"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">
+                            {item.title}
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setDetailsDialogOpen(false);
-                              window.location.href = `/item/${item.id}`;
-                            }}
-                          >
-                            View Item
-                          </Button>
+                          <div className="text-sm text-muted-foreground">
+                            {formatDate(item.createdAt)}
+                          </div>
                         </div>
-                      ))}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setDetailsDialogOpen(false);
+                            window.location.href = `/item/${item.id}`;
+                          }}
+                        >
+                          View Item
+                        </Button>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <p className="text-muted-foreground">No offers yet</p>
