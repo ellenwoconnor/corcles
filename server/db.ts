@@ -156,7 +156,7 @@ async function migrate() {
         SELECT 1 FROM user_communities uc
         WHERE uc.user_id = u.id AND uc.community_id = c.id
       );
-    END $$;`
+    END $$;`,
   `CREATE TABLE IF NOT EXISTS notifications (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id),
