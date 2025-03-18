@@ -16,8 +16,12 @@ interface Notification {
   id: string;
   type: string;
   data: {
-    itemId: number;
-    itemTitle: string;
+    itemId?: number;
+    itemTitle?: string;
+    messageId?: string;
+    senderId?: string;
+    content?: string;
+    requestId?: string;
   };
   timestamp: number;
   read: boolean;
@@ -64,9 +68,16 @@ export default function NotificationCenter() {
 
       // Invalidate queries to refetch the updated data
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      
+
       // Navigate to the related item
-      setLocation(`/item/${notification.data.itemId}`);
+      const notificationData = notification.data as {
+        itemId?: number;
+        itemTitle?: string;
+      };
+
+      if (notificationData.itemId) {
+        setLocation(`/item/${notificationData.itemId}`);
+      }
     } catch (error) {
       console.error("Failed to handle notification click:", error);
     }
