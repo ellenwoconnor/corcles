@@ -1,7 +1,8 @@
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { type Wishlist } from "@shared/schema";
+import { type Wishlist, type ItemRequest } from "@shared/schema";
 import Navbar from "@/components/navbar";
+import { getRequestStatusVariant, formatRequestStatus } from "@/lib/request-utils";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import CreateWishlistDialog from "@/components/create-wishlist-dialog";
@@ -61,6 +62,16 @@ export default function RequestsPage() {
       queryKey: ["/api/user/wishlists"],
       enabled: !!user,
     });
+
+  const { data: userRequests = [] } = useQuery<(ItemRequest & { item: any })[]>({
+    queryKey: ["/api/user/requests"],
+    enabled: !!user,
+  });
+
+  const { data: userBids = [] } = useQuery<any[]>({
+    queryKey: ["/api/user/bids"],
+    enabled: !!user,
+  });
 
   // Get communities first to properly fetch items
   const { data: userCommunities = [] } = useQuery({
