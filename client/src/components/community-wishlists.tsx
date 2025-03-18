@@ -233,6 +233,46 @@ export default function CommunityWishlists() {
               </p>
             </div>
 
+            {/* Show fulfillment offers if user is creator */}
+            {selectedWishlist && user?.id === selectedWishlist.userId && (
+              <div className="border-t pt-4">
+                <h4 className="font-medium mb-2">Offers</h4>
+                {fulfilledWishlistItems.filter(item => item.wishlistId === selectedWishlist.id).length > 0 ? (
+                  <div className="space-y-2">
+                    {fulfilledWishlistItems
+                      .filter(item => item.wishlistId === selectedWishlist.id)
+                      .map(item => (
+                        <div key={item.id} className="flex items-center gap-3 bg-muted/50 rounded-lg p-2">
+                          <img
+                            src={item.imageUrl}
+                            alt={item.title}
+                            className="w-10 h-10 rounded object-cover"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">{item.title}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {formatDate(item.createdAt)}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setDetailsDialogOpen(false);
+                              window.location.href = `/item/${item.id}`;
+                            }}
+                          >
+                            View Item
+                          </Button>
+                        </div>
+                      ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No offers yet</p>
+                )}
+              </div>
+            )}
+
             <div className="border-t pt-4">
               <Button
                 disabled={
