@@ -21,6 +21,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ListChecks, Tag } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { formatDate } from "@/lib/utils";
 
 // Format time ago function
 function formatTimeAgo(date: Date): string {
