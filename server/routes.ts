@@ -341,6 +341,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data: message,
       };
 
+      // Get the item data from the request
+      const [itemRequest] = await db
+        .select({
+          itemId: schema.itemRequests.itemId,
+          itemTitle: schema.items.title
+        })
+        .from(schema.itemRequests)
+        .leftJoin(schema.items, eq(schema.itemRequests.itemId, schema.items.id))
+        .where(eq(schema.itemRequests.id, requestId))
+        .limit(1);
+
       // Create notification for recipient
       await db.insert(schema.notifications).values({
         userId: recipientId,
@@ -349,9 +360,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           messageId: message.id,
           senderId: req.user?.id,
           content: content.substring(0, 100), // First 100 chars of message
-          requestId: requestId
+          requestId: requestId,
+          itemId: itemRequest?.itemId,
+          itemTitle: itemRequest?.itemTitle
         },
       });
+
+      // Update notification payload with item data
+      notificationPayload.data = {
+        ...notificationPayload.data,
+        itemId: itemRequest?.itemId,
+        itemTitle: itemRequest?.itemTitle
+      };
 
       // Notify recipient
       sendSSEMessage(recipientId, notificationPayload);
