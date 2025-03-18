@@ -31,9 +31,9 @@ export default function NotificationCenter() {
     queryKey: ["notifications"],
     queryFn: async () => {
       const response = await apiRequest("GET", "/api/notifications");
-      console.log("Fetched notifications:", response);
-      // Ensure we return an array
-      return Array.isArray(response) ? response : [];
+      const data = await response.json();
+      console.log("Fetched notifications:", data);
+      return Array.isArray(data) ? data : [];
     },
   });
 
