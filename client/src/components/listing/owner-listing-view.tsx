@@ -102,6 +102,17 @@ export default function OwnerListingView({
             </div>
           )}
         </div>
+        {item.wishlistId && !hasRequests && (
+          <div className="border rounded-md p-4 bg-green-50 border-green-200 mb-4">
+            <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
+              {/* <UserCheck className="h-5 w-5 text-green-600" /> */}
+              <span>Wishlist Offer</span>
+            </h2>
+            <p className="text-sm mb-3">
+              You offered this item privately to fulfill a wishlist request.
+            </p>
+          </div>
+        )}
         {hasRequests && (
           <div className="border rounded-md p-4 bg-green-50 border-green-200 mb-4">
             <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
