@@ -136,7 +136,6 @@ export default function ProfilePage() {
 
         <Tabs defaultValue="requests">
           <TabsList className="mb-4">
-
             <TabsTrigger value="requests" className="flex items-center gap-2">
               <Gift className="h-4 w-4" />
               My Requests{" "}
@@ -152,10 +151,9 @@ export default function ProfilePage() {
             </TabsTrigger>
             <TabsTrigger value="wishlists" className="flex items-center gap-2">
               <ListChecks className="h-4 w-4" />
-              My Wishlists
+              My Wishlist
             </TabsTrigger>
           </TabsList>
-
 
           <TabsContent value="requests">
             <div className="grid gap-4">
