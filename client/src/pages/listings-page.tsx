@@ -83,7 +83,13 @@ export default function ListingsPage() {
                         </CardTitle>
                         {getStatusBadge(item.status)}
                       </div>
-                      <div className="text-sm text-muted-foreground mt-1">
+                      <div className="flex items-center gap-2 mt-1">
+                        {item.isGift ? (
+                          <span className="text-sm font-medium text-primary">Free</span>
+                        ) : (
+                          <span className="text-sm font-medium">${item.price}</span>
+                        )}
+                        <span className="text-sm text-muted-foreground">
                         {formatDistanceToNow(new Date(item.createdAt), {
                           addSuffix: true,
                         })}
