@@ -21,7 +21,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ListChecks, Tag } from "lucide-react";
-import ItemCard from "@/components/item-card";
 
 // Format time ago function
 function formatTimeAgo(date: Date): string {
@@ -266,20 +265,31 @@ export default function RequestsPage() {
                   </Card>
                 ) : (
                   userRequests.map((request) => (
-                    <div key={request.id} className="relative">
-                      <ItemCard item={request.item} />
-                      <Badge
-                        variant={getRequestStatusVariant(request.status)}
-                        className="absolute top-2 right-2 z-10"
-                      >
-                        {formatRequestStatus(request.status)}
-                      </Badge>
-                      <div className="absolute bottom-2 right-2 z-10">
-                        <p className="text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
-                          {formatTimeAgo(new Date(request.createdAt))}
-                        </p>
-                      </div>
-                    </div>
+                    <Card key={request.id}>
+                      <CardHeader className="py-3">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={request.item.imageUrl}
+                            alt={request.item.title}
+                            className="w-12 h-12 rounded object-cover"
+                          />
+                          <div>
+                            <h3 className="font-medium text-sm">
+                              {request.item.title}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {formatTimeAgo(new Date(request.createdAt))}
+                            </p>
+                          </div>
+                          <Badge
+                            variant={getRequestStatusVariant(request.status)}
+                            className="ml-auto"
+                          >
+                            {formatRequestStatus(request.status)}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                    </Card>
                   ))
                 )}
               </div>
