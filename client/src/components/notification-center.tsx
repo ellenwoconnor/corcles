@@ -93,7 +93,6 @@ export default function NotificationCenter() {
       <DropdownMenuContent align="end" className="w-[300px]">
         {notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center space-y-2 py-6">
-            <Bell className="h-8 w-8 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
               No new notifications
             </p>
@@ -109,7 +108,6 @@ export default function NotificationCenter() {
                 }`}
               >
                 <div className="flex items-center gap-2">
-                  <Bell className="h-4 w-4" />
                   <span>
                     You've been selected for {notification.data.itemTitle}!
                   </span>
