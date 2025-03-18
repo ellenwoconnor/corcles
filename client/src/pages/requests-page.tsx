@@ -355,39 +355,11 @@ export default function RequestsPage() {
                             variant={
 
 
-      {/* Wishlist Details Dialog */}
-      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent className="overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              {selectedWishlist?.title}
-              {selectedWishlist?.isPrivate && (
-                <Lock className="h-4 w-4 text-muted-foreground" />
-              )}
-            </DialogTitle>
-            <DialogDescription>
-              Posted {selectedWishlist && formatDate(selectedWishlist.createdAt)}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              {selectedWishlist?.budget && (
-                <Badge variant="outline">
-                  Budget: ${selectedWishlist.budget}
-                </Badge>
-              )}
-            </div>
-
-            <div className="border-t pt-4">
-              <h4 className="font-medium mb-2">Description</h4>
-              <p className="text-muted-foreground whitespace-pre-wrap">
-                {selectedWishlist?.description || "No description provided"}
-              </p>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <WishlistDetailsDialog
+        wishlist={selectedWishlist}
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+      />
 
                               bid.status === "accepted"
                                 ? "success"

@@ -22,6 +22,8 @@ import {
 import { Check, Clock, User, Lock } from "lucide-react";
 import FulfillWishlistDialog from "./fulfill-wishlist-dialog";
 import { motion } from "framer-motion"; //Import Framer Motion
+import WishlistDetailsDialog from "./wishlist-details-dialog"; // Import the shared component
+
 
 const FadeIn = ({ children, delay }) => {
   return (
@@ -203,123 +205,14 @@ export default function CommunityWishlists() {
       </div>
 
       {/* Wishlist Details Dialog */}
-      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent className="overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedWishlist?.title}
-              {selectedWishlist?.isPrivate && (
-                <Lock className="h-4 w-4 text-muted-foreground" />
-              )}
-            </DialogTitle>
-            <DialogDescription>
-              By {selectedWishlist?.userDisplayName || "Anonymous"} in{" "}
-              {selectedWishlist?.communityName}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-5 mt-2">
-            <div className="flex flex-wrap gap-2">
-              {selectedWishlist?.urgency && (
-                <Badge
-                  className={`${getUrgencyColor(selectedWishlist.urgency)} border`}
-                >
-                  {selectedWishlist.urgency.charAt(0).toUpperCase() +
-                    selectedWishlist.urgency.slice(1)}{" "}
-                  Priority
-                </Badge>
-              )}
-
-              {selectedWishlist?.budget && (
-                <Badge variant="outline">
-                  Budget: ${selectedWishlist.budget}
-                </Badge>
-              )}
-
-              <Badge variant="outline" className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Added {formatDate(selectedWishlist?.createdAt || "")}
-              </Badge>
-            </div>
-
-            <div className="border-t pt-4">
-              <h4 className="font-medium mb-2">Description</h4>
-              <p className="text-muted-foreground whitespace-pre-wrap">
-                {selectedWishlist?.description || "No description provided"}
-              </p>
-            </div>
-
-            {/* Show fulfillment offers if user is creator */}
-            {selectedWishlist && user?.id === selectedWishlist.userId && (
-              <div className="border-t pt-4">
-                <h4 className="font-medium mb-2">Offers Received</h4>
-                {getFulfillmentItemsForWishlist(selectedWishlist.id).length >
-                0 ? (
-                  <div className="space-y-2">
-                    {getFulfillmentItemsForWishlist(selectedWishlist.id).map(
-                      (item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center gap-3 bg-muted/50 rounded-lg p-2"
-                        >
-                          <img
-                            src={item.imageUrl}
-                            alt={item.title}
-                            className="w-10 h-10 rounded object-cover"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium truncate">
-                              {item.title}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {formatDate(item.createdAt)}
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setDetailsDialogOpen(false);
-                              window.location.href = `/item/${item.id}`;
-                            }}
-                          >
-                            View Item
-                          </Button>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">No offers yet</p>
-                )}
-              </div>
-            )}
-
-            <div className="border-t pt-4">
-              <Button
-                disabled={
-                  selectedWishlist
-                    ? userHasOfferedToFulfill(selectedWishlist.userId)
-                    : false
-                }
-                onClick={() => {
-                  setDetailsDialogOpen(false);
-                  if (selectedWishlist) {
-                    onFulfillWishlist(selectedWishlist);
-                  }
-                }}
-              >
-                {selectedWishlist &&
-                userHasOfferedToFulfill(selectedWishlist.userId) ? (
-                  "Already Fulfilled"
-                ) : (
-                  <>Fulfill This Wishlist</>
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <WishlistDetailsDialog
+        wishlist={selectedWishlist}
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        showFulfillButton={true}
+        onFulfill={() => selectedWishlist && onFulfillWishlist(selectedWishlist)}
+        userHasOfferedToFulfill={userHasOfferedToFulfill}
+      />
 
       {/* Fulfill Wishlist Dialog */}
       <FulfillWishlistDialog
