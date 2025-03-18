@@ -1,12 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import {
-  Loader2,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  Users,
-} from "lucide-react";
+import { Loader2 } from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -56,7 +50,7 @@ export default function ListingsPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="container py-12">
-        <h1 className="text-3xl font-bold mb-8">My Listings</h1>
+        <h1 className="text-2xl mb-8">My Listings</h1>
         <div className="grid gap-4">
           {!userItems || userItems.length === 0 ? (
             <Card>
@@ -79,7 +73,7 @@ export default function ListingsPage() {
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="text-lg">
+                        <CardTitle>
                           <Link
                             href={`/item/${item.id}`}
                             className="hover:underline truncate"
@@ -90,7 +84,9 @@ export default function ListingsPage() {
                         {getStatusBadge(item.status)}
                       </div>
                       <div className="text-sm text-muted-foreground mt-1">
-                        Listed {formatDistanceToNow(new Date(item.createdAt), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(item.createdAt), {
+                          addSuffix: true,
+                        })}
                       </div>
                       {item.pickupStart && (
                         <div className="mt-2 text-sm text-muted-foreground">
