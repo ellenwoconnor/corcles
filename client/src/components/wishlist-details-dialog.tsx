@@ -15,7 +15,8 @@ import { type Wishlist } from "@shared/schema";
 interface WishlistDetailsDialogProps {
   wishlist: Wishlist | null;
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onOpenChange?: (open: boolean) => void;
+  onClose?: () => void;
   showFulfillButton?: boolean;
   onFulfill?: () => void;
   userHasOfferedToFulfill?: (userId: number) => boolean;
@@ -30,7 +31,13 @@ export default function WishlistDetailsDialog({
   userHasOfferedToFulfill,
 }: WishlistDetailsDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog 
+      open={open} 
+      onOpenChange={(value) => {
+        if (!value && onClose) onClose();
+        if (onOpenChange) onOpenChange(value);
+      }}
+    >
       <DialogContent className="overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
