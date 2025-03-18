@@ -77,13 +77,14 @@ export default function CommunityWishlists() {
   });
 
   // Check if wishlist has already been fulfilled by the current user
-  const hasUserFulfilledWishlist = (wishlistUserId: number) => {
+  const hasUserFulfilledWishlist = (wishlist: Wishlist) => {
     // Check local state first
-    if (fulfilledWishlistUsers.includes(wishlistUserId)) {
+    if (fulfilledWishlistUsers.includes(wishlist.userId)) {
       return true;
     }
+    // Check if any item fulfills this specific wishlist
     return fulfilledWishlistItems.some(
-      (item) => item.recipientId === wishlistUserId,
+      (item) => item.wishlistId === wishlist.id && item.recipientId === wishlist.userId
     );
   };
 
