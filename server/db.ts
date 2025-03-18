@@ -157,6 +157,14 @@ async function migrate() {
         WHERE uc.user_id = u.id AND uc.community_id = c.id
       );
     END $$;`
+  `CREATE TABLE IF NOT EXISTS notifications (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      type TEXT NOT NULL,
+      data JSONB NOT NULL,
+      read BOOLEAN NOT NULL DEFAULT false,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )`,
   ];
 
   for (const migration of migrations) {
