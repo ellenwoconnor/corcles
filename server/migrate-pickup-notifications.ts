@@ -28,7 +28,7 @@ async function backfillPickupNotifications() {
           and(
             eq(schema.notifications.userId, item.userId),
             eq(schema.notifications.type, "pickup_scheduled"),
-            eq(schema.notifications.data.itemId, item.id)
+            sql`${schema.notifications.data}->>'itemId' = ${item.id.toString()}`
           )
         )
         .limit(1);
@@ -55,7 +55,7 @@ async function backfillPickupNotifications() {
             and(
               eq(schema.notifications.userId, item.recipientId),
               eq(schema.notifications.type, "pickup_scheduled"),
-              eq(schema.notifications.data.itemId, item.id)
+              sql`${schema.notifications.data}->>'itemId' = ${item.id.toString()}`
             )
           )
           .limit(1);
