@@ -352,19 +352,7 @@ export default function RequestsPage() {
                             </p>
                           </div>
                           <Badge
-                            variant={
-
-
-      <WishlistDetailsDialog
-        wishlist={selectedWishlist}
-        open={detailsDialogOpen}
-        onOpenChange={setDetailsDialogOpen}
-      />
-
-                              bid.status === "accepted"
-                                ? "success"
-                                : "secondary"
-                            }
+                            variant={bid.status === "accepted" ? "success" : "secondary"}
                             className="ml-auto"
                           >
                             {bid.status.charAt(0).toUpperCase() +
