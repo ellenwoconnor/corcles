@@ -159,7 +159,7 @@ export default function CommunityWishlists() {
               onClick={() => viewWishlistDetails(wishlist)}
             >
               <CardHeader className="pb-4 pt-4">
-                <CardTitle className="text-lg flex items-center gap-2">
+                <CardTitle className="font-semibold text-base mb-1 flex items-center gap-2">
                   {wishlist.title}
                   {wishlist.isPrivate && (
                     <Lock className="h-4 w-4 text-muted-foreground" />
