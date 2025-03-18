@@ -21,14 +21,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ListChecks, Tag } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { formatDate } from "@/lib/utils";
 
 // Format time ago function
 function formatTimeAgo(date: Date): string {
@@ -212,8 +204,8 @@ export default function RequestsPage() {
             <TabsContent value="wishlists">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {userWishlists.map((wishlist) => (
-                  <Card 
-                    key={wishlist.id} 
+                  <Card
+                    key={wishlist.id}
                     className="cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all"
                     onClick={() => handleWishlistClick(wishlist)}
                   >
@@ -284,10 +276,12 @@ export default function RequestsPage() {
                   </Card>
                 ) : (
                   userRequests.map((request) => (
-                    <Card 
+                    <Card
                       key={request.id}
                       className="cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all"
-                      onClick={() => window.location.href = `/item/${request.item.id}`}
+                      onClick={() =>
+                        (window.location.href = `/item/${request.item.id}`)
+                      }
                     >
                       <CardHeader className="py-3">
                         <div className="flex items-center gap-3">
@@ -331,10 +325,12 @@ export default function RequestsPage() {
                   </Card>
                 ) : (
                   userBids.map((bid) => (
-                    <Card 
+                    <Card
                       key={bid.id}
                       className="cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all"
-                      onClick={() => window.location.href = `/item/${bid.item.id}`}
+                      onClick={() =>
+                        (window.location.href = `/item/${bid.item.id}`)
+                      }
                     >
                       <CardHeader className="py-3">
                         <div className="flex items-center gap-3">
@@ -352,7 +348,11 @@ export default function RequestsPage() {
                             </p>
                           </div>
                           <Badge
-                            variant={bid.status === "accepted" ? "success" : "secondary"}
+                            variant={
+                              bid.status === "accepted"
+                                ? "success"
+                                : "secondary"
+                            }
                             className="ml-auto"
                           >
                             {bid.status.charAt(0).toUpperCase() +
