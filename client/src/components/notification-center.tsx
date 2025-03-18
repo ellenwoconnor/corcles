@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { Bell, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,12 +28,12 @@ export default function NotificationCenter() {
 
   // Fetch notifications using React Query
   const { data: notifications = [] } = useQuery({
-    queryKey: ['notifications'],
+    queryKey: ["notifications"],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/notifications');
-      console.log('Fetched notifications:', response);
+      const response = await apiRequest("GET", "/api/notifications");
+      console.log("Fetched notifications:", response);
       return Array.isArray(response) ? response : [];
-    }
+    },
   });
 
   useEffect(() => {
@@ -42,10 +42,10 @@ export default function NotificationCenter() {
 
     eventSource.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log('Received SSE message:', data);
+      console.log("Received SSE message:", data);
       if (data.type === "recipient_selected") {
         // Invalidate the notifications query to trigger a refetch
-        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        queryClient.invalidateQueries({ queryKey: ["notifications"] });
       }
     };
 
@@ -55,29 +55,28 @@ export default function NotificationCenter() {
   const handleNotificationClick = async (notification: Notification) => {
     if (notification.data.itemId) {
       try {
-        await apiRequest('POST', `/api/notifications/${notification.id}/acknowledge`);
+        await apiRequest(
+          "POST",
+          `/api/notifications/${notification.id}/acknowledge`,
+        );
 
         // Invalidate queries to refetch the updated data
-        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        queryClient.invalidateQueries({ queryKey: ["notifications"] });
 
         // Navigate to item
         setLocation(`/item/${notification.data.itemId}`);
       } catch (error) {
-        console.error('Failed to acknowledge notification:', error);
+        console.error("Failed to acknowledge notification:", error);
       }
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative"
-        >
+        <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge
@@ -104,7 +103,7 @@ export default function NotificationCenter() {
                 key={notification.id}
                 onClick={() => handleNotificationClick(notification)}
                 className={`flex items-center justify-between p-3 cursor-pointer hover:bg-accent rounded-sm ${
-                  notification.read ? 'opacity-50' : ''
+                  notification.read ? "opacity-50" : ""
                 }`}
               >
                 <div className="flex items-center gap-2">
