@@ -80,14 +80,9 @@ export default function CommunityWishlists() {
   // Function to get fulfillment items for a specific wishlist
   const getFulfillmentItemsForWishlist = (wishlistId: number) => {
     return allItems.filter(
-      (item) =>
-        item.wishlistId === wishlistId && item.recipientId === user?.id
+      (item) => item.wishlistId === wishlistId && item.recipientId === user?.id,
     );
   };
-
-  // Filter items that were created to fulfill wishlists
-  const fulfilledWishlistItems = userItems.filter((item) => item.recipientId);
-
 
   // Associate community names with wishlists
   const wishlistsWithCommunityNames = communityWishlists.map((wishlist) => {
@@ -99,15 +94,12 @@ export default function CommunityWishlists() {
   });
 
   // Check if wishlist has already been fulfilled by the current user
-  const hasUserFulfilledWishlist = (wishlist: Wishlist) => {
-    // Check local state first
-    if (fulfilledWishlistUsers.includes(wishlist.userId)) {
-      return true;
-    }
+  const userHasOfferedToFulfill = (wishlist: Wishlist) => {
+    // Filter items that were created to fulfill wishlists
+    const wishlistOffers = userItems.filter((item) => item.wishlistId);
+
     // Check if any item fulfills this specific wishlist
-    return fulfilledWishlistItems.some(
-      (item) => item.wishlistId === wishlist.id && item.recipientId === wishlist.userId
-    );
+    return wishlistOffers.some((item) => item.wishlistId === wishlist.id);
   };
 
   const onFulfillWishlist = async (wishlist: Wishlist) => {
@@ -198,7 +190,7 @@ export default function CommunityWishlists() {
               </CardHeader>
 
               <CardFooter className="pt-3 pb-3 flex items-center justify-between text-xs text-muted-foreground">
-                {hasUserFulfilledWishlist(wishlist.userId) && (
+                {userHasOfferedToFulfill(wishlist.userId) && (
                   <Badge variant="outline" className="text-xs">
                     <Check className="h-3 w-3 mr-1" />
                     Offer sent
@@ -260,39 +252,42 @@ export default function CommunityWishlists() {
             {/* Show fulfillment offers if user is creator */}
             {selectedWishlist && user?.id === selectedWishlist.userId && (
               <div className="border-t pt-4">
-                <h4 className="font-medium mb-2">Offers</h4>
-                {getFulfillmentItemsForWishlist(selectedWishlist.id).length > 0 ? (
+                <h4 className="font-medium mb-2">Offers Received</h4>
+                {getFulfillmentItemsForWishlist(selectedWishlist.id).length >
+                0 ? (
                   <div className="space-y-2">
-                    {getFulfillmentItemsForWishlist(selectedWishlist.id).map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center gap-3 bg-muted/50 rounded-lg p-2"
-                      >
-                        <img
-                          src={item.imageUrl}
-                          alt={item.title}
-                          className="w-10 h-10 rounded object-cover"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">
-                            {item.title}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {formatDate(item.createdAt)}
-                          </div>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setDetailsDialogOpen(false);
-                            window.location.href = `/item/${item.id}`;
-                          }}
+                    {getFulfillmentItemsForWishlist(selectedWishlist.id).map(
+                      (item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center gap-3 bg-muted/50 rounded-lg p-2"
                         >
-                          View Item
-                        </Button>
-                      </div>
-                    ))}
+                          <img
+                            src={item.imageUrl}
+                            alt={item.title}
+                            className="w-10 h-10 rounded object-cover"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium truncate">
+                              {item.title}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {formatDate(item.createdAt)}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setDetailsDialogOpen(false);
+                              window.location.href = `/item/${item.id}`;
+                            }}
+                          >
+                            View Item
+                          </Button>
+                        </div>
+                      ),
+                    )}
                   </div>
                 ) : (
                   <p className="text-muted-foreground">No offers yet</p>
@@ -304,7 +299,7 @@ export default function CommunityWishlists() {
               <Button
                 disabled={
                   selectedWishlist
-                    ? hasUserFulfilledWishlist(selectedWishlist.userId)
+                    ? userHasOfferedToFulfill(selectedWishlist.userId)
                     : false
                 }
                 onClick={() => {
@@ -315,7 +310,7 @@ export default function CommunityWishlists() {
                 }}
               >
                 {selectedWishlist &&
-                hasUserFulfilledWishlist(selectedWishlist.userId) ? (
+                userHasOfferedToFulfill(selectedWishlist.userId) ? (
                   "Already Fulfilled"
                 ) : (
                   <>Fulfill This Wishlist</>
