@@ -16,7 +16,9 @@ export default function Navbar() {
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-24 items-center px-8 justify-between"> {/* Added justify-between */}
+      <div className="container flex h-24 items-center px-8 justify-between">
+        {" "}
+        {/* Added justify-between */}
         <div className="mr-4">
           <Link href="/" className="mr-6 flex items-center">
             <span className="text-4xl uppercase tracking-wide">
@@ -24,21 +26,23 @@ export default function Navbar() {
             </span>
           </Link>
         </div>
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end"> {/* Added justify-between */}
+        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+          {" "}
+          {/* Added justify-between */}
           <div className="hidden md:flex md:items-center md:space-x-4">
             <Link href="/listings">
               <Button variant="ghost" className="flex items-center space-x-2">
                 <span>Listings</span>
               </Button>
             </Link>
+            <Link href="/requests">
+              <Button variant="ghost" className="flex items-center space-x-2">
+                <span>Requests</span>
+              </Button>
+            </Link>
             <Link href="/communities">
               <Button variant="ghost" className="flex items-center space-x-2">
                 <span>Communities</span>
-              </Button>
-            </Link>
-            <Link href="/wishlists">
-              <Button variant="ghost" className="flex items-center space-x-2">
-                <span>Wishlists</span>
               </Button>
             </Link>
           </div>
@@ -78,15 +82,15 @@ export default function Navbar() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/communities" className="flex items-center">
-                      <Users className="mr-2 h-4 w-4" />
-                      <span>Communities</span>
+                    <Link href="/requests" className="flex items-center">
+                      <Gift className="mr-2 h-4 w-4" />
+                      <span>Requests</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/wishlists" className="flex items-center">
-                      <Gift className="mr-2 h-4 w-4" />
-                      <span>Wishlists</span>
+                    <Link href="/communities" className="flex items-center">
+                      <Users className="mr-2 h-4 w-4" />
+                      <span>Communities</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => logoutMutation.mutate()}>

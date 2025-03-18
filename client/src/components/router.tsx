@@ -7,7 +7,7 @@ import ListingPage from "@/pages/listing-page";
 import ListingsPage from "@/pages/listings-page";
 import ProfilePage from "@/pages/profile-page";
 import CommunitiesPage from "@/pages/communities-page";
-import WishlistsPage from "@/pages/wishlists-page";
+import RequestsPage from "@/pages/requests-page";
 import S3TestComponent from "@/components/admin/s3-test";
 
 export function Router() {
@@ -18,7 +18,7 @@ export function Router() {
       <ProtectedRoute path="/item/:id" component={ListingPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/communities" component={CommunitiesPage} />
-      <ProtectedRoute path="/wishlists" component={WishlistsPage} />
+      <ProtectedRoute path="/requests" component={RequestsPage} />
       <Route path="/auth" component={AuthPage} />
       <ProtectedRoute path="/admin/s3-test" component={S3TestComponent} />
       <Route component={NotFound} />
