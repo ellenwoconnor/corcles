@@ -5,7 +5,6 @@ import { AuthProvider, useAuth } from "@/features/auth/hooks/use-auth";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { AddressCompletionDialog } from "./components/address-completion-dialog";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import NotificationCenter from "@/components/notification-center";
 import { Router } from "@/components/router";
 import { queryClient } from "./lib/queryClient";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -22,13 +21,13 @@ function ConfigurationError({ message }: { message: string }) {
 }
 
 function AppContent() {
-  const { needsAddressInfo, pendingGoogleUser, completeGoogleSignup } = useAuth();
+  const { needsAddressInfo, pendingGoogleUser, completeGoogleSignup } =
+    useAuth();
 
   return (
     <>
       <Router />
       <Toaster />
-      <NotificationCenter />
       {needsAddressInfo && pendingGoogleUser && (
         <AddressCompletionDialog
           open={needsAddressInfo}
@@ -48,7 +47,7 @@ const useClientConfig = () => {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const response = await fetch('/api/config');
+        const response = await fetch("/api/config");
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -80,7 +79,9 @@ export default function App() {
 
   if (error) {
     return (
-      <ConfigurationError message={`Failed to load application configuration: ${error}`} />
+      <ConfigurationError
+        message={`Failed to load application configuration: ${error}`}
+      />
     );
   }
 
