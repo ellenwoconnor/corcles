@@ -16,7 +16,7 @@ export default function Navbar() {
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-24 items-center px-8">
+      <div className="container flex h-24 items-center px-8 justify-between"> {/* Added justify-between */}
         <div className="mr-4">
           <Link href="/" className="mr-6 flex items-center">
             <span className="text-4xl uppercase tracking-wide">
@@ -24,7 +24,7 @@ export default function Navbar() {
             </span>
           </Link>
         </div>
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end"> {/* Added justify-between */}
           <div className="hidden md:flex md:items-center md:space-x-4">
             <Link href="/listings">
               <Button variant="ghost" className="flex items-center space-x-2">
