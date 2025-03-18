@@ -373,6 +373,7 @@ export default function RequestsPage() {
         open={detailsDialogOpen}
         onOpenChange={setDetailsDialogOpen}
         wishlist={selectedWishlist}
+        showFulfillButton={false}
       />
     </div>
   );
