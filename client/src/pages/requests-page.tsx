@@ -371,7 +371,7 @@ export default function RequestsPage() {
       </main>
       <WishlistDetailsDialog
         open={detailsDialogOpen}
-        onClose={() => setDetailsDialogOpen(false)}
+        onOpenChange={setDetailsDialogOpen}
         wishlist={selectedWishlist}
       />
     </div>
