@@ -55,21 +55,20 @@ export default function NotificationCenter() {
   }, [queryClient]);
 
   const handleNotificationClick = async (notification: Notification) => {
-    if (notification.data.itemId) {
-      try {
-        await apiRequest(
-          "POST",
-          `/api/notifications/${notification.id}/acknowledge`,
-        );
+    try {
+      // Acknowledge notification
+      await apiRequest(
+        "POST",
+        `/api/notifications/${notification.id}/acknowledge`,
+      );
 
-        // Invalidate queries to refetch the updated data
-        queryClient.invalidateQueries({ queryKey: ["notifications"] });
-        
-        // Navigate to item for all notifications
-        setLocation(`/item/${notification.data.itemId}`);
-      } catch (error) {
-        console.error("Failed to acknowledge notification:", error);
-      }
+      // Invalidate queries to refetch the updated data
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      
+      // Navigate to the related item
+      setLocation(`/item/${notification.data.itemId}`);
+    } catch (error) {
+      console.error("Failed to handle notification click:", error);
     }
   };
 
