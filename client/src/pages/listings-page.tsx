@@ -17,19 +17,6 @@ export default function ListingsPage() {
   });
 
   const getStatusBadge = (item: any) => {
-    // First check if item is fulfilling a wishlist
-    if (item.wishlistId) {
-      return (
-        <Badge
-          variant="outline"
-          className="text-center flex items-center gap-1 bg-green-50 text-green-700 border-green-200"
-        >
-          <Tag className="h-3 w-3" />
-          For {item.recipientDisplayName || "Someone's Wishlist"}
-        </Badge>
-      );
-    }
-
     // Otherwise show regular status
     switch (item.status) {
       case "available":
@@ -103,8 +90,9 @@ export default function ListingsPage() {
                     <img
                       src={item.imageUrl}
                       alt={item.title}
-                      className="w-16 h-16 rounded object-cover"
+                      className="w-20 h-20 rounded object-cover"
                     />
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <CardTitle>
@@ -117,7 +105,7 @@ export default function ListingsPage() {
                         </CardTitle>
                         {getStatusBadge(item)}
                       </div>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-4 mt-1">
                         {item.isGift ? (
                           <span className="text-sm font-medium text-primary">
                             Free
@@ -132,6 +120,14 @@ export default function ListingsPage() {
                             addSuffix: true,
                           })}
                         </span>
+                        {item.wishlistId && (
+                          <div className="flex items-center gap-1">
+                            <Tag className="h-3 w-3" />
+                            <span className="text-sm text-muted-foreground">
+                              Wishlist Offer
+                            </span>
+                          </div>
+                        )}
                       </div>
                       {item.pickupStart && (
                         <div className="mt-2 text-sm text-muted-foreground">
