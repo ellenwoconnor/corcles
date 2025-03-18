@@ -19,17 +19,17 @@ export default function ListingsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "available":
-        return <Badge variant="outline">Pending Requests</Badge>;
+        return <Badge variant="outline" className="text-center">Pending Requests</Badge>;
       case "requested":
-        return <Badge variant="default">Requests Received</Badge>;
+        return <Badge variant="default" className="text-center">Requests Received</Badge>;
       case "pending_pickup":
-        return <Badge variant="default">Pending Pickup</Badge>;
+        return <Badge variant="default" className="text-center">Pending Pickup</Badge>;
       case "delisted":
-        return <Badge className="bg-gray-400">Delisted</Badge>;
+        return <Badge className="bg-gray-400 text-center">Delisted</Badge>;
       case "scheduling":
-        return <Badge variant="default">Scheduling Pickup</Badge>;
+        return <Badge variant="default" className="text-center">Scheduling Pickup</Badge>;
       case "scheduled":
-        return <Badge variant="default">Pickup Scheduled</Badge>;
+        return <Badge variant="default" className="text-center">Pickup Scheduled</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
