@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import MessageDialog from "./message-dialog";
+import { MessageDialog } from "./message-dialog";
 import { useLocation } from "wouter";
 import { Bell, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
