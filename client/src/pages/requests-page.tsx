@@ -49,7 +49,7 @@ function formatTimeAgo(date: Date): string {
   return `${diffInYears} ${diffInYears === 1 ? "year" : "years"} ago`;
 }
 
-export default function WishlistsPage() {
+export default function RequestsPage() {
   const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
