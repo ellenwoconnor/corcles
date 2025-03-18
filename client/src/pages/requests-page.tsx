@@ -2,7 +2,10 @@ import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { type Wishlist, type ItemRequest } from "@shared/schema";
 import Navbar from "@/components/navbar";
-import { getRequestStatusVariant, formatRequestStatus } from "@/lib/request-utils";
+import {
+  getRequestStatusVariant,
+  formatRequestStatus,
+} from "@/lib/request-utils";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import CreateWishlistDialog from "@/components/create-wishlist-dialog";
@@ -63,10 +66,12 @@ export default function RequestsPage() {
       enabled: !!user,
     });
 
-  const { data: userRequests = [] } = useQuery<(ItemRequest & { item: any })[]>({
-    queryKey: ["/api/user/requests"],
-    enabled: !!user,
-  });
+  const { data: userRequests = [] } = useQuery<(ItemRequest & { item: any })[]>(
+    {
+      queryKey: ["/api/user/requests"],
+      enabled: !!user,
+    },
+  );
 
   const { data: userBids = [] } = useQuery<any[]>({
     queryKey: ["/api/user/bids"],
@@ -151,14 +156,7 @@ export default function RequestsPage() {
       <main className="container py-12 px-8">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-2xl tracking-tight">Wishlists</h1>
-            <p className="text-muted-foreground">
-              Keep track of items you're looking for and get notified about
-              matching listings.
-            </p>
-          </div>
-          <div>
-            <Button onClick={() => setDialogOpen(true)}>Add Item</Button>
+            <h1 className="text-2xl tracking-tight">My Requests</h1>
           </div>
         </div>
 
@@ -179,7 +177,10 @@ export default function RequestsPage() {
         ) : (
           <Tabs defaultValue="wishlists">
             <TabsList className="mb-4">
-              <TabsTrigger value="wishlists" className="flex items-center gap-2">
+              <TabsTrigger
+                value="wishlists"
+                className="flex items-center gap-2"
+              >
                 <ListChecks className="h-4 w-4" />
                 Wishlists
               </TabsTrigger>
@@ -196,56 +197,58 @@ export default function RequestsPage() {
             <TabsContent value="wishlists">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {userWishlists.map((wishlist) => (
-              <Card key={wishlist.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    {wishlist.title}
-                    {wishlist.isPrivate && (
-                      <Lock className="h-4 w-4 text-muted-foreground" />
-                    )}
-                  </CardTitle>
-                  <CardDescription>{wishlist.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {wishlist.budget && (
-                      <Badge variant="secondary">
-                        Budget: ${wishlist.budget}
-                      </Badge>
-                    )}
+                  <Card key={wishlist.id}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        {wishlist.title}
+                        {wishlist.isPrivate && (
+                          <Lock className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </CardTitle>
+                      <CardDescription>{wishlist.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {wishlist.budget && (
+                          <Badge variant="secondary">
+                            Budget: ${wishlist.budget}
+                          </Badge>
+                        )}
 
-                    {/* Check if this wishlist has fulfillment offers */}
-                    {getFulfillmentItemsForWishlist(wishlist.id).length > 0 && (
-                      <Badge
-                        variant="outline"
-                        className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"
-                      >
-                        <Gift className="h-3 w-3" />
-                        Offers Available
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Posted {formatTimeAgo(new Date(wishlist.createdAt))}
-                  </div>
+                        {/* Check if this wishlist has fulfillment offers */}
+                        {getFulfillmentItemsForWishlist(wishlist.id).length >
+                          0 && (
+                          <Badge
+                            variant="outline"
+                            className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"
+                          >
+                            <Gift className="h-3 w-3" />
+                            Offers Available
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Posted {formatTimeAgo(new Date(wishlist.createdAt))}
+                      </div>
 
-                  {/* Show view button for fulfilled wishlists */}
-                  {getFulfillmentItemsForWishlist(wishlist.id).length > 0 && (
-                    <div className="mt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs flex items-center gap-1"
-                        onClick={() => viewFulfillmentListing(wishlist.id)}
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                        View Offered Item
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                      {/* Show view button for fulfilled wishlists */}
+                      {getFulfillmentItemsForWishlist(wishlist.id).length >
+                        0 && (
+                        <div className="mt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs flex items-center gap-1"
+                            onClick={() => viewFulfillmentListing(wishlist.id)}
+                          >
+                            <ExternalLink className="h-3 w-3" />
+                            View Offered Item
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </TabsContent>
 
@@ -322,10 +325,15 @@ export default function RequestsPage() {
                             </p>
                           </div>
                           <Badge
-                            variant={bid.status === 'accepted' ? 'success' : 'secondary'}
+                            variant={
+                              bid.status === "accepted"
+                                ? "success"
+                                : "secondary"
+                            }
                             className="ml-auto"
                           >
-                            {bid.status.charAt(0).toUpperCase() + bid.status.slice(1)}
+                            {bid.status.charAt(0).toUpperCase() +
+                              bid.status.slice(1)}
                           </Badge>
                         </div>
                       </CardHeader>
@@ -336,8 +344,6 @@ export default function RequestsPage() {
             </TabsContent>
           </Tabs>
         )}
-
-        <CreateWishlistDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       </main>
     </div>
   );
