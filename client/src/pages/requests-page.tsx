@@ -374,6 +374,7 @@ export default function RequestsPage() {
         onOpenChange={setDetailsDialogOpen}
         wishlist={selectedWishlist}
         showFulfillButton={false}
+        currentUserId={user?.id}
       />
     </div>
   );

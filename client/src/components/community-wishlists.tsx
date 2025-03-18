@@ -212,6 +212,7 @@ export default function CommunityWishlists() {
         showFulfillButton={true}
         onFulfill={() => selectedWishlist && onFulfillWishlist(selectedWishlist)}
         userHasOfferedToFulfill={userHasOfferedToFulfill}
+        currentUserId={currentUserId}
       />
 
       {/* Fulfill Wishlist Dialog */}

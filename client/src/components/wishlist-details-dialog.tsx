@@ -20,6 +20,7 @@ interface WishlistDetailsDialogProps {
   showFulfillButton?: boolean;
   onFulfill?: () => void;
   userHasOfferedToFulfill?: (userId: number) => boolean;
+  currentUserId?: number;
 }
 
 export default function WishlistDetailsDialog({
@@ -29,7 +30,31 @@ export default function WishlistDetailsDialog({
   showFulfillButton,
   onFulfill,
   userHasOfferedToFulfill,
+  currentUserId,
 }: WishlistDetailsDialogProps) {
+  const { data: allItems = [] } = useQuery<any[]>({
+    queryKey: ["/api/items", wishlist?.id],
+    enabled: !!wishlist,
+    queryFn: async () => {
+      const response = await fetch(`/api/items?wishlistId=${wishlist?.id}`);
+      if (!response.ok) return [];
+      return response.json();
+    }
+  });
+
+  // Filter offers based on wishlist and user role
+  const relevantOffers = allItems.filter(item => {
+    if (!wishlist || !currentUserId) return false;
+    
+    // If current user is wishlist owner, show all offers
+    if (currentUserId === wishlist.userId) {
+      return item.wishlistId === wishlist.id;
+    }
+    
+    // If current user is offering, show only their offers
+    return item.wishlistId === wishlist.id && item.userId === currentUserId;
+  });
+
   return (
     <Dialog 
       open={open} 
@@ -67,6 +92,25 @@ export default function WishlistDetailsDialog({
               {wishlist?.description || "No description provided"}
             </p>
           </div>
+
+          {relevantOffers.length > 0 && (
+            <div className="border-t pt-4">
+              <h4 className="font-medium mb-2">Offers</h4>
+              <div className="space-y-2">
+                {relevantOffers.map((offer) => (
+                  <div key={offer.id} className="flex items-center gap-2 p-2 rounded border">
+                    <img src={offer.imageUrl} alt={offer.title} className="w-12 h-12 rounded object-cover" />
+                    <div>
+                      <div className="font-medium">{offer.title}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {currentUserId === wishlist?.userId ? `Offered by ${offer.userDisplayName}` : 'Your offer'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {showFulfillButton && (
             <div className="border-t pt-4">
