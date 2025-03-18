@@ -1,8 +1,18 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Loader2, Clock, CheckCircle, AlertTriangle, Users } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Loader2,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+  Users,
+} from "lucide-react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Navbar from "@/components/navbar";
 import { formatDistanceToNow } from "date-fns";
@@ -15,32 +25,19 @@ export default function ListingsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "available":
-        return <Badge className="bg-green-500">Available</Badge>;
+        return <Badge variant="outline">Pending Requests</Badge>;
+      case "requested":
+        return <Badge variant="default">Requests Received</Badge>;
       case "pending_pickup":
-        return <Badge variant="secondary">Pending Pickup</Badge>;
+        return <Badge variant="default">Pending Pickup</Badge>;
       case "delisted":
-        return <Badge variant="destructive">Delisted</Badge>;
+        return <Badge className="bg-gray-400">Delisted</Badge>;
       case "scheduling":
-        return <Badge className="bg-blue-500">Scheduling Pickup</Badge>;
+        return <Badge variant="default">Scheduling Pickup</Badge>;
       case "scheduled":
-        return <Badge className="bg-purple-500">Pickup Scheduled</Badge>;
+        return <Badge variant="default">Pickup Scheduled</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "available":
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case "pending_pickup":
-      case "scheduling":
-      case "scheduled":
-        return <Clock className="h-5 w-5 text-blue-500" />;
-      case "delisted":
-        return <AlertTriangle className="h-5 w-5 text-red-500" />;
-      default:
-        return null;
     }
   };
 
@@ -82,7 +79,6 @@ export default function ListingsPage() {
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        {getStatusIcon(item.status)}
                         <CardTitle className="text-lg">
                           <Link
                             href={`/item/${item.id}`}
@@ -93,20 +89,8 @@ export default function ListingsPage() {
                         </CardTitle>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>
-                          Listed {formatDistanceToNow(new Date(item.createdAt))} ago
-                        </span>
-                        •
+                        <span>Listed on {item.createdAt}</span>
                         {getStatusBadge(item.status)}
-                        {item.recipientId && (
-                          <>
-                            •
-                            <span className="flex items-center gap-1">
-                              <Users className="h-4 w-4" />
-                              Recipient selected
-                            </span>
-                          </>
-                        )}
                       </div>
                       {item.pickupStart && (
                         <div className="mt-2 text-sm text-muted-foreground">
