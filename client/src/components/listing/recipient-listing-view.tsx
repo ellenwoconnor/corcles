@@ -1,6 +1,6 @@
 import { Item, ItemRequest } from "@shared/schema";
 import { format } from "date-fns";
-import { Clock, MapPin } from "lucide-react";
+import { Clock, Check, MapPin } from "lucide-react";
 import PickupTimeSelector from "@/components/pickup-time-selector";
 import { MessageDialog } from "@/components/message-dialog";
 import { Button } from "@/components/ui/button";
@@ -98,7 +98,7 @@ export default function RecipientListingView({
               <p className="mb-3">Pickup confirmed for:</p>
               <div className="p-3 bg-secondary rounded-lg border border-border">
                 <div className="flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5" />
+                  <Check className="h-4 w-4 text-green-500" />
                   <span className="text-sm">
                     {format(new Date(item.pickupStart), "EEE, MMM d")} at{" "}
                     {format(new Date(item.pickupStart), "h:mm a")} -{" "}

@@ -1,7 +1,6 @@
 import { ItemRequest } from "@shared/schema";
-import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Clock, Pencil, MapPin, Trash2, UserCheck } from "lucide-react";
+import { Check, Clock, Pencil, MapPin, Trash2, UserCheck } from "lucide-react";
 import { EditListingDialog } from "@/components/edit-listing-dialog";
 import RequestsList from "@/components/requests-list";
 import BidsList from "@/components/bids-list";
@@ -158,7 +157,7 @@ export default function OwnerListingView({
               </h3>
               <div className="p-3 bg-secondary rounded-lg border border-border">
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
+                  <Check className="h-4 w-4 text-green-500" />
                   <span>
                     {format(new Date(item.pickupStart), "EEE, MMM d")} at{" "}
                     {format(new Date(item.pickupStart), "h:mm a")} -{" "}
