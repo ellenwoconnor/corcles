@@ -21,6 +21,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ListChecks, Tag } from "lucide-react";
+import WishlistDetailsDialog from "@/components/wishlist-details-dialog";
 
 // Format time ago function
 function formatTimeAgo(date: Date): string {
@@ -368,6 +369,11 @@ export default function RequestsPage() {
           </Tabs>
         )}
       </main>
+      <WishlistDetailsDialog
+        open={detailsDialogOpen}
+        onClose={() => setDetailsDialogOpen(false)}
+        wishlist={selectedWishlist}
+      />
     </div>
   );
 }
