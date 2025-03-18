@@ -18,17 +18,14 @@ export default function ListingsPage() {
 
   const getStatusBadge = (item: any) => {
     // First check if item is fulfilling a wishlist
-    if (item.wishlistId) {
-      return (
-        <Badge
-          variant="outline"
-          className="text-center flex items-center gap-1 bg-green-50 text-green-700 border-green-200"
-        >
-          <Tag className="h-3 w-3" />
-          For {item.recipientDisplayName || "Someone's Wishlist"}
-        </Badge>
-      );
-    }
+    if (item.wishlistId && item.recipient) {
+        return (
+          <Badge variant="outline" className="text-center flex items-center gap-1 bg-green-50 text-green-700 border-green-200">
+            <Gift className="h-3 w-3" />
+            For {item.recipient.displayName || "Someone's Wishlist"}
+          </Badge>
+        );
+      }
 
     // Otherwise show regular status
     switch (item.status) {
