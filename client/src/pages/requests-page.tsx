@@ -57,8 +57,9 @@ function formatTimeAgo(date: Date): string {
 
 export default function RequestsPage() {
   const { user } = useAuth();
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
+  const [selectedWishlist, setSelectedWishlist] = useState<any>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
   const { data: userWishlists = [], isLoading: isLoadingUserWishlists } =
     useQuery<Wishlist[]>({
