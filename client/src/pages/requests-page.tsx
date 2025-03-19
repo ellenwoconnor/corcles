@@ -210,24 +210,28 @@ export default function RequestsPage() {
                     className="cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all"
                     onClick={() => handleWishlistClick(wishlist)}
                   >
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        {wishlist.title}
-                        {wishlist.isPrivate && (
-                          <Lock className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </CardTitle>
-                      <CardDescription>{wishlist.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-wrap gap-2 mb-2">
+                    <CardHeader className="py-3"> {/* Added padding */}
+                      <div className="flex items-center gap-3"> {/* Adjusted gap */}
+                        <div className="flex-1">
+                          <h3 className="font-medium text-sm"> {/* Matched text size */}
+                            {wishlist.title}
+                            {wishlist.isPrivate && (
+                              <Lock className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mb-2"> {/* Matched text size and added margin */}
+                            {wishlist.description}
+                          </p>
+                          <p className="text-xs text-muted-foreground"> {/* Smaller text for time */}
+                            Posted {formatTimeAgo(new Date(wishlist.createdAt))}
+                          </p>
+                        </div>
+                        {/* Badges remain unchanged */}
                         {wishlist.budget && (
                           <Badge variant="secondary">
                             Budget: ${wishlist.budget}
                           </Badge>
                         )}
-
-                        {/* Check if this wishlist has fulfillment offers */}
                         {getFulfillmentItemsForWishlist(wishlist.id).length >
                           0 && (
                           <Badge
@@ -239,11 +243,8 @@ export default function RequestsPage() {
                           </Badge>
                         )}
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        Posted {formatTimeAgo(new Date(wishlist.createdAt))}
-                      </div>
 
-                      {/* Show view button for fulfilled wishlists */}
+                      {/* View button remains unchanged */}
                       {getFulfillmentItemsForWishlist(wishlist.id).length >
                         0 && (
                         <div className="mt-2">
@@ -258,7 +259,7 @@ export default function RequestsPage() {
                           </Button>
                         </div>
                       )}
-                    </CardContent>
+                    </CardHeader>
                   </Card>
                 ))}
               </div>

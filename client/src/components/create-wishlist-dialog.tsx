@@ -122,7 +122,7 @@ export default function CreateWishlistDialog({
       <DialogTrigger asChild>
         <Button>Post Item</Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[425px] max-h-[80vh] overflow-y-auto p-6">
         <DialogHeader>
           <DialogTitle>Create Wishlist Item</DialogTitle>
           <DialogDescription>Add an item you're looking for</DialogDescription>
