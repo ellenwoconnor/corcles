@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, ExternalLink } from "lucide-react";
+import { Loader2, ExternalLink, Users } from "lucide-react";
 import type { Wishlist } from "@shared/schema";
 import { useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
@@ -29,6 +29,28 @@ export default function WishlistDetailsDialog({
   currentUserId,
 }: WishlistDetailsDialogProps) {
   const [, setLocation] = useLocation();
+
+  // Query for community details
+  const { data: communityData } = useQuery({
+    queryKey: ["community", wishlist?.communityId],
+    enabled: !!wishlist?.communityId,
+    queryFn: async () => {
+      const response = await fetch(`/api/communities/${wishlist?.communityId}`);
+      if (!response.ok) return null;
+      return response.json();
+    }
+  });
+
+  // Query for user details
+  const { data: userData } = useQuery({
+    queryKey: ["user", wishlist?.userId],
+    enabled: !!wishlist?.userId,
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${wishlist?.userId}`);
+      if (!response.ok) return null;
+      return response.json();
+    }
+  });
 
   // Query for items related to this wishlist
   const { data: allItems = [], isLoading } = useQuery({
@@ -59,8 +81,17 @@ export default function WishlistDetailsDialog({
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">{wishlist.title}</DialogTitle>
-          <div className="text-sm text-muted-foreground">
-            Posted {formatDistanceToNow(new Date(wishlist.createdAt), { addSuffix: true })}
+          <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              <span>
+                Posted by {userData?.displayName || 'Anonymous'} in {communityData?.name || 'Unknown Community'}
+              </span>
+              <span>{communityData?.mascot || '🏠'}</span>
+            </div>
+            <span>
+              {formatDistanceToNow(new Date(wishlist.createdAt), { addSuffix: true })}
+            </span>
           </div>
         </DialogHeader>
 
