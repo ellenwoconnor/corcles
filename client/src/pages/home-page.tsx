@@ -15,6 +15,10 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import ItemCard from "@/components/item-card";
 import FadeIn from "@/components/fade-in";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import CreateWishlistDialog from "@/components/create-wishlist-dialog"; // Added import
 
 // Add 'use client' directive for Next.js strict mode
 ("use client");
@@ -24,6 +28,8 @@ export default function HomePage() {
   const [searchValue, setSearchValue] = useState("");
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [createWishlistDialogOpen, setCreateWishlistDialogOpen] =
+    useState(false); // Added state
   const debouncedSearchValue = useDebounce(searchValue, 300);
   const { data: userCommunities = [] } = useQuery<
     (Community & { role: string; memberCount: number })[]
@@ -72,7 +78,7 @@ export default function HomePage() {
                 Browse items in your communities
               </p>
             </div>
-            <div className="order-first sm:order-none">
+            <div className="sm:order-none">
               <CreateListingDialog communities={userCommunities} />
             </div>
           </div>
@@ -129,16 +135,22 @@ export default function HomePage() {
 
           <div className="mt-24">
             <FadeIn>
-              <div className="mt-10 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 my-8">
                 <div>
                   <FadeIn>
-                    <h2 className="text-2xl tracking-tight">
-                      Community Wishlists
-                    </h2>
+                    <h1 className="text-2xl tracking-tight">
+                      Community Wishlist
+                    </h1>
                   </FadeIn>
                   <p className="text-muted-foreground">
                     Items your neighbors are looking for
                   </p>
+                </div>
+                <div className="sm:order-none">
+                  <CreateWishlistDialog
+                    open={createWishlistDialogOpen}
+                    onOpenChange={setCreateWishlistDialogOpen}
+                  />
                 </div>
               </div>
             </FadeIn>
@@ -148,6 +160,11 @@ export default function HomePage() {
           </div>
         </div>
       </main>
+      <CreateWishlistDialog
+        open={createWishlistDialogOpen}
+        onOpenChange={setCreateWishlistDialogOpen}
+      />{" "}
+      {/* Added CreateWishlistDialog */}
     </div>
   );
 }

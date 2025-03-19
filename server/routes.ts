@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import * as schema from "@shared/schema";
 import { ITEM_STATUS, REQUEST_STATUS } from "@shared/constants";
 import { z } from "zod";
-import { eq, and, not, or, inArray } from "drizzle-orm";
+import { eq, and, not, or, inArray, desc } from "drizzle-orm";
 import { addDays, addHours, isBefore, isAfter } from "date-fns";
 import {
   insertItemBidSchema,
@@ -237,11 +237,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .select({
           ...schema.wishlists,
           userDisplayName: schema.users.displayName,
-          communityMascot: schema.communities.mascot
+          communityMascot: schema.communities.mascot,
         })
         .from(schema.wishlists)
         .leftJoin(schema.users, eq(schema.wishlists.userId, schema.users.id))
-        .leftJoin(schema.communities, eq(schema.wishlists.communityId, schema.communities.id))
+        .leftJoin(
+          schema.communities,
+          eq(schema.wishlists.communityId, schema.communities.id)
+        )
         .where(
           and(
             inArray(schema.wishlists.communityId, communityIds),
@@ -336,6 +339,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const notificationPayload = {
         type: "new_message",
         data: message,
+      };
+
+      // Get the item data from the request
+      const [itemRequest] = await db
+        .select({
+          itemId: schema.itemRequests.itemId,
+          itemTitle: schema.items.title
+        })
+        .from(schema.itemRequests)
+        .leftJoin(schema.items, eq(schema.itemRequests.itemId, schema.items.id))
+        .where(eq(schema.itemRequests.id, requestId))
+        .limit(1);
+
+      // Create notification for recipient
+      await db.insert(schema.notifications).values({
+        userId: recipientId,
+        type: "new_message",
+        data: {
+          messageId: message.id,
+          senderId: req.user?.id,
+          content: content.substring(0, 100), // First 100 chars of message
+          requestId: requestId,
+          itemId: itemRequest?.itemId,
+          itemTitle: itemRequest?.itemTitle
+        },
+      });
+
+      // Update notification payload with item data
+      notificationPayload.data = {
+        ...notificationPayload.data,
+        itemId: itemRequest?.itemId,
+        itemTitle: itemRequest?.itemTitle
       };
 
       // Notify recipient
@@ -872,6 +907,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
         .where(eq(schema.items.id, itemId));
 
+      // Create notification for the recipient
+      await db.insert(schema.notifications).values({
+        userId: winningRequest.requesterId,
+        type: "recipient_selected",
+        data: {
+          itemId: itemId,
+          itemTitle: item.title
+        },
+      });
+
+      // Send SSE notification
+      sendSSEMessage(winningRequest.requesterId, {
+        type: "recipient_selected",
+        data: {
+          itemId: itemId,
+          title: item.title
+        }
+      });
+
+
       for (const request of requests) {
         await storage.updateItemRequestStatus(
           request.id,
@@ -937,7 +992,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (
         !Array.isArray(proposedPickupWindows) ||
-        proposedPickupWindows.length === 0 ||
+        proposedPickupWindows.length ===0 ||
         proposedPickupWindows.length > 10
       ) {
         return res
@@ -1138,6 +1193,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .where(eq(schema.wishlists.id, parseInt(wishlistId.toString())))
           .limit(1);
         
+
         if (wishlist.length > 0) {
           validWishlistId = parseInt(wishlistId.toString());
         }
@@ -1151,6 +1207,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           wishlistId: validWishlistId,
         })
         .where(eq(schema.items.id, itemId));
+
+      // Send notification to recipient
+      const notificationPayload = {
+        type: "recipient_selected",
+        data: {
+          itemId,
+          title: item.title
+        },
+      };
+
+      if (recipientId) {
+        sendSSEMessage(recipientId, notificationPayload);
+      }
 
       logger.info("Set recipient for item:", {
         itemId,
@@ -1777,7 +1846,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Add SSE endpoint
-  //This line was already in the edited code, no need to add it again
+  // Get user notifications
+  app.get("/api/notifications", requireAuth, async (req, res) => {
+    try {
+      logger.debug("Fetching notifications for user:", { userId: req.user?.id });
+
+      const notifications = await db
+        .select()
+        .from(schema.notifications)
+        .where(eq(schema.notifications.userId, req.user.id))
+        .orderBy(desc(schema.notifications.createdAt));
+
+      logger.debug("Found notifications:", { count: notifications.length });
+
+      res.json(notifications.map(notification => ({
+        id: notification.id.toString(),
+        type: notification.type,
+        data: notification.data,
+        timestamp: new Date(notification.createdAt).getTime(),
+        read: notification.read
+      })));
+    } catch (error) {
+      logger.error("Error fetching notifications:", error);
+      res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
+  // Mark notification as read
+  app.post("/api/notifications/:id/acknowledge", requireAuth, async (req, res) => {
+    try {
+      const notificationId = parseInt(req.params.id);
+      if (isNaN(notificationId)) {
+        return res.status(400).json({ error: "Invalid notification ID" });
+      }
+
+      await db
+        .update(schema.notifications)
+        .set({ read: true })
+        .where(
+          and(
+            eq(schema.notifications.id, notificationId),
+            eq(schema.notifications.userId, req.user.id)
+          )
+        );
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Error acknowledging notification:", error);
+      res.status(500).json({ error: "Failed to acknowledge notification" });
+    }
+  });
 
   app.delete("/api/items/:id", requireAuth, async (req, res) => {
     try {
@@ -1868,6 +1986,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: req.user?.id 
       });
       
+
       res.json({ success: true });
     } catch (error) {
       logger.error("Error delisting item:", error);

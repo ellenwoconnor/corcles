@@ -1,7 +1,6 @@
 import { ItemRequest } from "@shared/schema";
-import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Clock, Pencil, MapPin, Trash2, UserCheck } from "lucide-react";
+import { Check, Clock, Pencil, MapPin, Trash2, UserCheck } from "lucide-react";
 import { EditListingDialog } from "@/components/edit-listing-dialog";
 import RequestsList from "@/components/requests-list";
 import BidsList from "@/components/bids-list";
@@ -103,6 +102,17 @@ export default function OwnerListingView({
             </div>
           )}
         </div>
+        {item.wishlistId && !hasRequests && (
+          <div className="border rounded-md p-4 bg-green-50 border-green-200 mb-4">
+            <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
+              {/* <UserCheck className="h-5 w-5 text-green-600" /> */}
+              <span>Wishlist Offer</span>
+            </h2>
+            <p className="text-sm mb-3">
+              You offered this item privately to fulfill a wishlist request.
+            </p>
+          </div>
+        )}
         {hasRequests && (
           <div className="border rounded-md p-4 bg-green-50 border-green-200 mb-4">
             <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
@@ -158,7 +168,7 @@ export default function OwnerListingView({
               </h3>
               <div className="p-3 bg-secondary rounded-lg border border-border">
                 <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
+                  <Check className="h-4 w-4 text-green-500" />
                   <span>
                     {format(new Date(item.pickupStart), "EEE, MMM d")} at{" "}
                     {format(new Date(item.pickupStart), "h:mm a")} -{" "}
