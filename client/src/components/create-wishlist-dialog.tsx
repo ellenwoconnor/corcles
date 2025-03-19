@@ -241,12 +241,11 @@ export default function CreateWishlistDialog({
               control={form.control}
               name="isPrivate"
               render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-0.5">
+                <FormItem className="flex items-center justify-between rounded-lg border p-4 gap-2">
+                  <div className="space-y-2">
                     <FormLabel>Private Wishlist Item</FormLabel>
                     <FormDescription>
-                      Notify me about matches, but don't post it to the
-                      community.
+                      Notify me about matches, but don't post to the community.
                     </FormDescription>
                   </div>
                   <FormControl>
