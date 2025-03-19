@@ -25,8 +25,20 @@ import EmptyMarketplace from "@/components/empty-marketplace";
 ("use client");
 
 export default function HomePage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [searchValue, setSearchValue] = useState("");
+
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
   const [showFreeOnly, setShowFreeOnly] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() => {
     // Show welcome dialog if user hasn't seen it before
