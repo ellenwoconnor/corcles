@@ -152,7 +152,7 @@ export default function WishlistDetailsDialog({
             </div>
           ) : (
             <>
-              {relevantOffers.length > 0 && (
+              {relevantOffers.length > 0 ? (
                 <div className="space-y-4">
                   <h3 className="font-medium text-lg">Offers</h3>
                   <div className="space-y-3">
@@ -185,7 +185,7 @@ export default function WishlistDetailsDialog({
                     ))}
                   </div>
                 </div>
-              )}
+              ) : null}
             </>
           )}
 
