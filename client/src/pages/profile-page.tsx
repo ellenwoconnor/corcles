@@ -78,7 +78,7 @@ export default function ProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold">{listedItems}</div>
+              <div className="text-2xl">{listedItems}</div>
             </CardContent>
           </Card>
 
@@ -90,7 +90,7 @@ export default function ProfilePage() {
               <CardTitle className="text-sm font-medium">Items Given</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold">{completedItems}</div>
+              <div className="text-2xl">{completedItems}</div>
             </CardContent>
           </Card>
 
@@ -99,10 +99,12 @@ export default function ProfilePage() {
               <Users className="h-8 w-8 text-muted-foreground" />
             </div>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Users Invited</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Users Invited
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold">{invitedUsers.count || 0}</div>
+              <div className="text-2xl">{invitedUsers.count || 0}</div>
             </CardContent>
           </Card>
 
@@ -116,7 +118,7 @@ export default function ProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold">
+              <div className="text-2xl">
                 {new Date(user.createdAt).toLocaleDateString()}
               </div>
             </CardContent>
