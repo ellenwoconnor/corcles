@@ -9,6 +9,7 @@ import { CancelButton } from "@/components/cancel-button";
 import { useQuery } from "@tanstack/react-query";
 import BaseListingView from "./base-listing-view";
 import { UserCheck } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 
 interface RecipientListingViewProps {
   item: Item & { userHasFavorited?: boolean };
@@ -23,7 +24,9 @@ export default function RecipientListingView({
   currentUserId,
   onScheduled,
 }: RecipientListingViewProps) {
-  const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+  const showMessages = searchParams.get('showMessages') === 'true';
+  const [messageDialogOpen, setMessageDialogOpen] = useState(showMessages);
   const [setSchedulingComplete] = useState(false);
 
   // Only show pickup scheduler if we have a valid request in the right status
