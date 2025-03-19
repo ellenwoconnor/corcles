@@ -37,8 +37,10 @@ export default function ProfilePage() {
     );
   }
 
-  const listedItems = userItems?.filter(i => i.status === 'available')?.length || 0;
-  const completedItems = userItems?.filter(i => i.status === 'completed')?.length || 0;
+  const listedItems =
+    userItems?.filter((i) => i.status === "available")?.length || 0;
+  const completedItems =
+    userItems?.filter((i) => i.status === "completed")?.length || 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -63,31 +65,35 @@ export default function ProfilePage() {
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Listings</CardTitle>
-              <Tag className="h-4 w-4 text-muted-foreground"/>
+              <CardTitle className="text-sm font-medium">
+                Active Listings
+              </CardTitle>
+              <Tag className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{listedItems}</div>
+              <div className="text-2xl">{listedItems}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Items Given</CardTitle>
-              <Gift className="h-4 w-4 text-muted-foreground"/>
+              <Gift className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{completedItems}</div>
+              <div className="text-2xl">{completedItems}</div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Member Since</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground"/>
+              <CardTitle className="text-sm font-medium">
+                Member Since
+              </CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl">
                 {new Date(user.createdAt).toLocaleDateString()}
               </div>
             </CardContent>
