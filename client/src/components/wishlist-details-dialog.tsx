@@ -1,17 +1,11 @@
-
-import { Lock } from "lucide-react";
+import React from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { formatDate } from "@/lib/utils";
-import { type Wishlist } from "@shared/schema";
+import { formatTimeAgo } from "@/lib/utils";
+import { useQuery } from '@tanstack/react-query';
+import { Loader2 } from "lucide-react";
+import type { Wishlist } from "@shared/schema";
 
 interface WishlistDetailsDialogProps {
   wishlist: Wishlist | null;
@@ -33,11 +27,11 @@ export default function WishlistDetailsDialog({
   userHasOfferedToFulfill,
   currentUserId,
 }: WishlistDetailsDialogProps) {
-  const { data: allItems = [] } = useQuery<any[]>({
-    queryKey: ["/api/items", wishlist?.id],
+  const { data: allItems = [], isLoading } = useQuery<any[]>({
+    queryKey: ["items", wishlist?.id],
     enabled: !!wishlist,
     queryFn: async () => {
-      const response = await fetch(`/api/items?wishlistId=${wishlist?.id}`);
+      const response = await fetch(`/api/items?communities=${wishlist?.communityId}&includeWithRecipients=true`);
       if (!response.ok) return [];
       return response.json();
     }
@@ -46,95 +40,78 @@ export default function WishlistDetailsDialog({
   // Filter offers based on wishlist and user role
   const relevantOffers = allItems.filter(item => {
     if (!wishlist || !currentUserId) return false;
-    
+
     // If current user is wishlist owner, show all offers
     if (currentUserId === wishlist.userId) {
       return item.wishlistId === wishlist.id;
     }
-    
+
     // If current user is offering, show only their offers
     return item.wishlistId === wishlist.id && item.userId === currentUserId;
   });
 
+  if (!wishlist) return null;
+
   return (
-    <Dialog 
-      open={open} 
-      onOpenChange={(value) => {
-        if (onOpenChange) onOpenChange(value);
-      }}
-    >
-      <DialogContent className="overflow-y-auto">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {wishlist?.title}
-            {wishlist?.isPrivate && (
-              <Lock className="h-4 w-4 text-muted-foreground" />
-            )}
-          </DialogTitle>
-          <DialogDescription>
-            {wishlist?.userDisplayName && `By ${wishlist.userDisplayName} `}
-            {wishlist?.communityName && `in ${wishlist.communityName}`}
-            <div>Posted {wishlist && formatDate(wishlist.createdAt)}</div>
-          </DialogDescription>
+          <DialogTitle>{wishlist.title}</DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {wishlist?.budget && (
-              <Badge variant="outline">
-                Budget: ${wishlist.budget}
-              </Badge>
+          <div>
+            {wishlist.description && (
+              <p className="text-sm text-muted-foreground mt-2">{wishlist.description}</p>
             )}
+            <div className="flex gap-2 mt-3">
+              {wishlist.budget && (
+                <Badge variant="secondary">Budget: ${wishlist.budget}</Badge>
+              )}
+              <Badge variant="secondary">Added {formatTimeAgo(new Date(wishlist.createdAt))}</Badge>
+            </div>
           </div>
 
-          <div className="border-t pt-4">
-            <h4 className="font-medium mb-2">Description</h4>
-            <p className="text-muted-foreground whitespace-pre-wrap">
-              {wishlist?.description || "No description provided"}
-            </p>
-          </div>
-
-          {relevantOffers.length > 0 && (
-            <div className="border-t pt-4">
-              <h4 className="font-medium mb-2">Offers</h4>
-              <div className="space-y-2">
-                {relevantOffers.map((offer) => (
-                  <div key={offer.id} className="flex items-center gap-2 p-2 rounded border">
-                    <img src={offer.imageUrl} alt={offer.title} className="w-12 h-12 rounded object-cover" />
-                    <div>
-                      <div className="font-medium">{offer.title}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {currentUserId === wishlist?.userId ? `Offered by ${offer.userDisplayName}` : 'Your offer'}
+          {isLoading ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : (
+            <>
+              {relevantOffers.length > 0 && (
+                <div className="border-t pt-4">
+                  <h4 className="font-medium mb-2">
+                    {currentUserId === wishlist.userId ? 'Offers Received' : 'Your Offers'}
+                  </h4>
+                  <div className="space-y-2">
+                    {relevantOffers.map((offer) => (
+                      <div key={offer.id} className="flex items-center gap-3 p-3 rounded-lg border">
+                        <img src={offer.imageUrl} alt={offer.title} className="w-16 h-16 rounded object-cover" />
+                        <div className="flex-1">
+                          <div className="font-medium">{offer.title}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {currentUserId === wishlist.userId ? 
+                              `Offered by ${offer.userDisplayName}` : 
+                              'Your offer'}
+                          </div>
+                          {offer.pickupStart && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Pickup scheduled for {new Date(offer.pickupStart).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                </div>
+              )}
 
-          {showFulfillButton && (
-            <div className="border-t pt-4">
-              <Button
-                disabled={
-                  wishlist &&
-                  userHasOfferedToFulfill?.(wishlist.userId)
-                }
-                onClick={() => {
-                  onOpenChange(false);
-                  if (wishlist && onFulfill) {
-                    onFulfill();
-                  }
-                }}
-              >
-                {wishlist &&
-                userHasOfferedToFulfill?.(wishlist.userId) ? (
-                  "Already Fulfilled"
-                ) : (
-                  <>Fulfill This Wishlist</>
-                )}
-              </Button>
-            </div>
+              {showFulfillButton && !userHasOfferedToFulfill?.(currentUserId || 0) && (
+                <div className="flex justify-end pt-4">
+                  <Button onClick={onFulfill}>Fulfill This Wishlist</Button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </DialogContent>
