@@ -22,6 +22,7 @@ export const users = pgTable("users", {
   address: text("address").notNull(),
   zipCode: text("zip_code").notNull(),
   email: text("email").notNull().unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const communities = pgTable("communities", {
