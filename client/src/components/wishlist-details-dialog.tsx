@@ -127,22 +127,6 @@ export default function WishlistDetailsDialog({
             </p>
           </div>
 
-          {/* Details */}
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            {wishlist.budget && (
-              <div>
-                <span className="text-muted-foreground">Budget:</span>
-                <span className="ml-2">${wishlist.budget}</span>
-              </div>
-            )}
-            {wishlist.urgency && (
-              <div>
-                <span className="text-muted-foreground">Priority:</span>
-                <span className="ml-2 capitalize">{wishlist.urgency}</span>
-              </div>
-            )}
-          </div>
-
           {/* Offers Section */}
           {isLoading ? (
             <div className="flex justify-center py-8">
@@ -190,9 +174,9 @@ export default function WishlistDetailsDialog({
           {/* Action Buttons */}
           {showFulfillButton &&
             !userHasOfferedToFulfill?.(currentUserId || 0) && (
-              <div className="flex justify-end pt-4">
+              <div className="flex justify-end pt-2">
                 <Button onClick={onFulfill} className="w-full sm:w-auto">
-                  Fulfill This Wishlist
+                  Offer to Fulfill
                 </Button>
               </div>
             )}
