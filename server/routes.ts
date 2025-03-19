@@ -1667,6 +1667,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...parseResult.data,
             email,
             password: hashedPassword,
+            createdAt: new Date(),
           })
           .returning();
 
