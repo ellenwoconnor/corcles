@@ -75,8 +75,26 @@ export default function WishlistDetailsDialog({
                 {relevantOffers.length > 0 ? (
                   <ul className="space-y-2">
                     {relevantOffers.map(item => (
-                      <li key={item.id} className="text-sm">
-                        {item.title}
+                      <li 
+                        key={item.id} 
+                        className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
+                        onClick={() => window.location.href = `/items/${item.id}`}
+                      >
+                        {item.imageUrl && (
+                          <img 
+                            src={item.imageUrl} 
+                            alt={item.title} 
+                            className="w-12 h-12 rounded object-cover"
+                          />
+                        )}
+                        <div>
+                          <div className="font-medium">{item.title}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {currentUserId === wishlist.userId ? 
+                              `Offered by ${item.userDisplayName}` : 
+                              'Your offer'}
+                          </div>
+                        </div>
                       </li>
                     ))}
                   </ul>
