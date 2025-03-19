@@ -68,51 +68,55 @@ export default function ProfilePage() {
         </div>
 
         <div className="grid gap-4 grid-cols-2">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="text-center">
+            <div className="pt-6 flex justify-center">
+              <Tag className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">
                 Active Listings
               </CardTitle>
-              <Tag className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl">{listedItems}</div>
+              <div className="text-2xl font-semibold">{listedItems}</div>
             </CardContent>
           </Card>
 
-          <Card>
-            <div className="pt-6">
-              <Gift className="h-5 w-5 text-muted-foreground" />
+          <Card className="text-center">
+            <div className="pt-6 flex justify-center">
+              <Gift className="h-8 w-8 text-muted-foreground" />
             </div>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Items Given</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl">{completedItems}</div>
+              <div className="text-2xl font-semibold">{completedItems}</div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Users Invited
-              </CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
+          <Card className="text-center">
+            <div className="pt-6 flex justify-center">
+              <Users className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Users Invited</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl">{invitedUsers.count || 0}</div>
+              <div className="text-2xl font-semibold">{invitedUsers.count || 0}</div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="text-center">
+            <div className="pt-6 flex justify-center">
+              <Clock className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">
                 Member Since
               </CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl">
+              <div className="text-2xl font-semibold">
                 {new Date(user.createdAt).toLocaleDateString()}
               </div>
             </CardContent>
