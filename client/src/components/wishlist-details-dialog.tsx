@@ -36,13 +36,15 @@ export default function WishlistDetailsDialog({
     }
   });
 
+  // Filter offers based on wishlist and user role
   const relevantOffers = allItems.filter(item => {
     if (!wishlist || !currentUserId) return false;
 
-    if (currentUserId === wishlist.userId) {
-      return item.wishlistId === wishlist.id;
-    }
-    return item.wishlistId === wishlist.id && item.userId === currentUserId;
+    // Show only if:
+    // 1. User is the wishlist owner and this is an offer for their wishlist
+    // 2. User is the one who made the offer
+    return item.wishlistId === wishlist.id && 
+           (currentUserId === wishlist.userId || currentUserId === item.userId);
   });
 
   if (!wishlist) return null;
