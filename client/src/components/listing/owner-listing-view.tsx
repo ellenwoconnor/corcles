@@ -11,7 +11,7 @@ import { useState } from "react";
 import { CancelButton } from "@/components/cancel-button";
 import { ExtendedItem } from "@/pages/listing-page";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, useSearchParams } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Item, ItemBid } from "@shared/schema";
 import BaseListingView from "./base-listing-view";
@@ -33,7 +33,9 @@ export default function OwnerListingView({
   bids = [],
   currentUserId,
 }: OwnerListingViewProps) {
-  const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+  const showMessages = searchParams.get('showMessages') === 'true';
+  const [messageDialogOpen, setMessageDialogOpen] = useState(showMessages);
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const { toast } = useToast();
