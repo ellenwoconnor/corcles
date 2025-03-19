@@ -18,7 +18,8 @@ import FadeIn from "@/components/fade-in";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import CreateWishlistDialog from "@/components/create-wishlist-dialog"; // Added import
+import CreateWishlistDialog from "@/components/create-wishlist-dialog";
+import EmptyMarketplace from "@/components/empty-marketplace";
 
 // Add 'use client' directive for Next.js strict mode
 ("use client");
@@ -116,8 +117,8 @@ export default function HomePage() {
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
               ) : items.length === 0 ? (
-                <Card className="p-6 text-center border-none">
-                  <p>No items found in your communities.</p>
+                <Card className="p-6 border-none">
+                  <EmptyMarketplace />
                 </Card>
               ) : (
                 <FadeIn delay={0.1}>
