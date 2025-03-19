@@ -119,9 +119,7 @@ export default function ProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-semibold">
-                {formatDate(user.createdAt)}
-              </div>
+              <div className="text-2xl">{formatDate(user.createdAt)}</div>
             </CardContent>
           </Card>
         </div>
