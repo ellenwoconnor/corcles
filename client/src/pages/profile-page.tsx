@@ -3,13 +3,18 @@ import { useQuery } from "@tanstack/react-query";
 import { Item } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Gift, Tag, Clock } from "lucide-react";
+import { Loader2, Gift, Tag, Clock, Users } from "lucide-react";
 
 export default function ProfilePage() {
   const { user } = useAuth();
 
   const { data: userItems, isLoading: itemsLoading } = useQuery<Item[]>({
     queryKey: ["/api/user/items"],
+    enabled: !!user,
+  });
+
+  const { data: invitedUsers = [] } = useQuery<{ count: number }>({
+    queryKey: ["/api/user/invites/count"],
     enabled: !!user,
   });
 
@@ -82,6 +87,16 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl">{completedItems}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Users Invited</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl">{invitedUsers.count || 0}</div>
             </CardContent>
           </Card>
 
