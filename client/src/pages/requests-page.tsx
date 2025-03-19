@@ -13,7 +13,6 @@ import { Loader2, Lock, Eye, Gift, ExternalLink } from "lucide-react";
 import { useLocation } from "wouter";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -210,19 +209,29 @@ export default function RequestsPage() {
                     className="cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all"
                     onClick={() => handleWishlistClick(wishlist)}
                   >
-                    <CardHeader className="py-3"> {/* Added padding */}
-                      <div className="flex items-center gap-3"> {/* Adjusted gap */}
+                    <CardHeader className="py-3">
+                      {" "}
+                      {/* Added padding */}
+                      <div className="flex items-center gap-3">
+                        {" "}
+                        {/* Adjusted gap */}
                         <div className="flex-1">
-                          <h3 className="font-medium text-sm"> {/* Matched text size */}
+                          <h3 className="font-medium text-sm">
+                            {" "}
+                            {/* Matched text size */}
                             {wishlist.title}
                             {wishlist.isPrivate && (
                               <Lock className="h-4 w-4 text-muted-foreground" />
                             )}
                           </h3>
-                          <p className="text-sm text-muted-foreground mb-2"> {/* Matched text size and added margin */}
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {" "}
+                            {/* Matched text size and added margin */}
                             {wishlist.description}
                           </p>
-                          <p className="text-xs text-muted-foreground"> {/* Smaller text for time */}
+                          <p className="text-xs text-muted-foreground">
+                            {" "}
+                            {/* Smaller text for time */}
                             Posted {formatTimeAgo(new Date(wishlist.createdAt))}
                           </p>
                         </div>
@@ -243,22 +252,6 @@ export default function RequestsPage() {
                           </Badge>
                         )}
                       </div>
-
-                      {/* View button remains unchanged */}
-                      {getFulfillmentItemsForWishlist(wishlist.id).length >
-                        0 && (
-                        <div className="mt-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs flex items-center gap-1"
-                            onClick={() => viewFulfillmentListing(wishlist.id)}
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                            View Offered Item
-                          </Button>
-                        </div>
-                      )}
                     </CardHeader>
                   </Card>
                 ))}
