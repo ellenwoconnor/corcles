@@ -1,11 +1,12 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { formatTimeAgo } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
 import { useQuery } from '@tanstack/react-query';
-import { Loader2 } from "lucide-react";
+import { Loader2, ExternalLink } from "lucide-react";
 import type { Wishlist } from "@shared/schema";
-import { useLocation, useNavigate } from 'react-router-dom'; // Added import
+import { useLocation } from 'wouter';
+import { cn } from '@/lib/utils';
 
 interface WishlistDetailsDialogProps {
   wishlist: Wishlist | null;
@@ -27,7 +28,10 @@ export default function WishlistDetailsDialog({
   userHasOfferedToFulfill,
   currentUserId,
 }: WishlistDetailsDialogProps) {
-  const { data: allItems = [], isLoading } = useQuery<any[]>({
+  const [, setLocation] = useLocation();
+
+  // Query for items related to this wishlist
+  const { data: allItems = [], isLoading } = useQuery({
     queryKey: ["items", wishlist?.id],
     enabled: !!wishlist,
     queryFn: async () => {
@@ -49,72 +53,92 @@ export default function WishlistDetailsDialog({
   });
 
   if (!wishlist) return null;
-  const navigate = useNavigate(); // Added useNavigate hook
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl">{wishlist.title}</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <div className="text-sm text-muted-foreground">
-              Posted by {wishlist.userName} in {wishlist.communityName} • {formatTimeAgo(wishlist.createdAt)}
-            </div>
+          <DialogTitle className="text-xl font-semibold">{wishlist.title}</DialogTitle>
+          <div className="text-sm text-muted-foreground">
+            Posted {formatDistanceToNow(new Date(wishlist.createdAt), { addSuffix: true })}
           </div>
-          <div>
-            <p className="text-base">
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Description */}
+          <div className="bg-muted/50 rounded-lg p-4">
+            <p className="text-sm leading-relaxed">
               {wishlist.description || "No description provided"}
             </p>
           </div>
+
+          {/* Details */}
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            {wishlist.budget && (
+              <div>
+                <span className="text-muted-foreground">Budget:</span>
+                <span className="ml-2">${wishlist.budget}</span>
+              </div>
+            )}
+            {wishlist.urgency && (
+              <div>
+                <span className="text-muted-foreground">Priority:</span>
+                <span className="ml-2 capitalize">{wishlist.urgency}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Offers Section */}
           {isLoading ? (
-            <div className="flex justify-center">
+            <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           ) : (
-            <>
-              <div className="space-y-2">
-                <h3 className="font-medium">Offers</h3>
-                {relevantOffers.length > 0 ? (
-                  <ul className="space-y-2">
-                    {relevantOffers.map(item => (
-                      <li 
-                        key={item.id} 
-                        className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
-                        onClick={() => {
-                          onOpenChange?.(false); // Close dialog first
-                          navigate(`/items/${item.id}`); // Use navigate instead of setLocation
-                        }}
-                      >
-                        {item.imageUrl && (
-                          <img 
-                            src={item.imageUrl} 
-                            alt={item.title} 
-                            className="w-12 h-12 rounded object-cover"
-                          />
-                        )}
-                        <div>
-                          <div className="font-medium">{item.title}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {currentUserId === wishlist.userId ? 
-                              `Offered by ${item.userDisplayName}` : 
-                              'Your offer'}
-                          </div>
+            <div className="space-y-4">
+              <h3 className="font-medium text-lg">Offers</h3>
+              {relevantOffers.length > 0 ? (
+                <div className="space-y-3">
+                  {relevantOffers.map(item => (
+                    <div 
+                      key={item.id} 
+                      className="flex items-center gap-4 p-3 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
+                      onClick={() => {
+                        onOpenChange?.(false);
+                        setLocation(`/item/${item.id}`);
+                      }}
+                    >
+                      {item.imageUrl && (
+                        <img 
+                          src={item.imageUrl} 
+                          alt={item.title} 
+                          className="w-16 h-16 rounded-md object-cover"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <div className="font-medium">{item.title}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {currentUserId === wishlist.userId ? 
+                            `Offered by ${item.userDisplayName}` : 
+                            'Your offer'}
                         </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No offers yet</p>
-                )}
-              </div>
-              {showFulfillButton && !userHasOfferedToFulfill?.(currentUserId || 0) && (
-                <div className="flex justify-end pt-4">
-                  <Button onClick={onFulfill}>Fulfill This Wishlist</Button>
+                      </div>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  ))}
                 </div>
+              ) : (
+                <p className="text-sm text-muted-foreground py-4">No offers yet</p>
               )}
-            </>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          {showFulfillButton && !userHasOfferedToFulfill?.(currentUserId || 0) && (
+            <div className="flex justify-end pt-4">
+              <Button onClick={onFulfill} className="w-full sm:w-auto">
+                Fulfill This Wishlist
+              </Button>
+            </div>
           )}
         </div>
       </DialogContent>
