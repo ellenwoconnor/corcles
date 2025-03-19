@@ -9,7 +9,7 @@ import { CancelButton } from "@/components/cancel-button";
 import { useQuery } from "@tanstack/react-query";
 import BaseListingView from "./base-listing-view";
 import { UserCheck } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { useSearch } from "wouter";
 
 interface RecipientListingViewProps {
   item: Item & { userHasFavorited?: boolean };
@@ -24,8 +24,9 @@ export default function RecipientListingView({
   currentUserId,
   onScheduled,
 }: RecipientListingViewProps) {
-  const [searchParams] = useSearchParams();
-  const showMessages = searchParams.get('showMessages') === 'true';
+  const [search] = useSearch();
+  const params = new URLSearchParams(search);
+  const showMessages = params.get('showMessages') === 'true';
   const [messageDialogOpen, setMessageDialogOpen] = useState(showMessages);
   const [setSchedulingComplete] = useState(false);
 
