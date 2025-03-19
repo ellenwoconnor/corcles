@@ -67,7 +67,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 grid-cols-2">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
@@ -81,9 +81,11 @@ export default function ProfilePage() {
           </Card>
 
           <Card>
+            <div className="pt-6">
+              <Gift className="h-5 w-5 text-muted-foreground" />
+            </div>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Items Given</CardTitle>
-              <Gift className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl">{completedItems}</div>
@@ -92,7 +94,9 @@ export default function ProfilePage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Users Invited</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Users Invited
+              </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
