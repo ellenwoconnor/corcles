@@ -59,6 +59,7 @@ export default function NotificationCenter() {
   }, [queryClient]);
 
   const handleNotificationClick = async (notification: Notification) => {
+    console.log("notification", notification);
     try {
       // Acknowledge notification
       await apiRequest(
