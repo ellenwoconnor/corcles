@@ -138,10 +138,11 @@ export default function WishlistDetailsDialog({
               <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           ) : (
-              {relevantOffers.length > 0 && (
-              <div className="space-y-4">
-              <h3 className="font-medium text-lg">Offers</h3>
-                <div className="space-y-3">
+            <>
+              {relevantOffers.length > 0 ? (
+                <div className="space-y-4">
+                  <h3 className="font-medium text-lg">Offers</h3>
+                  <div className="space-y-3">
                   {relevantOffers.map((item) => (
                     <div
                       key={item.id}
@@ -170,12 +171,13 @@ export default function WishlistDetailsDialog({
                     </div>
                   ))}
                 </div>
+                </div>
               ) : (
                 <p className="text-sm text-muted-foreground py-4">
                   No offers yet
                 </p>
               )}
-            </div>
+            </>
           )}
 
           {/* Action Buttons */}
