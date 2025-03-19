@@ -57,7 +57,7 @@ export default function HomePage() {
 
   const communityIds = userCommunities.map((c) => c.id);
 
-  const { data: items = [], isLoading } = useQuery<Item[]>({
+  const { data: items = [], isLoading: isLoadingItems } = useQuery<Item[]>({
     queryKey: ["/api/items", communityIds, debouncedSearchValue, showFreeOnly],
     queryFn: async () => {
       if (communityIds.length === 0) return [];
@@ -128,7 +128,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {isLoading ? (
+              {isLoadingItems ? (
                 <div className="flex justify-center items-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
