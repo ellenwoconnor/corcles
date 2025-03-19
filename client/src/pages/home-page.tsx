@@ -28,7 +28,11 @@ export default function HomePage() {
   const { user } = useAuth();
   const [searchValue, setSearchValue] = useState("");
   const [showFreeOnly, setShowFreeOnly] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(() => {
+    // Show welcome dialog if user hasn't seen it before
+    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+    return !hasSeenWelcome;
+  });
   const [createWishlistDialogOpen, setCreateWishlistDialogOpen] =
     useState(false); // Added state
   const debouncedSearchValue = useDebounce(searchValue, 300);

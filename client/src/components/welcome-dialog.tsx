@@ -53,7 +53,10 @@ export function WelcomeDialog({ communities }: WelcomeDialogProps) {
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-end">
-          <Button onClick={() => setOpen(false)}>Get Started</Button>
+          <Button onClick={() => {
+            localStorage.setItem('hasSeenWelcome', 'true');
+            setOpen(false);
+          }}>Get Started</Button>
         </div>
       </DialogContent>
     </Dialog>
