@@ -202,11 +202,11 @@ export default function RequestsPage() {
             </TabsList>
 
             <TabsContent value="wishlists">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div>
                 {userWishlists.map((wishlist) => (
                   <Card
                     key={wishlist.id}
-                    className="cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all"
+                    className="cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all mb-4"
                     onClick={() => handleWishlistClick(wishlist)}
                   >
                     <CardHeader className="py-3">
@@ -229,7 +229,7 @@ export default function RequestsPage() {
                             {/* Matched text size and added margin */}
                             {wishlist.description}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-sm text-muted-foreground">
                             {" "}
                             {/* Smaller text for time */}
                             Posted {formatTimeAgo(new Date(wishlist.createdAt))}
