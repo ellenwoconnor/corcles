@@ -48,14 +48,14 @@ export default function ProfilePage() {
           <div className="space-y-4">
             <div>
               <h1 className="text-2xl tracking-tight mb-2">Profile</h1>
-              <div className="text-sm">
-                <span className="font-medium">Username: </span>
+              <p className="text-sm flex items-center gap-2">
+                <span className="font-medium">Username:</span>
                 <span className="text-muted-foreground">{user.username}</span>
-              </div>
-              <div className="text-sm">
-                <span className="font-medium">Address: </span>
+              </p>
+              <p className="text-sm flex items-center gap-2">
+                <span className="font-medium">Address:</span>
                 <span className="text-muted-foreground">{user.address}</span>
-              </div>
+              </p>
             </div>
           </div>
         </div>
