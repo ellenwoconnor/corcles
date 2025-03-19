@@ -100,10 +100,24 @@ export default function WishlistDetailsDialog({
               <span>{communityData?.mascot || "🏠"}</span>
             </div>
             <span>
+              <>
               {formatDistanceToNow(new Date(wishlist.createdAt), {
                 addSuffix: true,
               })}
             </span>
+              {wishlist.budget && (
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">Budget:</span>
+                  <span className="ml-2">${wishlist.budget}</span>
+                </div>
+              )}
+            {wishlist.urgency && (
+            <div>
+              <span className="text-muted-foreground">Priority:</span>
+              <span className="ml-2 capitalize">{wishlist.urgency}</span>
+            </div>
+            )}
+
           </div>
         </DialogHeader>
 
