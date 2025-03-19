@@ -1,3 +1,4 @@
+
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -13,6 +14,10 @@ export function formatDate(dateString: string | null | undefined) {
   }
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
 
 export function formatTimeAgo(dateString: string | null | undefined) {
   if (!dateString) return "Unknown time";
@@ -29,9 +34,4 @@ export function formatTimeAgo(dateString: string | null | undefined) {
   if (seconds < 2592000) return `${Math.floor(seconds / 86400)} days ago`;
   if (seconds < 31536000) return `${Math.floor(seconds / 2592000)} months ago`;
   return `${Math.floor(seconds / 31536000)} years ago`;
-}
-
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
 }
