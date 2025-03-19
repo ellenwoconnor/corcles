@@ -1,20 +1,39 @@
 import { useState } from "react";
-import { Calendar } from "@/components/ui/calendar";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { toast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   format,
-  addHours,
-  isBefore,
-  isAfter,
-  startOfDay,
-  endOfDay,
   addDays,
+  addHours,
+  isAfter,
+  isBefore,
+  startOfHour,
 } from "date-fns";
-import { X, Clock, CalendarIcon, ArrowRight } from "lucide-react";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Clock, X, Plus, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { apiRequest } from "@/lib/queryClient";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+
+interface TimeWindow {
+  date: Date;
+  hour: number;
+}
 
 interface PickupSchedulerProps {
   itemId: number;
@@ -22,38 +41,49 @@ interface PickupSchedulerProps {
   onScheduled: () => void;
 }
 
-type TimeWindow = {
-  date: Date;
-  startTime: Date;
-};
-
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
-
 export default function PickupScheduler({
   itemId,
   itemStatus,
   onScheduled,
 }: PickupSchedulerProps) {
-  const [step, setStep] = useState<"date" | "time" | "review">("date");
-  const [selectedDate, setSelectedDate] = useState<Date>();
-  const [timeWindows, setTimeWindows] = useState<TimeWindow[]>([]);
+  const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedHour, setSelectedHour] = useState<number>();
+  const [timeWindows, setTimeWindows] = useState<TimeWindow[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
 
   const now = new Date();
   const twoWeeksFromNow = addDays(now, 14);
 
-  const mutation = useMutation({
-    mutationFn: async () => {
-      const windows = timeWindows.map((window) => ({
-        pickupStart: window.startTime.toISOString(),
-        pickupEnd: addHours(window.startTime, 1).toISOString(),
-      }));
+  const availableHours = Array.from({ length: 24 }, (_, i) => i).filter(
+    (hour) => {
+      if (!selectedDate) return false;
+      const date = addHours(selectedDate, hour);
+      return isAfter(date, now) && isBefore(date, twoWeeksFromNow);
+    },
+  );
 
-      const response = await fetch(`/api/items/${itemId}/schedule`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ proposedPickupWindows: windows }),
+  const scheduleMutation = useMutation({
+    mutationFn: async () => {
+      if (timeWindows.length === 0) return;
+
+      const windows = timeWindows.map((window) => {
+        const pickupStart = startOfHour(addHours(window.date, window.hour));
+        const pickupEnd = addHours(pickupStart, 1);
+        return {
+          pickupStart: pickupStart.toISOString(),
+          pickupEnd: pickupEnd.toISOString(),
+        };
       });
+
+      console.log("Sending windows:", windows);
+
+      const response = await apiRequest(
+        "POST",
+        `/api/items/${itemId}/schedule`,
+        { proposedPickupWindows: windows },
+      );
 
       if (!response.ok) {
         const error = await response.json();
@@ -62,12 +92,16 @@ export default function PickupScheduler({
       return response.json();
     },
     onSuccess: () => {
+      setIsOpen(false);
       onScheduled();
-      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
       toast({
         title: "Pickup windows proposed!",
         description:
           "The recipient will choose one of the proposed time windows.",
+      });
+      queryClient.invalidateQueries({ queryKey: [`/api/items/${itemId}`] });
+      queryClient.invalidateQueries({
+        queryKey: [`/api/items/${itemId}/requests`],
       });
     },
     onError: (error: Error) => {
@@ -79,21 +113,8 @@ export default function PickupScheduler({
     },
   });
 
-  const addTimeWindow = (hour: number) => {
-    if (!selectedDate) return;
-
-    const startTime = new Date(selectedDate);
-    startTime.setHours(hour, 0, 0, 0);
-
-    if (isBefore(startTime, now)) {
-      toast({
-        title: "Invalid time",
-        description: "Cannot select a time in the past",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const addTimeWindow = () => {
+    if (!selectedDate || selectedHour === undefined) return;
     if (timeWindows.length >= 10) {
       toast({
         title: "Maximum windows reached",
@@ -104,7 +125,9 @@ export default function PickupScheduler({
     }
 
     const exists = timeWindows.some(
-      (window) => window.startTime.getTime() === startTime.getTime(),
+      (window) =>
+        window.date.getTime() === selectedDate.getTime() &&
+        window.hour === selectedHour,
     );
 
     if (exists) {
@@ -116,129 +139,191 @@ export default function PickupScheduler({
       return;
     }
 
-    setTimeWindows([...timeWindows, { date: selectedDate, startTime }]);
+    setTimeWindows([
+      ...timeWindows,
+      { date: selectedDate, hour: selectedHour },
+    ]);
+    setSelectedHour(undefined); // Reset just the hour
+    const hourSelect = document.querySelector("select");
+    if (hourSelect) {
+      setTimeout(() => hourSelect.focus(), 0);
+    }
   };
 
   const removeTimeWindow = (index: number) => {
     setTimeWindows(timeWindows.filter((_, i) => i !== index));
   };
 
-  const isTimeDisabled = (hour: number) => {
-    if (!selectedDate) return true;
-    const time = new Date(selectedDate);
-    time.setHours(hour, 0, 0, 0);
-    return isBefore(time, now);
-  };
+  return (
+    <Drawer open={isOpen} onOpenChange={setIsOpen}>
+      <DrawerTrigger asChild>
+        <Button variant="outline">
+          {["scheduling", "scheduled"].includes(itemStatus)
+            ? "Change Times"
+            : "Send Pickup Times"}
+        </Button>
+      </DrawerTrigger>
+      <DrawerContent className="h-[85vh] sm:h-[85vh] sm:max-w-[600px] mx-auto">
+        <DrawerHeader className="relative">
+          <DrawerTitle>Schedule Item Pickup</DrawerTitle>
+          <DrawerDescription>
+            Propose up to 10 one-hour windows for item pickup
+          </DrawerDescription>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </button>
+        </DrawerHeader>
 
-  const renderStep = () => {
-    switch (step) {
-      case "date":
-        return (
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">1. Select a date</h3>
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              disabled={(date) =>
-                isBefore(date, startOfDay(now)) ||
-                isAfter(date, endOfDay(twoWeeksFromNow))
-              }
-              className="rounded-md border"
-            />
-            <Button
-              className="w-full"
-              onClick={() => setStep("time")}
-              disabled={!selectedDate}
-            >
-              Continue <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+        <div className="p-4 space-y-6 pb-20">
+          {/* Date and Time Selection */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">1. Select Date</label>
+              {!selectedDate ? (
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => {
+                    setSelectedDate(date);
+                    setSelectedHour(undefined);
+                  }}
+                  disabled={(date) =>
+                    isBefore(date, now) || isAfter(date, twoWeeksFromNow)
+                  }
+                  className="rounded-md border"
+                />
+              ) : (
+                <div className="flex items-center justify-between p-3 bg-secondary rounded-lg border border-border">
+                  <span>{format(selectedDate, "EEE, MMM d")}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedDate(undefined)}
+                  >
+                    Change
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">2. Select Hour</label>
+              {selectedDate ? (
+                <div className="space-y-4">
+                  <Select
+                    value={selectedHour?.toString()}
+                    onValueChange={(value) => setSelectedHour(parseInt(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a time" />
+                    </SelectTrigger>
+                    <SelectContent
+                      side="bottom"
+                      align="start"
+                      className="max-h-[200px] overflow-y-auto z-50"
+                    >
+                      {availableHours.map((hour) => (
+                        <SelectItem key={hour} value={hour.toString()}>
+                          {format(
+                            addHours(startOfHour(selectedDate), hour),
+                            "h:mm a",
+                          )}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    onClick={() => {
+                      if (!selectedDate || selectedHour === undefined) return;
+                      addTimeWindow();
+                      if (timeWindows.length > 0) {
+                        setSelectedDate(undefined);
+                        setSelectedHour(undefined);
+                      }
+                    }}
+                    disabled={selectedHour === undefined}
+                    className="w-full"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    {timeWindows.length > 0
+                      ? "Add More Times"
+                      : "Add Time Window"}
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  Please select a date first
+                </div>
+              )}
+            </div>
           </div>
-        );
-
-      case "time":
-        return (
-          <div className="space-y-4">
+          {/* Selected Time Windows */}
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">2. Select time slots</h3>
-              <Button variant="ghost" size="sm" onClick={() => setStep("date")}>
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                Change date
-              </Button>
+              <h3 className="text-sm font-medium">Selected Time Windows</h3>
+              <span className="text-sm text-muted-foreground">
+                {timeWindows.length}/10 windows
+              </span>
             </div>
-            <p className="text-sm text-muted-foreground">
-              Selected date:{" "}
-              {selectedDate && format(selectedDate, "EEEE, MMMM d")}
-            </p>
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-              {HOURS.map((hour) => (
-                <Button
-                  key={hour}
-                  variant="outline"
-                  size="sm"
-                  disabled={isTimeDisabled(hour)}
-                  onClick={() => addTimeWindow(hour)}
-                  className="p-2 h-auto"
-                >
-                  {format(new Date().setHours(hour, 0), "h:mm a")}
-                </Button>
-              ))}
-            </div>
-            <Button
-              className="w-full"
-              onClick={() => setStep("review")}
-              disabled={timeWindows.length === 0}
-            >
-              Review selections <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </div>
-        );
-
-      case "review":
-        return (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">3. Review and confirm</h3>
-              <Button variant="ghost" size="sm" onClick={() => setStep("time")}>
-                Add more times
-              </Button>
-            </div>
-            <ScrollArea className="h-[200px]">
-              <div className="space-y-2">
+            {timeWindows.length === 0 ? (
+              <Alert>
+                <AlertDescription>
+                  No time windows selected. Select a date and time below to add
+                  windows.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <div className="grid gap-2">
                 {timeWindows.map((window, index) => (
-                  <Card
+                  <div
                     key={index}
-                    className="p-3 flex items-center justify-between"
+                    className="flex items-center justify-between p-3 bg-secondary rounded-lg border border-border group"
                   >
                     <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>
-                        {format(window.startTime, "EEE, MMM d 'at' h:mm a")} -{" "}
-                        {format(addHours(window.startTime, 1), "h:mm a")}
+                      <Clock className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm">
+                        {format(window.date, "EEE, MMM d")} at{" "}
+                        {format(
+                          addHours(startOfHour(window.date), window.hour),
+                          "h:mm a",
+                        )}
                       </span>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={() => removeTimeWindow(index)}
                     >
                       <X className="h-4 w-4" />
                     </Button>
-                  </Card>
+                  </div>
                 ))}
               </div>
-            </ScrollArea>
-            <Button
-              className="w-full"
-              onClick={() => mutation.mutate()}
-              disabled={timeWindows.length === 0 || mutation.isPending}
-            >
-              {mutation.isPending ? "Scheduling..." : "Confirm time windows"}
-            </Button>
+            )}
           </div>
-        );
-    }
-  };
-
-  return <div className="space-y-4">{renderStep()}</div>;
+          {/* Submit Button */}
+          <Button
+            className="w-full"
+            disabled={timeWindows.length === 0 || scheduleMutation.isPending}
+            onClick={() => scheduleMutation.mutate()}
+          >
+            {scheduleMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Scheduling...
+              </>
+            ) : (
+              "Propose Time Windows"
+            )}
+          </Button>
+        </div>
+      </DrawerContent>
+    </Drawer>
+  );
 }
