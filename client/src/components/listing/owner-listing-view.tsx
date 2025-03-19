@@ -35,7 +35,8 @@ export default function OwnerListingView({
 }: OwnerListingViewProps) {
   const [searchParams] = useSearchParams();
   const showMessages = searchParams.get('showMessages') === 'true';
-  const [messageDialogOpen, setMessageDialogOpen] = useState(showMessages);
+  const requestIdFromUrl = searchParams.get('requestId');
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false); // Initialize to false
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -64,6 +65,16 @@ export default function OwnerListingView({
   const showMessageAndCancel = ["scheduling", "scheduled"].includes(
     item.status || "",
   );
+
+  // Determine if the message dialog should open based on URL parameters and active request
+  useEffect(() => {
+    if (showMessages && requestIdFromUrl && activeRequest && requestIdFromUrl === activeRequest.id.toString()) {
+      setMessageDialogOpen(true);
+    } else {
+      setMessageDialogOpen(false);
+    }
+  }, [showMessages, requestIdFromUrl, activeRequest]);
+
 
   async function handleDelist() {
     try {
@@ -224,7 +235,7 @@ export default function OwnerListingView({
             )}
             {hasRecipient && activeRequest && (
               <MessageDialog
-                requestId={activeRequest.id}
+                requestId={activeRequest?.id} // Use optional chaining
                 currentUserId={currentUserId}
                 recipientId={item.recipientId}
                 isOpen={messageDialogOpen}
@@ -233,24 +244,6 @@ export default function OwnerListingView({
               />
             )}
           </div>
-
-          {/* {hasRecipient && activeRequest && (
-            <div className="flex items-center gap-4">
-              <CancelButton
-                itemId={item.id}
-                requestId={activeRequest.id}
-                variant="outline"
-              />
-              <MessageDialog
-                requestId={activeRequest.id}
-                currentUserId={currentUserId}
-                recipientId={item.recipientId}
-                isOpen={messageDialogOpen}
-                onOpenChange={setMessageDialogOpen}
-                trigger={<Button variant="outline">Send Message</Button>}
-              />
-            </div>
-          )} */}
         </div>
       )}
     </div>
