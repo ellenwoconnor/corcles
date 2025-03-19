@@ -80,7 +80,7 @@ export default function WishlistDetailsDialog({
                       <li 
                         key={item.id} 
                         className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
-                        onClick={() => window.location.href = `/items/${item.id}`}
+                        onClick={() => setLocation(`/items/${item.id}`)}
                       >
                         {item.imageUrl && (
                           <img 
