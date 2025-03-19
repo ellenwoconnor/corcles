@@ -86,16 +86,15 @@ export default function WishlistDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">
+          <DialogTitle className="text-xl font-semibold mb-3">
             {wishlist.title}
           </DialogTitle>
           <div className="flex flex-col gap-1 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
               <span>
-                Posted by {userData?.displayName || "Anonymous"} in{" "}
+                Listed by {userData?.displayName || "Anonymous"} in{" "}
                 {communityData?.name || "Unknown Community"}
               </span>
               <span>{communityData?.mascot || "🏠"}</span>
@@ -139,43 +138,39 @@ export default function WishlistDetailsDialog({
             </div>
           ) : (
             <>
-              {relevantOffers.length > 0 ? (
+              {relevantOffers.length > 0 && (
                 <div className="space-y-4">
                   <h3 className="font-medium text-lg">Offers</h3>
                   <div className="space-y-3">
-                  {relevantOffers.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center gap-4 p-3 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
-                      onClick={() => {
-                        onOpenChange?.(false);
-                        setLocation(`/item/${item.id}`);
-                      }}
-                    >
-                      {item.imageUrl && (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.title}
-                          className="w-16 h-16 rounded-md object-cover"
-                        />
-                      )}
-                      <div className="flex-1">
-                        <div className="font-medium">{item.title}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {currentUserId === wishlist.userId
-                            ? `Offered by ${item.userDisplayName}`
-                            : "Your offer"}
+                    {relevantOffers.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center gap-4 p-3 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
+                        onClick={() => {
+                          onOpenChange?.(false);
+                          setLocation(`/item/${item.id}`);
+                        }}
+                      >
+                        {item.imageUrl && (
+                          <img
+                            src={item.imageUrl}
+                            alt={item.title}
+                            className="w-16 h-16 rounded-md object-cover"
+                          />
+                        )}
+                        <div className="flex-1">
+                          <div className="font-medium">{item.title}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {currentUserId === wishlist.userId
+                              ? `Offered by ${item.userDisplayName}`
+                              : "Your offer"}
+                          </div>
                         </div>
+                        <ExternalLink className="h-4 w-4 text-muted-foreground" />
                       </div>
-                      <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground py-4">
-                  No offers yet
-                </p>
               )}
             </>
           )}
