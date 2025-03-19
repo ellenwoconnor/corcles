@@ -117,9 +117,11 @@ export default function HomePage() {
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
               ) : items.length === 0 ? (
-                <Card className="p-6 border-none">
-                  <EmptyMarketplace />
-                </Card>
+                <div className="flex justify-center items-center min-h-[50vh]">
+                  <Card className="p-6 border-none">
+                    <EmptyMarketplace />
+                  </Card>
+                </div>
               ) : (
                 <FadeIn delay={0.1}>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
