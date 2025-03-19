@@ -1458,6 +1458,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/user/invites/count", requireAuth, async (req, res) => {
+    try {
+      const invites = await db
+        .select()
+        .from(communityInvites)
+        .where(eq(communityInvites.invitedBy, req.user.id));
+
+      res.json({ count: invites.length });
+    } catch (error) {
+      logger.error("Error fetching invite count:", error);
+      res.status(500).json({ error: "Failed to fetch invite count" });
+    }
+  });
+
   app.get("/api/user/communities", requireAuth, async (req, res) => {
     try {
       const communities = await storage.getUserCommunities(req.user.id);
