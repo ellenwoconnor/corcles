@@ -4,6 +4,7 @@ import { Item } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Gift, Tag, Clock, Users } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -118,8 +119,8 @@ export default function ProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl">
-                {new Date(user.createdAt).toLocaleDateString()}
+              <div className="text-2xl font-semibold">
+                {formatDate(user.createdAt)}
               </div>
             </CardContent>
           </Card>
