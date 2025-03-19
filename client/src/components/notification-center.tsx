@@ -70,14 +70,15 @@ export default function NotificationCenter() {
       // Invalidate queries to refetch the updated data
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
 
-      // Navigate to the related item
+      // Navigate to the related item and show message dialog
       const notificationData = notification.data as {
         itemId?: number;
         itemTitle?: string;
+        requestId?: string;
       };
       console.log(notification.data);
       if (notificationData.itemId) {
-        setLocation(`/item/${notificationData.itemId}`);
+        setLocation(`/item/${notificationData.itemId}?showMessages=true&requestId=${notificationData.requestId}`);
       }
     } catch (error) {
       console.error("Failed to handle notification click:", error);
