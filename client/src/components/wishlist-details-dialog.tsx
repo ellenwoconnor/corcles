@@ -5,6 +5,7 @@ import { formatTimeAgo } from "@/lib/utils";
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from "lucide-react";
 import type { Wishlist } from "@shared/schema";
+import { useLocation, useNavigate } from 'react-router-dom'; // Added import
 
 interface WishlistDetailsDialogProps {
   wishlist: Wishlist | null;
@@ -48,6 +49,7 @@ export default function WishlistDetailsDialog({
   });
 
   if (!wishlist) return null;
+  const navigate = useNavigate(); // Added useNavigate hook
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -80,7 +82,10 @@ export default function WishlistDetailsDialog({
                       <li 
                         key={item.id} 
                         className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
-                        onClick={() => setLocation(`/items/${item.id}`)}
+                        onClick={() => {
+                          onOpenChange?.(false); // Close dialog first
+                          navigate(`/items/${item.id}`); // Use navigate instead of setLocation
+                        }}
                       >
                         {item.imageUrl && (
                           <img 
