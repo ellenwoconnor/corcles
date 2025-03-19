@@ -160,11 +160,6 @@ export default function HomePage() {
           </div>
         </div>
       </main>
-      <CreateWishlistDialog
-        open={createWishlistDialogOpen}
-        onOpenChange={setCreateWishlistDialogOpen}
-      />{" "}
-      {/* Added CreateWishlistDialog */}
     </div>
   );
 }
