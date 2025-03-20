@@ -1783,18 +1783,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             communityName: zipCodeCommunityName,
           });
 
+          // For default communities, we set createdBy to null to indicate no admin
           [zipCommunity] = await tx
             .insert(schema.communities)
             .values({
               name: zipCodeCommunityName,
               description: `Local community for ${parseResult.data.zipCode}`,
-              createdBy: user.id,
+              createdBy: null, // Set to null for default communities
               isCustom: false,
             })
             .returning();
 
           logger.info("Created zip code community:", {
-            userId: user.id,
             communityId: zipCommunity.id,
             zipCode: parseResult.data.zipCode,
           });
