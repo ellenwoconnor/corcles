@@ -13,7 +13,7 @@ import S3TestComponent from "@/components/admin/s3-test";
 export function Router() {
   return (
     <Switch>
-      <ProtectedRoute path="/" component={HomePage} />
+      <Route path="/" component={HomePage} />
       <ProtectedRoute path="/listings" component={ListingsPage} />
       <ProtectedRoute path="/item/:id" component={ListingPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
