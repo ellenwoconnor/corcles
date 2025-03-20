@@ -364,6 +364,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           itemId: itemRequest?.itemId,
           itemTitle: itemRequest?.itemTitle
         },
+        read: false,
+        createdAt: new Date()
       });
 
       // Update notification payload with item data
