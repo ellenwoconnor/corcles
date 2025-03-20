@@ -49,62 +49,56 @@ export default function Navbar() {
           <nav className="flex items-center space-x-2">
             <div className="flex items-center gap-2">
               <NotificationCenter />
-              {user ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      className="relative h-8 w-8 rounded-full"
-                    >
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage
-                          src={user?.avatarUrl || undefined}
-                          alt={user?.displayName}
-                        />
-                        <AvatarFallback>
-                          {user?.displayName && user.displayName.trim() !== ""
-                            ? user.displayName.charAt(0).toUpperCase()
-                            : "?"}
-                        </AvatarFallback>
-                      </Avatar>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56" align="end" forceMount>
-                    <DropdownMenuItem asChild>
-                      <Link href="/profile" className="flex items-center">
-                        <User className="mr-2 h-4 w-4" />
-                        <span>Profile</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/listings" className="flex items-center">
-                        <Users className="mr-2 h-4 w-4" />
-                        <span>Listings</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/requests" className="flex items-center">
-                        <Gift className="mr-2 h-4 w-4" />
-                        <span>Requests</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/communities" className="flex items-center">
-                        <Users className="mr-2 h-4 w-4" />
-                        <span>Communities</span>
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
-                      <LogOut className="mr-2 h-4 w-4" />
-                      <span>Log out</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <Link href="/auth">
-                  <Button variant="ghost">Login</Button>
-                </Link>
-              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="relative h-8 w-8 rounded-full"
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage
+                        src={user?.avatarUrl || undefined}
+                        alt={user?.displayName}
+                      />
+                      <AvatarFallback>
+                        {user?.displayName && user.displayName.trim() !== ""
+                          ? user.displayName.charAt(0).toUpperCase()
+                          : "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile" className="flex items-center">
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/listings" className="flex items-center">
+                      <Users className="mr-2 h-4 w-4" />
+                      <span>Listings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/requests" className="flex items-center">
+                      <Gift className="mr-2 h-4 w-4" />
+                      <span>Requests</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/communities" className="flex items-center">
+                      <Users className="mr-2 h-4 w-4" />
+                      <span>Communities</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => logoutMutation.mutate()}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </nav>
         </div>
