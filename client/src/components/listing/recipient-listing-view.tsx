@@ -25,12 +25,11 @@ export default function RecipientListingView({
   onScheduled,
 }: RecipientListingViewProps) {
   const [search] = useSearch();
-  const params = new URLSearchParams(search);
-  const showMessages = params.get("showMessages") === "true";
-  console.log("show messages", showMessages);
-  const requestIdFromUrl = params.get("requestId");
+  const showMessages = search.includes('showMessages=true');
+  const requestIdMatch = search.match(/requestId=(\d+)/);
+  const requestIdFromUrl = requestIdMatch ? requestIdMatch[1] : null;
   const [messageDialogOpen, setMessageDialogOpen] = useState(
-    showMessages && requestIdFromUrl === request?.id.toString(),
+    showMessages && requestIdFromUrl === request?.id?.toString()
   );
   const [setSchedulingComplete] = useState(false);
 
