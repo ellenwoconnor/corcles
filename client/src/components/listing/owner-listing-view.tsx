@@ -36,7 +36,9 @@ export default function OwnerListingView({
   const [searchParams] = useSearchParams();
   const showMessages = searchParams.get('showMessages') === 'true';
   const requestIdFromUrl = searchParams.get('requestId');
-  const [messageDialogOpen, setMessageDialogOpen] = useState(false); // Initialize to false
+  const [messageDialogOpen, setMessageDialogOpen] = useState(
+    showMessages && requestIdFromUrl === activeRequest?.id?.toString()
+  );
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const { toast } = useToast();
