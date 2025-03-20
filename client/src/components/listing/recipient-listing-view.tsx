@@ -26,9 +26,12 @@ export default function RecipientListingView({
 }: RecipientListingViewProps) {
   const [search] = useSearch();
   const params = new URLSearchParams(search);
-  const showMessages = params.get('showMessages') === 'true';
-  const requestIdFromUrl = params.get('requestId');
-  const [messageDialogOpen, setMessageDialogOpen] = useState(showMessages && requestIdFromUrl === request?.id.toString());
+  const showMessages = params.get("showMessages") === "true";
+  console.log("show messages", showMessages);
+  const requestIdFromUrl = params.get("requestId");
+  const [messageDialogOpen, setMessageDialogOpen] = useState(
+    showMessages && requestIdFromUrl === request?.id.toString(),
+  );
   const [setSchedulingComplete] = useState(false);
 
   // Only show pickup scheduler if we have a valid request in the right status
