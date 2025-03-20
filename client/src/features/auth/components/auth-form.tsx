@@ -15,6 +15,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SiGoogle } from "react-icons/si";
+import { useToast } from "@/components/ui/use-toast";
+import TermsDialog from "./terms-dialog";
 
 const loginSchema = insertUserSchema.pick({
   username: true,
@@ -255,13 +257,19 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
                   </FormItem>
                 )}
               />
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={registerMutation.isPending}
-              >
-                Register
-              </Button>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  By signing up, you agree to our{" "}
+                  <TermsDialog />
+                </p>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={registerMutation.isPending}
+                >
+                  Register
+                </Button>
+              </div>
             </form>
           </Form>
         </div>
