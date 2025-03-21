@@ -109,11 +109,11 @@ export default function WishlistDetailsDialog({
       queryClient.setQueryData(["/api/communities/wishlists"], (old: any[]) =>
         old.map((w) => (w.id === updated.id ? updated : w)),
       );
-      
+
       // Invalidate requests cache to trigger refresh
       queryClient.invalidateQueries({ queryKey: ["/api/user/requests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/wishlists"] });
-      
+
       setIsEditing(false);
     } catch (error) {
       console.error("Error updating wishlist:", error);
@@ -216,12 +216,20 @@ export default function WishlistDetailsDialog({
                 )}
               </DialogTitle>
               <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <span>
-                    Listed by {userData?.displayName || wishlist?.userDisplayName || "Anonymous"} in{" "}
-                    {communityData?.name || wishlist?.communityName || "Unknown Community"}
-                  </span>
-                  <span>{communityData?.mascot || "🏠"}</span>
+                <div>
+                  <div>
+                    <span>
+                      Listed by{" "}
+                      {userData?.displayName ||
+                        wishlist?.userDisplayName ||
+                        "Anonymous"}{" "}
+                      in{" "}
+                      {communityData?.name ||
+                        wishlist?.communityName ||
+                        "Unknown Community"}
+                    </span>
+                    <span>{communityData?.mascot || "🏠"}</span>
+                  </div>
                 </div>
                 <div>
                   {formatDistanceToNow(new Date(wishlist.createdAt), {
