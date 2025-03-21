@@ -185,9 +185,10 @@ export default function WishlistDetailsDialog({
                   </Button>
                 )}
               </DialogTitle>
-          <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <span>
+          </DialogTitle>
+              <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <span>
                 Listed by {wishlist.userDisplayName || "Anonymous"} in{" "}
                 {wishlist.communityName || "Unknown Community"}
               </span>
