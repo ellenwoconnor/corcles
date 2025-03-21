@@ -212,7 +212,6 @@ export default function WishlistDetailsDialog({
             )}
           </div>
         </DialogHeader>
-
         <div className="space-y-6">
           {/* Description */}
           <div className="bg-muted/50 rounded-lg p-4">
