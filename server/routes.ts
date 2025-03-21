@@ -276,6 +276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .select({
           ...schema.wishlists,
           userDisplayName: schema.users.displayName,
+          communityName: schema.communities.name,
           communityMascot: schema.communities.mascot,
         })
         .from(schema.wishlists)
