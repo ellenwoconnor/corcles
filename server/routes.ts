@@ -184,6 +184,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/wishlists/:id", requireAuth, async (req, res) => {
+    try {
+      const wishlistId = parseInt(req.params.id);
+      if (isNaN(wishlistId)) {
+        return res.status(400).json({ error: "Invalid wishlist ID" });
+      }
+
+      const wishlist = await storage.getWishlist(wishlistId);
+      if (!wishlist) {
+        return res.status(404).json({ error: "Wishlist not found" });
+      }
+
+      if (wishlist.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized to edit this wishlist" });
+      }
+
+      const updates = {
+        ...req.body,
+        budget: req.body.budget ? Number(req.body.budget) : undefined,
+      };
+
+      const partialWishlistSchema = insertWishlistSchema.partial();
+      const parseResult = partialWishlistSchema.safeParse(updates);
+      if (!parseResult.success) {
+        return res.status(400).json(parseResult.error);
+      }
+
+      await db.update(schema.wishlists)
+        .set(parseResult.data)
+        .where(eq(schema.wishlists.id, wishlistId));
+
+      const updatedWishlist = await storage.getWishlist(wishlistId);
+      res.json(updatedWishlist);
+    } catch (error) {
+      logger.error("Error updating wishlist:", error);
+      res.status(500).json({ error: "Failed to update wishlist" });
+    }
+  });
+
   app.get("/api/user/wishlists", requireAuth, async (req, res) => {
     try {
       const wishlists = await storage.getUserWishlists(req.user.id);
