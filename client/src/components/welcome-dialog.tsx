@@ -24,7 +24,7 @@ export function WelcomeDialog({ communities }: WelcomeDialogProps) {
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="text-2xl py-4">
-            Welcome to Corcles!
+            Welcome to <span className="uppercase tracking-wide">C<span className="text-[#B2B8A3]">O</span>RCLES</span>!
           </DialogTitle>
           <DialogDescription className="text-base space-y-4 pt-4">
             <p>
