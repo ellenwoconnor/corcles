@@ -13,28 +13,22 @@ import NotificationCenter from "./notification-center";
 
 export default function Navbar() {
   const { user, logoutMutation } = useAuth();
-  const logoStyle = {
-    height: '40px',
-    width: 'auto'
-  };
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-24 items-center px-8 justify-between">
-        <div className="flex items-center mr-4">
-          <img 
-            src="/tree-logo.jpg" 
-            alt="Tree Logo" 
-            style={logoStyle}
-            className="rounded-full mr-6"
-          />
-          <Link href="/" className="flex items-center">
+        {" "}
+        {/* Added justify-between */}
+        <div className="mr-4">
+          <Link href="/" className="mr-6 flex items-center">
             <span className="text-4xl uppercase tracking-wide">
               C<span className="text-[#B2B8A3]">O</span>RCLES
             </span>
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+          {" "}
+          {/* Added justify-between */}
           <div className="hidden md:flex md:items-center md:space-x-4">
             <Link href="/listings">
               <Button variant="ghost" className="flex items-center space-x-2">
