@@ -78,7 +78,9 @@ export default function NotificationCenter() {
       };
       console.log(notification.data);
       if (notificationData.itemId) {
-        setLocation(`/item/${notificationData.itemId}?showMessages=true&requestId=${notificationData.requestId}`);
+        setLocation(
+          `/item/${notificationData.itemId}?showMessages=true&requestId=${notificationData.requestId}`,
+        );
       }
     } catch (error) {
       console.error("Failed to handle notification click:", error);
