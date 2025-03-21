@@ -244,10 +244,9 @@ export default function RequestsPage() {
                         {getFulfillmentItemsForWishlist(wishlist.id).length >
                           0 && (
                           <Badge
-                            variant="outline"
-                            className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"
+                            variant="default"
+                            className="flex items-center gap-1"
                           >
-                            <Gift className="h-3 w-3" />
                             Offers Available
                           </Badge>
                         )}
