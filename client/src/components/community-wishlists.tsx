@@ -174,8 +174,12 @@ export default function CommunityWishlists() {
         {wishlistsWithCommunityNames.map((wishlist, index) => (
           <FadeIn key={wishlist.id} delay={index * 0.1}>
             <Card
-              className="overflow-hidden flex flex-col h-full cursor-pointer hover:ring-1 hover:ring-primary/20 hover:shadow-md transition-all p-1"
+              className="overflow-hidden flex flex-col h-full cursor-pointer hover:ring-1 hover:ring-primary/20 hover:shadow-md transition-all p-1 focus:outline-none focus:ring-2 focus:ring-primary"
               onClick={() => viewWishlistDetails(wishlist)}
+              onKeyDown={(e) => e.key === 'Enter' && viewWishlistDetails(wishlist)}
+              role="button"
+              tabIndex={0}
+              aria-label={`View wishlist: ${wishlist.title}`}
             >
               <CardHeader className="pb-4 pt-4">
                 <CardTitle className="font-semibold text-base mb-1 flex items-center gap-2">
