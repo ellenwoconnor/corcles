@@ -174,7 +174,7 @@ export default function CommunityWishlists() {
         {wishlistsWithCommunityNames.map((wishlist, index) => (
           <FadeIn key={wishlist.id} delay={index * 0.1}>
             <Card
-              className="overflow-hidden flex flex-col h-full cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all p-1"
+              className="overflow-hidden flex flex-col h-full cursor-pointer hover:ring-1 hover:ring-primary/20 hover:shadow-md transition-all p-1"
               onClick={() => viewWishlistDetails(wishlist)}
             >
               <CardHeader className="pb-4 pt-4">
