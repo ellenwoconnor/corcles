@@ -2,7 +2,7 @@ import { HeartHandshake } from "lucide-react";
 
 export default function EmptyMarketplace() {
   return (
-    <div className="flex flex-col items-center justify-center w-[32rem] h-[32rem] bg-gray-100 rounded-md">
+    <div className="flex flex-col items-center justify-center w-[32rem] h-[32rem] rounded-md">
       <div className="w-32 h-32 mb-8">
         <HeartHandshake className="w-full h-full text-muted-foreground" />
       </div>
@@ -10,7 +10,7 @@ export default function EmptyMarketplace() {
         Sharing starts here
       </h3>
       <p className="text-muted-foreground text-center">
-        Break the ice with the community's first listing
+        Nothing to see yet, but check back soon!
       </p>
     </div>
   );
