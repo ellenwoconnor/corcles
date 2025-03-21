@@ -184,6 +184,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/wishlists/:id", requireAuth, async (req, res) => {
+    try {
+      const wishlistId = parseInt(req.params.id);
+      if (isNaN(wishlistId)) {
+        return res.status(400).json({ error: "Invalid wishlist ID" });
+      }
+
+      const wishlist = await storage.getWishlist(wishlistId);
+      if (!wishlist) {
+        return res.status(404).json({ error: "Wishlist not found" });
+      }
+
+      if (wishlist.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized to edit this wishlist" });
+      }
+
+      const updates = {
+        ...req.body,
+        budget: req.body.budget ? Number(req.body.budget) : undefined,
+      };
+
+      const partialWishlistSchema = insertWishlistSchema.partial();
+      const parseResult = partialWishlistSchema.safeParse(updates);
+      if (!parseResult.success) {
+        return res.status(400).json(parseResult.error);
+      }
+
+      await db.update(schema.wishlists)
+        .set(parseResult.data)
+        .where(eq(schema.wishlists.id, wishlistId));
+
+      const updatedWishlist = await storage.getWishlist(wishlistId);
+      res.json(updatedWishlist);
+    } catch (error) {
+      logger.error("Error updating wishlist:", error);
+      res.status(500).json({ error: "Failed to update wishlist" });
+    }
+  });
+
   app.get("/api/user/wishlists", requireAuth, async (req, res) => {
     try {
       const wishlists = await storage.getUserWishlists(req.user.id);
@@ -237,6 +276,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .select({
           ...schema.wishlists,
           userDisplayName: schema.users.displayName,
+          communityName: schema.communities.name,
           communityMascot: schema.communities.mascot,
         })
         .from(schema.wishlists)
@@ -364,6 +404,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           itemId: itemRequest?.itemId,
           itemTitle: itemRequest?.itemTitle
         },
+        read: false,
+        createdAt: new Date()
       });
 
       // Update notification payload with item data
@@ -1458,6 +1500,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/user/invites/count", requireAuth, async (req, res) => {
+    try {
+      const invites = await db
+        .select()
+        .from(communityInvites)
+        .where(eq(communityInvites.invitedBy, req.user.id));
+
+      res.json({ count: invites.length });
+    } catch (error) {
+      logger.error("Error fetching invite count:", error);
+      res.status(500).json({ error: "Failed to fetch invite count" });
+    }
+  });
+
   app.get("/api/user/communities", requireAuth, async (req, res) => {
     try {
       const communities = await storage.getUserCommunities(req.user.id);
@@ -1653,6 +1709,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ...parseResult.data,
             email,
             password: hashedPassword,
+            createdAt: new Date(),
           })
           .returning();
 
@@ -1766,18 +1823,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             communityName: zipCodeCommunityName,
           });
 
+          // For default communities, we set createdBy to null to indicate no admin
           [zipCommunity] = await tx
             .insert(schema.communities)
             .values({
               name: zipCodeCommunityName,
               description: `Local community for ${parseResult.data.zipCode}`,
-              createdBy: user.id,
+              createdBy: null, // Set to null for default communities
               isCustom: false,
             })
             .returning();
 
           logger.info("Created zip code community:", {
-            userId: user.id,
             communityId: zipCommunity.id,
             zipCode: parseResult.data.zipCode,
           });

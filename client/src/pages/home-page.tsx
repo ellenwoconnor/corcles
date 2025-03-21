@@ -18,16 +18,33 @@ import FadeIn from "@/components/fade-in";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import CreateWishlistDialog from "@/components/create-wishlist-dialog"; // Added import
+import CreateWishlistDialog from "@/components/create-wishlist-dialog";
+import EmptyMarketplace from "@/components/empty-marketplace";
 
 // Add 'use client' directive for Next.js strict mode
 ("use client");
 
 export default function HomePage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [searchValue, setSearchValue] = useState("");
+
+  // Show loading state while checking auth
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="flex justify-center items-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
   const [showFreeOnly, setShowFreeOnly] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(() => {
+    // Show welcome dialog if user hasn't seen it before
+    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+    return !hasSeenWelcome;
+  });
   const [createWishlistDialogOpen, setCreateWishlistDialogOpen] =
     useState(false); // Added state
   const debouncedSearchValue = useDebounce(searchValue, 300);
@@ -40,7 +57,7 @@ export default function HomePage() {
 
   const communityIds = userCommunities.map((c) => c.id);
 
-  const { data: items = [], isLoading } = useQuery<Item[]>({
+  const { data: items = [], isLoading: isLoadingItems } = useQuery<Item[]>({
     queryKey: ["/api/items", communityIds, debouncedSearchValue, showFreeOnly],
     queryFn: async () => {
       if (communityIds.length === 0) return [];
@@ -111,14 +128,16 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {isLoading ? (
+              {isLoadingItems ? (
                 <div className="flex justify-center items-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 </div>
               ) : items.length === 0 ? (
-                <Card className="p-6 text-center border-none">
-                  <p>No items found in your communities.</p>
-                </Card>
+                <div className="flex justify-center items-center min-h-[50vh]">
+                  <Card className="p-6 border-none">
+                    <EmptyMarketplace />
+                  </Card>
+                </div>
               ) : (
                 <FadeIn delay={0.1}>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

@@ -7,10 +7,11 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, ExternalLink, Users } from "lucide-react";
 import type { Wishlist } from "@shared/schema";
 import { useLocation } from "wouter";
+import { useState } from "react";
 
 interface WishlistDetailsDialogProps {
   wishlist: Wishlist | null;
@@ -82,43 +83,175 @@ export default function WishlistDetailsDialog({
     );
   });
 
+  const queryClient = useQueryClient();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: wishlist?.title || "",
+    description: wishlist?.description || "",
+    budget: wishlist?.budget || "",
+    urgency: wishlist?.urgency || "normal",
+    isPrivate: wishlist?.isPrivate || false,
+  });
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(`/api/wishlists/${wishlist.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+
+      if (!response.ok) throw new Error("Failed to update wishlist");
+
+      const updated = await response.json();
+      // Update wishlists cache
+      queryClient.setQueryData(["/api/communities/wishlists"], (old: any[]) =>
+        old.map((w) => (w.id === updated.id ? updated : w)),
+      );
+
+      // Invalidate requests cache to trigger refresh
+      queryClient.invalidateQueries({ queryKey: ["/api/user/requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/wishlists"] });
+
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Error updating wishlist:", error);
+    }
+  };
+
   if (!wishlist) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold mb-3">
-            {wishlist.title}
-          </DialogTitle>
-          <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <span>
-                Listed by {wishlist.userDisplayName || "Anonymous"} in{" "}
-                {wishlist.communityName || "Unknown Community"}
-              </span>
-              <span>{communityData?.mascot || "🏠"}</span>
-            </div>
-            <div>
-              {formatDistanceToNow(new Date(wishlist.createdAt), {
-                addSuffix: true,
-              })}
-            </div>
-            {wishlist.budget && (
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Budget:</span>
-                <span className="ml-2">${wishlist.budget}</span>
+          {isEditing ? (
+            <form onSubmit={handleEdit} className="space-y-4">
+              <input
+                type="text"
+                value={editForm.title}
+                onChange={(e) =>
+                  setEditForm((prev) => ({ ...prev, title: e.target.value }))
+                }
+                className="w-full p-2 border rounded"
+                placeholder="Title"
+              />
+              <textarea
+                value={editForm.description}
+                onChange={(e) =>
+                  setEditForm((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
+                className="w-full p-2 border rounded"
+                placeholder="Description"
+              />
+              <input
+                type="number"
+                value={editForm.budget}
+                onChange={(e) =>
+                  setEditForm((prev) => ({ ...prev, budget: e.target.value }))
+                }
+                className="w-full p-2 border rounded"
+                placeholder="Budget"
+              />
+              <select
+                value={editForm.urgency}
+                onChange={(e) =>
+                  setEditForm((prev) => ({ ...prev, urgency: e.target.value }))
+                }
+                className="w-full p-2 border rounded"
+              >
+                <option value="low">Low</option>
+                <option value="normal">Normal</option>
+                <option value="high">High</option>
+              </select>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={editForm.isPrivate}
+                  onChange={(e) =>
+                    setEditForm((prev) => ({
+                      ...prev,
+                      isPrivate: e.target.checked,
+                    }))
+                  }
+                />
+                Private
+              </label>
+              <div className="flex gap-2">
+                <Button type="submit">Save</Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditing(false)}
+                >
+                  Cancel
+                </Button>
               </div>
-            )}
-            {wishlist.urgency && (
-              <div>
-                <span className="text-muted-foreground">Priority:</span>
-                <span className="ml-2 capitalize">{wishlist.urgency}</span>
+            </form>
+          ) : (
+            <>
+              <DialogTitle className="text-xl font-semibold mb-3">
+                {wishlist.title}
+                {currentUserId === wishlist.userId && (
+                  <Button
+                    variant="ghost"
+                    className="ml-2"
+                    onClick={() => {
+                      setEditForm({
+                        title: wishlist.title,
+                        description: wishlist.description || "",
+                        budget: wishlist.budget || "",
+                        urgency: wishlist.urgency || "normal",
+                        isPrivate: wishlist.isPrivate,
+                      });
+                      setIsEditing(true);
+                    }}
+                  >
+                    Edit
+                  </Button>
+                )}
+              </DialogTitle>
+              <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+                <div>
+                  <div>
+                    <span>
+                      Listed by{" "}
+                      {userData?.displayName ||
+                        wishlist?.userDisplayName ||
+                        "Anonymous"}{" "}
+                      in{" "}
+                      {communityData?.name ||
+                        wishlist?.communityName ||
+                        "Unknown Community"}
+                    </span>
+                    <span>{communityData?.mascot || "🏠"}</span>
+                  </div>
+                </div>
+                <div>
+                  {formatDistanceToNow(new Date(wishlist.createdAt), {
+                    addSuffix: true,
+                  })}
+                </div>
+                {wishlist.budget && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Budget:</span>
+                    <span className="ml-2">${wishlist.budget}</span>
+                  </div>
+                )}
+                {wishlist.urgency && (
+                  <div>
+                    <span className="text-muted-foreground">Priority:</span>
+                    <span className="ml-2 capitalize">{wishlist.urgency}</span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </DialogHeader>
-
         <div className="space-y-6">
           {/* Description */}
           <div className="bg-muted/50 rounded-lg p-4">

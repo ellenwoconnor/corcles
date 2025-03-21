@@ -3,13 +3,19 @@ import { useQuery } from "@tanstack/react-query";
 import { Item } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Gift, Tag, Clock } from "lucide-react";
+import { Loader2, Gift, Tag, Clock, Users } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 export default function ProfilePage() {
   const { user } = useAuth();
 
   const { data: userItems, isLoading: itemsLoading } = useQuery<Item[]>({
     queryKey: ["/api/user/items"],
+    enabled: !!user,
+  });
+
+  const { data: invitedUsers = [] } = useQuery<{ count: number }>({
+    queryKey: ["/api/user/invites/count"],
     enabled: !!user,
   });
 
@@ -37,8 +43,10 @@ export default function ProfilePage() {
     );
   }
 
-  const listedItems = userItems?.filter(i => i.status === 'available')?.length || 0;
-  const completedItems = userItems?.filter(i => i.status === 'completed')?.length || 0;
+  const listedItems =
+    userItems?.filter((i) => i.status === "available")?.length || 0;
+  const completedItems =
+    userItems?.filter((i) => i.status === "completed")?.length || 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -60,36 +68,58 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Listings</CardTitle>
-              <Tag className="h-4 w-4 text-muted-foreground"/>
+        <div className="grid gap-4 grid-cols-2">
+          <Card className="text-center">
+            <div className="pt-6 flex justify-center">
+              <Tag className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">
+                Active Listings
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{listedItems}</div>
+              <div className="text-2xl">{listedItems}</div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <Card className="text-center">
+            <div className="pt-6 flex justify-center">
+              <Gift className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Items Given</CardTitle>
-              <Gift className="h-4 w-4 text-muted-foreground"/>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{completedItems}</div>
+              <div className="text-2xl">{completedItems}</div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Member Since</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground"/>
+          <Card className="text-center">
+            <div className="pt-6 flex justify-center">
+              <Users className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">
+                Users Invited
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {new Date(user.createdAt).toLocaleDateString()}
-              </div>
+              <div className="text-2xl">{invitedUsers.count || 0}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="text-center">
+            <div className="pt-6 flex justify-center">
+              <Clock className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">
+                Member Since
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl">{formatDate(user.createdAt)}</div>
             </CardContent>
           </Card>
         </div>

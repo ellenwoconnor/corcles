@@ -1,4 +1,3 @@
-
 import { Item } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,7 +21,7 @@ export default function ItemCard({ item }: ItemCardProps) {
                 alt={item.title}
                 className="object-cover w-full h-full"
               />
-              <div className="absolute top-2 right-2 bg-primary text-primary-foreground px-2 py-1 rounded-full text-sm font-medium">
+              <div className="absolute top-2 right-2 bg-secondary-foreground text-foreground px-2 py-1 rounded-full text-sm font-medium">
                 {item.isGift ? "Free" : `$${item.price}`}
               </div>
             </div>

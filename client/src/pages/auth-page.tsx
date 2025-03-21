@@ -23,7 +23,7 @@ export default function AuthPage() {
         <div className="flex flex-col items-center mb-8">
           <div className="flex items-center gap-4">
             <h1 className="text-7xl">
-              C<span className="text-[#6ABF69]">O</span>RCLES
+              C<span className="text-[#B2B8A3]">O</span>RCLES
             </h1>
           </div>
           <p className="text-lg text-muted-foreground mt-2">

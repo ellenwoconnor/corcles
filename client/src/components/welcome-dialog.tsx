@@ -23,7 +23,9 @@ export function WelcomeDialog({ communities }: WelcomeDialogProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle className="text-2xl">Welcome to Corcles!</DialogTitle>
+          <DialogTitle className="text-2xl py-4">
+            Welcome to <span className="uppercase tracking-wide">C<span className="text-[#B2B8A3]">O</span>RCLES</span>!
+          </DialogTitle>
           <DialogDescription className="text-base space-y-4 pt-4">
             <p>
               Say goodbye to waste -- Corcles is a smarter way to share and shop
@@ -40,20 +42,29 @@ export function WelcomeDialog({ communities }: WelcomeDialogProps) {
             )}
 
             {invitedCommunities.length > 0 && (
-              <div>
+              <div className="py-6">
                 <p className="font-medium text-foreground">
-                  Welcome to the party!
+                  Even more to enjoy
                 </p>
                 <p>
                   You've also been invited into private corcles:{" "}
-                  {invitedCommunities.join(", ")}
+                  {invitedCommunities
+                    .map((community) => community.name)
+                    .join(", ")}
                 </p>
               </div>
             )}
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-end">
-          <Button onClick={() => setOpen(false)}>Get Started</Button>
+          <Button
+            onClick={() => {
+              localStorage.setItem("hasSeenWelcome", "true");
+              setOpen(false);
+            }}
+          >
+            Get Started
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

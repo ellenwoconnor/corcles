@@ -22,6 +22,7 @@ export const users = pgTable("users", {
   address: text("address").notNull(),
   zipCode: text("zip_code").notNull(),
   email: text("email").notNull().unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const communities = pgTable("communities", {
@@ -29,7 +30,7 @@ export const communities = pgTable("communities", {
   name: text("name").notNull(),
   description: text("description"),
   mascot: text("mascot").default("🏠"),
-  createdBy: integer("created_by").notNull(),
+  createdBy: integer("created_by"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   isCustom: boolean("is_custom").notNull().default(true),
 });
