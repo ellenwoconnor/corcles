@@ -22,7 +22,7 @@ export default function Navbar() {
         <div className="mr-4">
           <Link href="/" className="mr-6 flex items-center">
             <span className="text-4xl uppercase tracking-wide">
-              C<span className="text-[#6ABF69]">O</span>RCLES
+              C<span className="text-[#B2B8A3]">O</span>RCLES
             </span>
           </Link>
         </div>
