@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, ExternalLink, Users } from "lucide-react";
 import type { Wishlist } from "@shared/schema";
 import { useLocation } from "wouter";
@@ -83,6 +83,7 @@ export default function WishlistDetailsDialog({
     );
   });
 
+  const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     title: wishlist?.title || "",
