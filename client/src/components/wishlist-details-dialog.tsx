@@ -185,7 +185,6 @@ export default function WishlistDetailsDialog({
                   </Button>
                 )}
               </DialogTitle>
-          </DialogTitle>
               <div className="flex flex-col gap-1 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <span>
