@@ -21,7 +21,6 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <img src="/auth-tree.jpg" alt="Corcles Tree" className="w-40 h-40 mb-4" />
           <div className="flex items-center gap-4">
             <h1 className="text-7xl">
               C<span className="text-[#B2B8A3]">O</span>RCLES
