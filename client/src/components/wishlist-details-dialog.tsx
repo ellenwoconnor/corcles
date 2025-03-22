@@ -216,22 +216,28 @@ const handleEdit = async (e: React.FormEvent) => {
               <DialogTitle className="text-xl font-semibold mb-3">
                 {wishlist.title}
                 {currentUserId === wishlist.userId && (
-                  <Button
-                    variant="ghost"
-                    className="ml-2"
-                    onClick={() => {
-                      setEditForm({
-                        title: wishlist.title,
-                        description: wishlist.description || "",
-                        budget: wishlist.budget || "",
-                        urgency: wishlist.urgency || "normal",
-                        isPrivate: wishlist.isPrivate,
-                      });
-                      setIsEditing(true);
-                    }}
-                  >
-                    Edit
-                  </Button>
+                  <><Button
+                                              variant="ghost"
+                                              className="ml-2"
+                                              onClick={() => {
+                                                  setEditForm({
+                                                      title: wishlist.title,
+                                                      description: wishlist.description || "",
+                                                      budget: wishlist.budget || "",
+                                                      urgency: wishlist.urgency || "normal",
+                                                      isPrivate: wishlist.isPrivate,
+                                                  });
+                                                  setIsEditing(true);
+                                              } }
+                                          >
+                                              Edit
+                                          </Button><Button
+                                              variant="ghost"
+                                              className="ml-2"
+                                              onClick={handleDelete}
+                                          >
+                                                  Delete
+                                              </Button></>
                 )}
               </DialogTitle>
               <div className="flex flex-col gap-1 text-sm text-muted-foreground">
@@ -271,15 +277,6 @@ const handleEdit = async (e: React.FormEvent) => {
             </>
           )}
   </div>
-  {wishlist && currentUserId === wishlist.userId && (
-    <Button 
-      variant="destructive" 
-      size="sm"
-      onClick={handleDelete}
-    >
-      Delete
-    </Button>
-  )}
         </DialogHeader>
         <div className="space-y-6">
           {/* Description */}
