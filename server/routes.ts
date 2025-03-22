@@ -184,6 +184,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/wishlists/:id", requireAuth, async (req, res) => {
+    try {
+      const wishlistId = parseInt(req.params.id);
+      if (isNaN(wishlistId)) {
+        return res.status(400).json({ error: "Invalid wishlist ID" });
+      }
+
+      const wishlist = await storage.getWishlist(wishlistId);
+      if (!wishlist) {
+        return res.status(404).json({ error: "Wishlist not found" });
+      }
+
+      if (wishlist.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized to delete this wishlist" });
+      }
+
+      await db.delete(schema.wishlists)
+        .where(eq(schema.wishlists.id, wishlistId));
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Error deleting wishlist:", error);
+      res.status(500).json({ error: "Failed to delete wishlist" });
+    }
+  });
+
   app.patch("/api/wishlists/:id", requireAuth, async (req, res) => {
     try {
       const wishlistId = parseInt(req.params.id);
@@ -309,6 +335,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid wishlist ID" });
       }
 
+      const wishlist = await storage.getWishlist(wishlistId);
+      if (!wishlist) {
+        return res.status(404).json({ error: "Wishlist not found" });
+      }
+
+      if (wishlist.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized to edit this wishlist" });
+      }
+
       const updates = {
         ...req.body,
         budget: req.body.budget ? Number(req.body.budget) : undefined,
@@ -336,6 +371,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error("Error updating wishlist:", error);
       res.status(500).json({ error: "Failed to update wishlist" });
+    }
+  });
+
+  app.get("/api/user/wishlists", requireAuth, async (req, res) => {
+    try {
+      const wishlists = await storage.getUserWishlists(req.user.id);
+      res.json(wishlists);
+    } catch (error) {
+      logger.error("Error fetching user wishlists:", error);
+      res.status(500).json({ error: "Failed to fetch wishlists" });
+    }
+  });
+
+  app.get("/api/community/:id/wishlists", requireAuth, async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      if (isNaN(communityId)) {
+        return res.status(400).json({ error: "Invalid community ID" });
+      }
+
+      const isMember = await storage.isUserInCommunity(
+        req.user.id,
+        communityId,
+      );
+      if (!isMember) {
+        return res
+          .status(403)
+          .json({ error: "Not a member of this community" });
+      }
+
+      const wishlists = await storage.getCommunityWishlists(communityId);
+      res.json(wishlists);
+    } catch (error) {
+      logger.error("Error fetching community wishlists:", error);
+      res.status(500).json({ error: "Failed to fetch wishlists" });
+    }
+  });
+
+  app.get("/api/communities/wishlists", requireAuth, async (req, res) => {
+    try {
+      const userCommunities = await storage.getUserCommunities(req.user.id);
+      const communityIds = userCommunities.map((c) => c.id);
+
+      logger.debug("Fetching wishlists for communities:", {
+        userId: req.user.id,
+        communityIds,
+      });
+
+      if (communityIds.length === 0) {
+        return res.json([]);
+      }
+
+      const wishlists = await db
+        .select({
+          ...schema.wishlists,
+          userDisplayName: schema.users.displayName,
+          communityName: schema.communities.name,
+          communityMascot: schema.communities.mascot,
+        })
+        .from(schema.wishlists)
+        .leftJoin(schema.users, eq(schema.wishlists.userId, schema.users.id))
+        .leftJoin(
+          schema.communities,
+          eq(schema.wishlists.communityId, schema.communities.id)
+        )
+        .where(
+          and(
+            inArray(schema.wishlists.communityId, communityIds),
+            or(
+              eq(schema.wishlists.isPrivate, false),
+              eq(schema.wishlists.userId, req.user.id),
+            ),
+          ),
+        );
+
+      res.json(wishlists);
+    } catch (error) {
+      logger.error("Error fetching community wishlists:", error);
+      res.status(500).json({ error: "Failed to fetch community wishlists" });
     }
   });
 
@@ -552,14 +666,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // No need for additional search term logging
 
       const isFreeOnly = freeOnly === "true";
-      
+
       // Log filters being applied
       logger.debug("Applying filters:", {
         communities,
         searchTerm,
         freeOnly: isFreeOnly
       });
-      
+
       const items = await storage.getItems(
         communities,
         req.user?.id,
@@ -1234,7 +1348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .from(schema.wishlists)
           .where(eq(schema.wishlists.id, parseInt(wishlistId.toString())))
           .limit(1);
-        
+
 
         if (wishlist.length > 0) {
           validWishlistId = parseInt(wishlistId.toString());
@@ -2042,7 +2156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         itemId, 
         userId: req.user?.id 
       });
-      
+
 
       res.json({ success: true });
     } catch (error) {
