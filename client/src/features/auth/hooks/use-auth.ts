@@ -126,12 +126,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const googleAuthMutation = useMutation({
+  const googleAuthMutation = useMutation<SelectUser, Error, string>({
     mutationFn: async (accessToken: string) => {
       const res = await apiRequest("POST", "/api/auth/google", { accessToken });
       return res.json();
     },
-    onSuccess: async (user: SelectUser) => {
+    onSuccess: async (user) => {
       queryClient.setQueryData(["/api/user"], user);
       if (!user.address || !user.zipCode) {
         window.location.href = "/welcome";
@@ -139,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         window.location.href = "/";
       }
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
         title: "Google login failed",
         description: error.message,
