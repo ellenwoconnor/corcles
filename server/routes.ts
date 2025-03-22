@@ -1006,6 +1006,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(req.user);
   });
 
+  app.patch("/api/user/profile", requireAuth, async (req, res) => {
+    try {
+      const { displayName, address } = req.body;
+
+      if (!displayName || !address) {
+        return res.status(400).json({ error: "Display name and address are required" });
+      }
+
+      await db.update(schema.users)
+        .set({ displayName, address })
+        .where(eq(schema.users.id, req.user.id));
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Error updating user profile:", error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+  
   app.get("/api/community/:community/count", requireAuth, async (req, res) => {
     try {
       const result = await db
