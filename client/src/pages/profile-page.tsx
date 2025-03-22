@@ -55,10 +55,12 @@ export default function ProfilePage() {
         <div className="mb-8 space-y-4">
           <div className="space-y-4">
             <div>
-              <h1 className="text-2xl tracking-tight mb-2">Profile</h1>
+              <h1 className="text-2xl tracking-tight mb-2">{user.username}</h1>
               <p className="text-sm flex items-center gap-2">
-                <span className="font-medium">Username:</span>
-                <span className="text-muted-foreground">{user.username}</span>
+                <span className="font-medium">Display name:</span>
+                <span className="text-muted-foreground">
+                  {user.displayName}
+                </span>
               </p>
               <p className="text-sm flex items-center gap-2">
                 <span className="font-medium">Address:</span>
