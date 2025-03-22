@@ -56,16 +56,45 @@ export default function ProfilePage() {
           <div className="space-y-4">
             <div>
               <h1 className="text-2xl tracking-tight mb-2">{user.username}</h1>
-              <p className="text-sm flex items-center gap-2">
-                <span className="font-medium">Display name:</span>
-                <span className="text-muted-foreground">
-                  {user.displayName}
-                </span>
-              </p>
-              <p className="text-sm flex items-center gap-2">
-                <span className="font-medium">Address:</span>
-                <span className="text-muted-foreground">{user.address}</span>
-              </p>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                try {
+                  const response = await fetch('/api/user/profile', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      displayName: formData.get('displayName'),
+                      address: formData.get('address')
+                    })
+                  });
+                  if (!response.ok) throw new Error('Failed to update profile');
+                  // Refresh the page to show updated info
+                  window.location.reload();
+                } catch (error) {
+                  console.error('Error updating profile:', error);
+                }
+              }} className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm">Display name:</span>
+                  <input
+                    name="displayName"
+                    defaultValue={user.displayName}
+                    className="text-sm rounded-md border px-2 py-1"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm">Address:</span>
+                  <input
+                    name="address"
+                    defaultValue={user.address}
+                    className="text-sm rounded-md border px-2 py-1 flex-1"
+                  />
+                </div>
+                <button type="submit" className="text-sm px-3 py-1 bg-primary text-primary-foreground rounded-md">
+                  Save Changes
+                </button>
+              </form>
             </div>
           </div>
         </div>
