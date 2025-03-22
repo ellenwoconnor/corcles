@@ -50,7 +50,7 @@ export default function PublicListingView({
         </div>
       )}
       {isWishlistFulfillment && (
-        <div className="border rounded-md p-4 bg-green-50 border-green-200 mb-4">
+        <div className="border rounded-md p-4 bg-primary bg-opacity-30 mb-4">
           <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
             {/* <UserCheck className="h-5 w-5 text-green-600" /> */}
             <span>Wishlist Offer</span>

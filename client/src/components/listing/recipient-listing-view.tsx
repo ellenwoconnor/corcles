@@ -63,7 +63,7 @@ export default function RecipientListingView({
     <div>
       <BaseListingView item={item} isOwner={false}>
         {
-          <div className="border rounded-md p-4  mb-4 bg-primary">
+          <div className="border rounded-md p-4  mb-4 bg-primary bg-opacity-30">
             <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
               <UserCheck className="h-5 w-5" />
               <span>Request Accepted</span>
