@@ -50,42 +50,42 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="container py-12">
+        <h1 className="text-2xl tracking-tight mb-8">{user.username}</h1>
         <div className="mb-8">
           <Card>
-            <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-            </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-semibold mb-4">{user.username}</h2>
+                <div className="mt-8">
                   {isEditing ? (
-                    <form 
+                    <form
                       onSubmit={async (e) => {
                         e.preventDefault();
                         const formData = new FormData(e.currentTarget);
                         try {
-                          const response = await fetch('/api/user/profile', {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
+                          const response = await fetch("/api/user/profile", {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
-                              displayName: formData.get('displayName'),
-                              address: formData.get('address')
-                            })
+                              displayName: formData.get("displayName"),
+                              address: formData.get("address"),
+                            }),
                           });
-                          if (!response.ok) throw new Error('Failed to update profile');
+                          if (!response.ok)
+                            throw new Error("Failed to update profile");
                           const result = await response.json();
                           setIsEditing(false);
                           window.location.reload();
                         } catch (error) {
-                          console.error('Error updating profile:', error);
-                          alert('Failed to update profile. Please try again.');
+                          console.error("Error updating profile:", error);
+                          alert("Failed to update profile. Please try again.");
                         }
-                      }} 
+                      }}
                       className="space-y-4"
                     >
                       <div>
-                        <label className="text-sm font-medium block mb-2">Display Name</label>
+                        <label className="text-sm font-medium block mb-2">
+                          Display Name
+                        </label>
                         <input
                           name="displayName"
                           defaultValue={user.displayName}
@@ -94,7 +94,9 @@ export default function ProfilePage() {
                         />
                       </div>
                       <div>
-                        <label className="text-sm font-medium block mb-2">Address</label>
+                        <label className="text-sm font-medium block mb-2">
+                          Address
+                        </label>
                         <input
                           name="address"
                           defaultValue={user.address}
@@ -103,21 +105,37 @@ export default function ProfilePage() {
                         />
                       </div>
                       <div className="flex gap-2 mt-4">
-                        <Button type="submit" variant="default">Save Changes</Button>
-                        <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+                        <Button type="submit" variant="default">
+                          Save Changes
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setIsEditing(false)}
+                        >
+                          Cancel
+                        </Button>
                       </div>
                     </form>
                   ) : (
                     <div className="space-y-4">
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground mb-1">Display Name</p>
-                        <p className="text-lg">{user.displayName}</p>
+                        <p className="text-sm font-medium text-muted-foreground mb-1">
+                          Display Name
+                        </p>
+                        <p>{user.displayName}</p>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-muted-foreground mb-1">Address</p>
-                        <p className="text-lg">{user.address}</p>
+                        <p className="text-sm font-medium text-muted-foreground mb-1">
+                          Address
+                        </p>
+                        <p>{user.address}</p>
                       </div>
-                      <Button onClick={() => setIsEditing(true)} variant="outline" className="mt-2">
+                      <Button
+                        onClick={() => setIsEditing(true)}
+                        variant="outline"
+                        className="mt-2"
+                      >
                         Edit Profile
                       </Button>
                     </div>
@@ -128,7 +146,7 @@ export default function ProfilePage() {
           </Card>
         </div>
         <div className="grid gap-4 grid-cols-2">
-          <Card className="text-center">
+          <Card className="text-center bg-muted bg-opacity-30">
             <div className="pt-6 flex justify-center">
               <Tag className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -138,11 +156,14 @@ export default function ProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl">{userItems?.filter((i) => i.status === "available")?.length || 0}</div>
+              <div className="text-2xl">
+                {userItems?.filter((i) => i.status === "available")?.length ||
+                  0}
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="text-center">
+          <Card className="text-center bg-muted bg-opacity-30">
             <div className="pt-6 flex justify-center">
               <Gift className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -150,11 +171,14 @@ export default function ProfilePage() {
               <CardTitle className="text-sm font-medium">Items Given</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl">{userItems?.filter((i) => i.status === "completed")?.length || 0}</div>
+              <div className="text-2xl">
+                {userItems?.filter((i) => i.status === "completed")?.length ||
+                  0}
+              </div>
             </CardContent>
           </Card>
 
-          <Card className="text-center">
+          <Card className="text-center bg-muted bg-opacity-30">
             <div className="pt-6 flex justify-center">
               <Users className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -168,7 +192,7 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-          <Card className="text-center">
+          <Card className="text-center bg-muted bg-opacity-30">
             <div className="pt-6 flex justify-center">
               <Clock className="h-8 w-8 text-muted-foreground" />
             </div>
