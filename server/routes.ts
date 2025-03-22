@@ -184,6 +184,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/wishlists/:id", requireAuth, async (req, res) => {
+    try {
+      const wishlistId = parseInt(req.params.id);
+      if (isNaN(wishlistId)) {
+        return res.status(400).json({ error: "Invalid wishlist ID" });
+      }
+
+      const wishlist = await storage.getWishlist(wishlistId);
+      if (!wishlist) {
+        return res.status(404).json({ error: "Wishlist not found" });
+      }
+
+      if (wishlist.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized to delete this wishlist" });
+      }
+
+      // Update any items that were offered for this wishlist
+      await db.update(schema.items)
+        .set({ wishlistId: null })
+        .where(eq(schema.items.wishlistId, wishlistId));
+
+      // Delete the wishlist
+      await db.delete(schema.wishlists)
+        .where(eq(schema.wishlists.id, wishlistId));
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Error deleting wishlist:", error);
+      res.status(500).json({ error: "Failed to delete wishlist" });
+    }
+  });
+
   app.patch("/api/wishlists/:id", requireAuth, async (req, res) => {
     try {
       const wishlistId = parseInt(req.params.id);
@@ -299,43 +331,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error("Error fetching community wishlists:", error);
       res.status(500).json({ error: "Failed to fetch community wishlists" });
-    }
-  });
-
-  app.patch("/api/wishlists/:id", requireAuth, async (req, res) => {
-    try {
-      const wishlistId = parseInt(req.params.id);
-      if (isNaN(wishlistId)) {
-        return res.status(400).json({ error: "Invalid wishlist ID" });
-      }
-
-      const updates = {
-        ...req.body,
-        budget: req.body.budget ? Number(req.body.budget) : undefined,
-      };
-
-      const partialWishlistSchema = insertWishlistSchema.partial();
-      const parseResult = partialWishlistSchema.safeParse(updates);
-      if (!parseResult.success) {
-        return res.status(400).json(parseResult.error);
-      }
-
-      const updatedWishlist = await storage.updateWishlist(
-        wishlistId,
-        req.user.id,
-        parseResult.data,
-      );
-
-      if (!updatedWishlist) {
-        return res
-          .status(404)
-          .json({ error: "Wishlist not found or unauthorized" });
-      }
-
-      res.json(updatedWishlist);
-    } catch (error) {
-      logger.error("Error updating wishlist:", error);
-      res.status(500).json({ error: "Failed to update wishlist" });
     }
   });
 
@@ -552,14 +547,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // No need for additional search term logging
 
       const isFreeOnly = freeOnly === "true";
-      
+
       // Log filters being applied
       logger.debug("Applying filters:", {
         communities,
         searchTerm,
         freeOnly: isFreeOnly
       });
-      
+
       const items = await storage.getItems(
         communities,
         req.user?.id,
@@ -884,6 +879,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/user", requireAuth, (req, res) => {
     res.json(req.user);
+  });
+
+  app.patch("/api/user/profile", requireAuth, async (req, res) => {
+    try {
+      const { displayName, address } = req.body;
+
+      if (!displayName || !address) {
+        return res.status(400).json({ error: "Display name and address are required" });
+      }
+
+      await db.update(schema.users)
+        .set({ displayName, address })
+        .where(eq(schema.users.id, req.user.id));
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Error updating user profile:", error);
+      res.status(500).json({ error: "Failed to update profile" });
+    }
   });
 
   app.get("/api/community/:community/count", requireAuth, async (req, res) => {
@@ -1234,7 +1248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .from(schema.wishlists)
           .where(eq(schema.wishlists.id, parseInt(wishlistId.toString())))
           .limit(1);
-        
+
 
         if (wishlist.length > 0) {
           validWishlistId = parseInt(wishlistId.toString());
@@ -2042,7 +2056,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         itemId, 
         userId: req.user?.id 
       });
-      
+
 
       res.json({ success: true });
     } catch (error) {

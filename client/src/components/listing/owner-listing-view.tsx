@@ -7,7 +7,7 @@ import BidsList from "@/components/bids-list";
 import PickupScheduler from "@/components/pickup-scheduler";
 import { MessageDialog } from "@/components/message-dialog";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CancelButton } from "@/components/cancel-button";
 import { ExtendedItem } from "@/pages/listing-page";
 import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query";
@@ -34,11 +34,8 @@ export default function OwnerListingView({
   currentUserId,
 }: OwnerListingViewProps) {
   const [searchParams] = useSearchParams();
-  const showMessages = searchParams.get('showMessages') === 'true';
-  const requestIdFromUrl = searchParams.get('requestId');
-  const [messageDialogOpen, setMessageDialogOpen] = useState(
-    showMessages && requestIdFromUrl === activeRequest?.id?.toString()
-  );
+  const showMessages = searchParams.get("showMessages") === "true";
+  const requestIdFromUrl = searchParams.get("requestId");
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -53,13 +50,12 @@ export default function OwnerListingView({
   const activeRequest = item.recipientId
     ? requests.find((r) => r.requesterId === item.recipientId)
     : requests.find((r) =>
-        [
-          "pending",
-          "accepted",
-          "awaiting_pickup_confirmation",
-          "scheduled",
-        ].includes(r.status),
+        ["pending", "accepted", "awaiting_pickup_confirmation", "scheduled"].includes(r.status),
       );
+
+  const [messageDialogOpen, setMessageDialogOpen] = useState(
+    showMessages && requestIdFromUrl === activeRequest?.id?.toString(),
+  );
 
   const showPickupScheduler = ["requested", "scheduling", "scheduled"].includes(
     item.status || "",
@@ -70,13 +66,17 @@ export default function OwnerListingView({
 
   // Determine if the message dialog should open based on URL parameters and active request
   useEffect(() => {
-    if (showMessages && requestIdFromUrl && activeRequest && requestIdFromUrl === activeRequest.id.toString()) {
+    if (
+      showMessages &&
+      requestIdFromUrl &&
+      activeRequest &&
+      requestIdFromUrl === activeRequest.id.toString()
+    ) {
       setMessageDialogOpen(true);
     } else {
       setMessageDialogOpen(false);
     }
   }, [showMessages, requestIdFromUrl, activeRequest]);
-
 
   async function handleDelist() {
     try {
@@ -118,7 +118,7 @@ export default function OwnerListingView({
           )}
         </div>
         {item.wishlistId && !hasRequests && (
-          <div className="border rounded-md p-4 bg-green-50 border-green-200 mb-4">
+          <div className="border rounded-md p-4  bg-primary bg-opacity-30 mb-4">
             <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
               {/* <UserCheck className="h-5 w-5 text-green-600" /> */}
               <span>Wishlist Offer</span>
@@ -129,9 +129,9 @@ export default function OwnerListingView({
           </div>
         )}
         {hasRequests && (
-          <div className="border rounded-md p-4 bg-green-50 border-green-200 mb-4">
+          <div className="border rounded-md p-4  bg-primary bg-opacity-30 mb-4">
             <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
-              <UserCheck className="h-5 w-5 text-green-600" />
+              <UserCheck className="h-5 w-5" />
               <span>Requests Pending</span>
             </h2>
             <p className="text-sm mb-3">

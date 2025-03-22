@@ -93,7 +93,25 @@ export default function WishlistDetailsDialog({
     isPrivate: wishlist?.isPrivate || false,
   });
 
-  const handleEdit = async (e: React.FormEvent) => {
+  const handleDelete = async () => {
+  if (!wishlist) return;
+  
+  try {
+    const response = await fetch(`/api/wishlists/${wishlist.id}`, {
+      method: "DELETE",
+    });
+    
+    if (!response.ok) throw new Error("Failed to delete wishlist");
+    
+    onOpenChange(false);
+    queryClient.invalidateQueries({ queryKey: ["/api/user/wishlists"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/communities/wishlists"] });
+  } catch (error) {
+    console.error("Error deleting wishlist:", error);
+  }
+};
+
+const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const response = await fetch(`/api/wishlists/${wishlist.id}`, {
@@ -125,7 +143,8 @@ export default function WishlistDetailsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+        <DialogHeader className="flex justify-between items-start">
+  <div>
           {isEditing ? (
             <form onSubmit={handleEdit} className="space-y-4">
               <input
@@ -197,22 +216,28 @@ export default function WishlistDetailsDialog({
               <DialogTitle className="text-xl font-semibold mb-3">
                 {wishlist.title}
                 {currentUserId === wishlist.userId && (
-                  <Button
-                    variant="ghost"
-                    className="ml-2"
-                    onClick={() => {
-                      setEditForm({
-                        title: wishlist.title,
-                        description: wishlist.description || "",
-                        budget: wishlist.budget || "",
-                        urgency: wishlist.urgency || "normal",
-                        isPrivate: wishlist.isPrivate,
-                      });
-                      setIsEditing(true);
-                    }}
-                  >
-                    Edit
-                  </Button>
+                  <><Button
+                                              variant="ghost"
+                                              className="ml-2"
+                                              onClick={() => {
+                                                  setEditForm({
+                                                      title: wishlist.title,
+                                                      description: wishlist.description || "",
+                                                      budget: wishlist.budget || "",
+                                                      urgency: wishlist.urgency || "normal",
+                                                      isPrivate: wishlist.isPrivate,
+                                                  });
+                                                  setIsEditing(true);
+                                              } }
+                                          >
+                                              Edit
+                                          </Button><Button
+                                              variant="ghost"
+                                              className="ml-2"
+                                              onClick={handleDelete}
+                                          >
+                                                  Delete
+                                              </Button></>
                 )}
               </DialogTitle>
               <div className="flex flex-col gap-1 text-sm text-muted-foreground">
@@ -251,6 +276,7 @@ export default function WishlistDetailsDialog({
               </div>
             </>
           )}
+  </div>
         </DialogHeader>
         <div className="space-y-6">
           {/* Description */}
