@@ -36,9 +36,6 @@ export default function OwnerListingView({
   const [searchParams] = useSearchParams();
   const showMessages = searchParams.get("showMessages") === "true";
   const requestIdFromUrl = searchParams.get("requestId");
-  const [messageDialogOpen, setMessageDialogOpen] = useState(
-    showMessages && requestIdFromUrl === activeRequest?.id?.toString(),
-  );
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -51,6 +48,14 @@ export default function OwnerListingView({
   const hasBids = bids.length > 0;
 
   const activeRequest = item.recipientId
+    ? requests.find((r) => r.requesterId === item.recipientId)
+    : requests.find((r) =>
+        ["pending", "accepted", "awaiting_pickup_confirmation", "scheduled"].includes(r.status),
+      );
+
+  const [messageDialogOpen, setMessageDialogOpen] = useState(
+    showMessages && requestIdFromUrl === activeRequest?.id?.toString(),
+  );
     ? requests.find((r) => r.requesterId === item.recipientId)
     : requests.find((r) =>
         [
