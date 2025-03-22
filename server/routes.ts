@@ -255,6 +255,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/user/wishlists", requireAuth, async (req, res) => {
+    try {
+      const wishlists = await storage.getUserWishlists(req.user.id);
+      res.json(wishlists);
+    } catch (error) {
+      logger.error("Error fetching user wishlists:", error);
+      res.status(500).json({ error: "Failed to fetch wishlists" });
+    }
+  });
+
   app.get("/api/community/:id/wishlists", requireAuth, async (req, res) => {
     try {
       const communityId = parseInt(req.params.id);
