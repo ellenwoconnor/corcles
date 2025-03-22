@@ -200,6 +200,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Not authorized to delete this wishlist" });
       }
 
+      // Update any items that were offered for this wishlist
+      await db.update(schema.items)
+        .set({ wishlistId: null })
+        .where(eq(schema.items.wishlistId, wishlistId));
+
+      // Delete the wishlist
       await db.delete(schema.wishlists)
         .where(eq(schema.wishlists.id, wishlistId));
 
