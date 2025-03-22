@@ -1,12 +1,15 @@
 import { useCallback } from 'react';
 
-const handleLogin = useCallback(async (response: any) => {
+const handleLogin = useCallback(async (response: any, queryClient:any, toast:any, user:any) => {
     // Refresh user data after login
     const userData = await refetchUser();
 
     // Redirect to welcome page if address is not set
-    if (userData && (!userData.address || !userData.zipCode)) {
+    queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+    if (!userData?.address || !userData?.zipCode) {
       window.location.href = "/welcome";
+    } else {
+      window.location.href = "/";
     }
   }, [refetchUser]);
 
