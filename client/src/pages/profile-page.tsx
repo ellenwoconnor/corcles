@@ -55,7 +55,7 @@ export default function ProfilePage() {
           <Card>
             <CardContent>
               <div className="space-y-6">
-                <div className="mt-8">
+                <div className="mt-8 pt-6">
                   {isEditing ? (
                     <form
                       onSubmit={async (e) => {
