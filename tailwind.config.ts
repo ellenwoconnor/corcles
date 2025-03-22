@@ -5,7 +5,7 @@ export default {
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     fontFamily: {
-      sans: ['Poppins', 'sans-serif'],
+      sans: ["Poppins", "sans-serif"],
     },
     extend: {
       borderRadius: {
@@ -17,7 +17,7 @@ export default {
         background: "#FFFFFF",
         foreground: "#4D4D46",
         primary: {
-          DEFAULT: "#A5A58D",
+          DEFAULT: "#B2B8A3",
           foreground: "#F6F3EE",
         },
         secondary: {
