@@ -8,6 +8,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Router } from "@/components/router";
 import { queryClient } from "./lib/queryClient";
 import { ThemeProvider } from "@/components/theme-provider";
+import WelcomePage from "@/pages/welcome-page"; // Added import for WelcomePage
 
 function ConfigurationError({ message }: { message: string }) {
   return (
@@ -21,20 +22,20 @@ function ConfigurationError({ message }: { message: string }) {
 }
 
 function AppContent() {
-  const { needsAddressInfo, pendingGoogleUser, completeGoogleSignup } =
-    useAuth();
+  const { needsAddressInfo, pendingGoogleUser, completeGoogleSignup, redirectToWelcome } = useAuth(); // Added redirectToWelcome
+
+  useEffect(() => {
+    if (redirectToWelcome) {
+      // Redirect to welcome page after successful registration
+      window.location.href = '/welcome';
+    }
+  }, [redirectToWelcome]);
 
   return (
     <>
       <Router />
       <Toaster />
-      {needsAddressInfo && pendingGoogleUser && (
-        <AddressCompletionDialog
-          open={needsAddressInfo}
-          onComplete={completeGoogleSignup}
-          email={pendingGoogleUser.email}
-        />
-      )}
+      {/* Removed AddressCompletionDialog as it's replaced by the WelcomePage */}
     </>
   );
 }
