@@ -5,9 +5,11 @@ import Navbar from "@/components/navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Gift, Tag, Clock, Users } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { useState } from "react";
 
 export default function ProfilePage() {
   const { user } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
 
   const { data: userItems, isLoading: itemsLoading } = useQuery<Item[]>({
     queryKey: ["/api/user/items"],
@@ -56,45 +58,70 @@ export default function ProfilePage() {
           <div className="space-y-4">
             <div>
               <h1 className="text-2xl tracking-tight mb-2">{user.username}</h1>
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                try {
-                  const response = await fetch('/api/user/profile', {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      displayName: formData.get('displayName'),
-                      address: formData.get('address')
-                    })
-                  });
-                  if (!response.ok) throw new Error('Failed to update profile');
-                  // Refresh the page to show updated info
-                  window.location.reload();
-                } catch (error) {
-                  console.error('Error updating profile:', error);
-                }
-              }} className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">Display name:</span>
-                  <input
-                    name="displayName"
-                    defaultValue={user.displayName}
-                    className="text-sm rounded-md border px-2 py-1"
-                  />
+              {isEditing ? (
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  try {
+                    const response = await fetch('/api/user/profile', {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        displayName: formData.get('displayName'),
+                        address: formData.get('address')
+                      })
+                    });
+                    if (!response.ok) throw new Error('Failed to update profile');
+                    const result = await response.json();
+                    setIsEditing(false);
+                    window.location.reload();
+                  } catch (error) {
+                    console.error('Error updating profile:', error);
+                    alert('Failed to update profile. Please try again.');
+                  }
+                }} className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Display name:</label>
+                    <input
+                      name="displayName"
+                      defaultValue={user.displayName}
+                      className="w-full p-2 border rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Address:</label>
+                    <input
+                      name="address"
+                      defaultValue={user.address}
+                      className="w-full p-2 border rounded"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="submit" className="px-3 py-1 bg-primary text-primary-foreground rounded">
+                      Save
+                    </button>
+                    <button type="button" onClick={() => setIsEditing(false)} className="px-3 py-1 border rounded">
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm flex items-center gap-2">
+                    <span className="font-medium">Display name:</span>
+                    <span className="text-muted-foreground">
+                      {user.displayName}
+                    </span>
+                  </p>
+                  <p className="text-sm flex items-center gap-2">
+                    <span className="font-medium">Address:</span>
+                    <span className="text-muted-foreground">{user.address}</span>
+                  </p>
+                  <button onClick={() => setIsEditing(true)} className="text-sm px-3 py-1 border rounded">
+                    Edit Profile
+                  </button>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">Address:</span>
-                  <input
-                    name="address"
-                    defaultValue={user.address}
-                    className="text-sm rounded-md border px-2 py-1 flex-1"
-                  />
-                </div>
-                <button type="submit" className="text-sm px-3 py-1 bg-primary text-primary-foreground rounded-md">
-                  Save Changes
-                </button>
-              </form>
+              )}
             </div>
           </div>
         </div>
