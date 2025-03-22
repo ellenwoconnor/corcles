@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Gift, Tag, Clock, Users } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -45,87 +46,87 @@ export default function ProfilePage() {
     );
   }
 
-  const listedItems =
-    userItems?.filter((i) => i.status === "available")?.length || 0;
-  const completedItems =
-    userItems?.filter((i) => i.status === "completed")?.length || 0;
-
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="container py-12">
-        <div className="mb-8 space-y-4">
-          <div className="space-y-4">
-            <div>
-              <h1 className="text-2xl tracking-tight mb-2">{user.username}</h1>
-              {isEditing ? (
-                <form onSubmit={async (e) => {
-                  e.preventDefault();
-                  const formData = new FormData(e.currentTarget);
-                  try {
-                    const response = await fetch('/api/user/profile', {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        displayName: formData.get('displayName'),
-                        address: formData.get('address')
-                      })
-                    });
-                    if (!response.ok) throw new Error('Failed to update profile');
-                    const result = await response.json();
-                    setIsEditing(false);
-                    window.location.reload();
-                  } catch (error) {
-                    console.error('Error updating profile:', error);
-                    alert('Failed to update profile. Please try again.');
-                  }
-                }} className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Display name:</label>
-                    <input
-                      name="displayName"
-                      defaultValue={user.displayName}
-                      className="w-full p-2 border rounded"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-1 block">Address:</label>
-                    <input
-                      name="address"
-                      defaultValue={user.address}
-                      className="w-full p-2 border rounded"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button type="submit" className="px-3 py-1 bg-primary text-primary-foreground rounded">
-                      Save
-                    </button>
-                    <button type="button" onClick={() => setIsEditing(false)} className="px-3 py-1 border rounded">
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-sm flex items-center gap-2">
-                    <span className="font-medium">Display name:</span>
-                    <span className="text-muted-foreground">
-                      {user.displayName}
-                    </span>
-                  </p>
-                  <p className="text-sm flex items-center gap-2">
-                    <span className="font-medium">Address:</span>
-                    <span className="text-muted-foreground">{user.address}</span>
-                  </p>
-                  <button onClick={() => setIsEditing(true)} className="text-sm px-3 py-1 border rounded">
-                    Edit Profile
-                  </button>
+        <div className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Profile Information</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">{user.username}</h2>
+                  {isEditing ? (
+                    <form 
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.currentTarget);
+                        try {
+                          const response = await fetch('/api/user/profile', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              displayName: formData.get('displayName'),
+                              address: formData.get('address')
+                            })
+                          });
+                          if (!response.ok) throw new Error('Failed to update profile');
+                          const result = await response.json();
+                          setIsEditing(false);
+                          window.location.reload();
+                        } catch (error) {
+                          console.error('Error updating profile:', error);
+                          alert('Failed to update profile. Please try again.');
+                        }
+                      }} 
+                      className="space-y-4"
+                    >
+                      <div>
+                        <label className="text-sm font-medium block mb-2">Display Name</label>
+                        <input
+                          name="displayName"
+                          defaultValue={user.displayName}
+                          className="w-full p-2 border rounded-md"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium block mb-2">Address</label>
+                        <input
+                          name="address"
+                          defaultValue={user.address}
+                          className="w-full p-2 border rounded-md"
+                          required
+                        />
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <Button type="submit" variant="default">Save Changes</Button>
+                        <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-1">Display Name</p>
+                        <p className="text-lg">{user.displayName}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-1">Address</p>
+                        <p className="text-lg">{user.address}</p>
+                      </div>
+                      <Button onClick={() => setIsEditing(true)} variant="outline" className="mt-2">
+                        Edit Profile
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-
         <div className="grid gap-4 grid-cols-2">
           <Card className="text-center">
             <div className="pt-6 flex justify-center">
@@ -137,7 +138,7 @@ export default function ProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl">{listedItems}</div>
+              <div className="text-2xl">{userItems?.filter((i) => i.status === "available")?.length || 0}</div>
             </CardContent>
           </Card>
 
@@ -149,7 +150,7 @@ export default function ProfilePage() {
               <CardTitle className="text-sm font-medium">Items Given</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl">{completedItems}</div>
+              <div className="text-2xl">{userItems?.filter((i) => i.status === "completed")?.length || 0}</div>
             </CardContent>
           </Card>
 
