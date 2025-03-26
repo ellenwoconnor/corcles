@@ -83,6 +83,22 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
+      if (req.body.needsAddressInfo) {
+        // Store registration data in session
+        req.session.pendingRegistration = {
+          username: req.body.username,
+          email: req.body.email,
+          password: req.body.password,
+          displayName: req.body.displayName
+        };
+        return res.status(202).json({
+          needsAddressInfo: true,
+          email: req.body.email,
+          username: req.body.username,
+          displayName: req.body.displayName
+        });
+      }
+
       const parseResult = insertUserSchema.safeParse(req.body);
       if (!parseResult.success) {
         logger.warn('Registration validation failed:', {
@@ -136,6 +152,59 @@ export function setupAuth(app: Express) {
         error,
         username: req.body.username
       });
+      next(error);
+    }
+  });
+
+  app.post("/api/register/complete", async (req, res, next) => {
+    try {
+      const { address, zipCode } = req.body;
+      const pendingRegistration = req.session.pendingRegistration;
+
+      if (!pendingRegistration) {
+        return res.status(400).json({ error: "No pending registration found" });
+      }
+
+      if (!address || !zipCode) {
+        return res.status(400).json({ error: "Address and zip code are required" });
+      }
+
+      // Validate zip code format
+      if (!/^\d{5}$/.test(zipCode)) {
+        return res.status(400).json({ error: "Zip code must be exactly 5 digits" });
+      }
+
+      const hashedPassword = await hashPassword(pendingRegistration.password);
+
+      const user = await storage.createUser({
+        ...pendingRegistration,
+        password: hashedPassword,
+        address,
+        zipCode
+      });
+
+      // Clear the pending registration from session
+      delete req.session.pendingRegistration;
+
+      // Log the user in
+      req.login(user, (err) => {
+        if (err) {
+          logger.error('Error during login after registration completion:', {
+            error: err,
+            userId: user.id
+          });
+          return next(err);
+        }
+
+        logger.info('User registration completed successfully:', {
+          userId: user.id,
+          username: user.username
+        });
+
+        res.status(201).json(user);
+      });
+    } catch (error) {
+      logger.error('Error completing registration:', error);
       next(error);
     }
   });
@@ -213,10 +282,10 @@ export function setupAuth(app: Express) {
         });
       } else if (!user.zipCode && (address && zipCode)) {
         // Update existing user who didn't have address info
-        await db
-          .update(schema.users)
-          .set({ address, zipCode })
-          .where(eq(schema.users.id, user.id));
+        // await db
+        //   .update(schema.users)
+        //   .set({ address, zipCode })
+        //   .where(eq(schema.users.id, user.id));
 
         user.address = address;
         user.zipCode = zipCode;

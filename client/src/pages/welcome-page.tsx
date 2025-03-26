@@ -19,7 +19,7 @@ interface AddressData {
 }
 
 export default function WelcomePage() {
-  const { user, pendingGoogleUser, completeGoogleSignup } = useAuth();
+  const { user, pendingGoogleUser, completeGoogleSignup, completeRegistration } = useAuth();
   const [, setLocation] = useLocation();
   const form = useForm<AddressData>();
 
@@ -27,6 +27,8 @@ export default function WelcomePage() {
     try {
       if (pendingGoogleUser) {
         await completeGoogleSignup(data.address, data.zipCode);
+      } else {
+        await completeRegistration(data);
       }
       setLocation("/"); // Redirect to home after successful update
     } catch (error) {
