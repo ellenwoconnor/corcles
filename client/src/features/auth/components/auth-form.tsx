@@ -14,35 +14,45 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 import type { LoginData } from "@/features/auth/hooks/use-auth";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
-interface RegisterData {
-  email: string;
-  password: string;
-}
+const registerSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+type RegisterData = z.infer<typeof registerSchema>;
 
 export function AuthForm() {
   const { loginMutation, registerMutation, googleLogin } = useAuth();
 
   const loginForm = useForm<LoginData>();
-  const registerForm = useForm<RegisterData>();
+  const registerForm = useForm<RegisterData>({
+    resolver: zodResolver(registerSchema)
+  });
 
   const onLogin = loginForm.handleSubmit(async (data) => {
     await loginMutation.mutateAsync({
       username: data.username,
       password: data.password,
-      email: data.username // Add email since it's required by the API
+      email: data.username
     });
   });
 
   const onRegister = registerForm.handleSubmit(async (data) => {
-    await registerMutation.mutateAsync({
-      username: data.email.split('@')[0],
-      email: data.email,
-      password: data.password,
-      displayName: data.email.split('@')[0], // We'll let users update this on welcome page
-      address: '', // These will be collected on the welcome page
-      zipCode: ''
-    });
+    try {
+      await registerMutation.mutateAsync({
+        username: data.email.split('@')[0],
+        email: data.email,
+        password: data.password,
+        displayName: data.email.split('@')[0],
+        address: '', // Will be collected on welcome page
+        zipCode: '' // Will be collected on welcome page
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+    }
   });
 
   return (
