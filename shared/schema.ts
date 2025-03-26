@@ -17,10 +17,10 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  displayName: text("display_name").notNull(),
+  displayName: text("display_name"),
   avatarUrl: text("avatar_url"),
-  address: text("address").notNull(),
-  zipCode: text("zip_code").notNull(),
+  address: text("address"),
+  zipCode: text("zip_code"),
   email: text("email").notNull().unique(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -113,18 +113,22 @@ export const notifications = pgTable("notifications", {
 
 export const insertUserSchema = createInsertSchema(users).extend({
   password: z.string().min(6, "Password must be at least 6 characters"),
-  displayName: z.string().min(2, "Display name must be at least 2 characters"),
+  displayName: z.string().min(2, "Display name must be at least 2 characters").nullable(),
   address: z.string()
     .min(5, "Address must be at least 5 characters")
     .refine((val) => {
+      if (!val) return true;
       const hasNumber = /\d/.test(val);
       const hasStreet = /[a-zA-Z]/.test(val);
       return hasNumber && hasStreet;
-    }, "Address must contain both numbers and street name"),
+    }, "Address must contain both numbers and street name")
+    .nullable(),
   zipCode: z.string()
-    .min(5, "Zip code must be 5 digits")
-    .max(5, "Zip code must be 5 digits")
-    .refine((val) => /^\d{5}$/.test(val), "Zip code must be exactly 5 digits"),
+    .refine((val) => {
+      if (!val) return true;
+      return /^\d{5}$/.test(val);
+    }, "Zip code must be exactly 5 digits")
+    .nullable(),
   email: z.string().email("Invalid email format"),
 });
 

@@ -51,9 +51,9 @@ export function AuthForm() {
         username: data.email.split('@')[0],
         email: data.email,
         password: data.password,
-        displayName: data.email.split('@')[0],
-        address: '',
-        zipCode: '',
+        displayName: null,
+        address: null,
+        zipCode: null,
       });
     } catch (error) {
       console.error('Registration error:', error);
