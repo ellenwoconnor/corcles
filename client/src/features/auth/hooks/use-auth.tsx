@@ -30,9 +30,8 @@ type AuthContextType = {
 };
 
 export interface LoginData {
-  username: string;
+  username: string;  // Keep username for backend compatibility
   password: string;
-  email: string;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -60,12 +59,18 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
-      const response = await apiRequest("POST", "/api/login", credentials);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Login failed");
+      try {
+        const response = await apiRequest("POST", "/api/login", credentials);
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || "Login failed");
+        }
+        return response.json();
+      } catch (error) {
+        console.error("Login error:", error);
+        throw error;
       }
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
@@ -86,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
         if (credentials.needsAddressInfo) {
           // Store initial registration data and indicate address info needed
           setNeedsAddressInfo(true);
-          // Return partial registration data
+          // Return partial registration data without making API call
           return {
             email: credentials.email,
             username: credentials.username,
