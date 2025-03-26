@@ -51,7 +51,7 @@ export function AuthForm() {
         username: data.email.split('@')[0],
         email: data.email,
         password: data.password,
-        displayName: null,
+        displayName: data.email.split('@')[0],
         address: null,
         zipCode: null,
       });
