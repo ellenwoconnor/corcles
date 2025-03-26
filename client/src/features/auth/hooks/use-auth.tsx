@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useState } from "react";
+import React, { createContext, ReactNode, useContext, useState } from "react";
 import {
   useQuery,
   useMutation,
@@ -29,13 +29,18 @@ type AuthContextType = {
   isGoogleSignupLoading: boolean;
 };
 
-type LoginData = Pick<InsertUser, "username" | "password">;
+export interface LoginData {
+  username: string;
+  password: string;
+  email: string;
+}
 
-const AuthContext = createContext<AuthContextType | null>(null);
+export const AuthContext = createContext<AuthContextType | null>(null);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }): JSX.Element {
   const { toast } = useToast();
   const [needsAddressInfo, setNeedsAddressInfo] = useState(false);
+  const [isGoogleSignupLoading, setIsGoogleSignupLoading] = useState(false);
   const [pendingGoogleUser, setPendingGoogleUser] = useState<{
     email: string;
     name: string;
@@ -55,19 +60,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
-      const response = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(credentials)
-      });
-
+      const response = await apiRequest("POST", "/api/login", credentials);
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || "Login failed");
       }
-
-      const user = await response.json();
-      return user;
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
@@ -75,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onError: (error: Error) => {
       toast({
-        title: "Login failed", 
+        title: "Login failed",
         description: error.message,
         variant: "destructive"
       });
@@ -85,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const registerMutation = useMutation({
     mutationFn: async (credentials: InsertUser) => {
       const res = await apiRequest("POST", "/api/register", credentials);
-      return await res.json();
+      return res.json();
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
@@ -116,36 +114,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const googleAuthMutation = useMutation({
-    mutationFn: async (accessToken: string) => {
-      const res = await apiRequest("POST", "/api/auth/google", { accessToken });
-      return await res.json();
-    },
-    onSuccess: async (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Google login failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const [isGoogleSignupLoading, setIsLoading] = useState(false);
-
   const completeGoogleSignup = async (address: string, zipCode: string) => {
     if (!pendingGoogleUser) {
       throw new Error('No pending Google user');
     }
 
     try {
-      setIsLoading(true);
+      setIsGoogleSignupLoading(true);
       const response = await apiRequest("POST", "/api/auth/google", {
-          accessToken: pendingGoogleUser.accessToken,
-          address,
-          zipCode
+        accessToken: pendingGoogleUser.accessToken,
+        address,
+        zipCode
       });
 
       if (!response.ok) {
@@ -162,68 +141,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Completing Google signup error:', error);
       toast({
         title: "Google signup failed",
-        description: error.message,
+        description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive",
       });
       throw error;
     } finally {
-      setIsLoading(false);
+      setIsGoogleSignupLoading(false);
     }
   };
 
   const googleLogin = useGoogleLogin({
     onSuccess: async (response) => {
       try {
-        // Log OAuth response for debugging
-        console.info('Google OAuth Success:', {
-          hasAccessToken: !!response.access_token,
-          tokenLength: response.access_token.length,
-          origin: window.location.origin
+        const res = await apiRequest("POST", "/api/auth/google", {
+          accessToken: response.access_token
         });
 
-        const res = await googleAuthMutation.mutateAsync(response.access_token);
+        if (!res.ok) {
+          throw new Error('Failed to authenticate with Google');
+        }
 
-        // Better type checking for the response
-        if (res && 'needsAddressInfo' in res) {
+        const data = await res.json();
+
+        if (data.needsAddressInfo) {
           setNeedsAddressInfo(true);
           setPendingGoogleUser({
-            email: res.email,
-            name: res.name || '',
-            picture: res.picture || '',
-            userId: res.userId,
+            email: data.email,
+            name: data.name || '',
+            picture: data.picture || '',
+            userId: data.userId,
             accessToken: response.access_token
           });
+        } else {
+          queryClient.setQueryData(["/api/user"], data);
+          window.location.href = "/";
         }
       } catch (error) {
-        console.error('Google Authentication Error:', {
-          error,
-          origin: window.location.origin,
-          isDevelopment: import.meta.env.DEV,
-          clientIdSource: import.meta.env.DEV ? 'development' : 'production'
-        });
-
+        console.error('Google Authentication Error:', error);
         toast({
           title: "Authentication Error",
-          description: "Failed to authenticate. Please ensure you're using the Web client ID with correct domain configuration.",
+          description: "Failed to authenticate with Google",
           variant: "destructive",
         });
       }
     },
     onError: (error) => {
-      console.error('Google OAuth Error:', {
-        error,
-        origin: window.location.origin,
-        isDevelopment: import.meta.env.DEV
-      });
-
+      console.error('Google OAuth Error:', error);
       toast({
         title: "Google Sign-In Failed",
-        description: "Could not initialize Google Sign-In. Please check the client configuration.",
+        description: "Could not initialize Google Sign-In",
         variant: "destructive",
       });
-    },
-    flow: 'implicit',
-    scope: 'email profile'
+    }
   });
 
   return (
@@ -254,6 +223,3 @@ export function useAuth() {
   }
   return context;
 }
-
-export type { LoginData };
-export { AuthContext };
