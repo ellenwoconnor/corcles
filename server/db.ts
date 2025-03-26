@@ -32,10 +32,10 @@ async function migrate() {
       id SERIAL PRIMARY KEY,
       username TEXT NOT NULL UNIQUE,
       password TEXT NOT NULL,
-      display_name TEXT NOT NULL,
+      display_name TEXT,
       avatar_url TEXT,
-      address TEXT NOT NULL,
-      zip_code TEXT NOT NULL,
+      address TEXT,
+      zip_code TEXT,
       email TEXT NOT NULL UNIQUE
     )`,
     `CREATE TABLE IF NOT EXISTS communities (
