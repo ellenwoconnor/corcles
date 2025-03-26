@@ -39,8 +39,8 @@ export function AuthForm() {
       username: data.email.split('@')[0],
       email: data.email,
       password: data.password,
-      displayName: data.email.split('@')[0],
-      address: '',
+      displayName: data.email.split('@')[0], // We'll let users update this on welcome page
+      address: '', // These will be collected on the welcome page
       zipCode: ''
     });
   });
@@ -59,9 +59,9 @@ export function AuthForm() {
               name="username"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Username</FormLabel>
+                  <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input type="email" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
