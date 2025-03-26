@@ -52,8 +52,8 @@ export function AuthForm() {
         email: data.email,
         password: data.password,
         displayName: data.email.split('@')[0],
-        // Remove empty address and zip - they will be collected later
-        needsAddressInfo: true
+        address: '',
+        zipCode: '',
       });
     } catch (error) {
       console.error('Registration error:', error);
