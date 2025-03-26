@@ -1,3 +1,4 @@
+import React from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,11 +34,14 @@ export function AuthForm() {
   });
 
   const onLogin = loginForm.handleSubmit(async (data) => {
-    await loginMutation.mutateAsync({
-      username: data.username,
-      password: data.password,
-      email: data.username
-    });
+    try {
+      await loginMutation.mutateAsync({
+        username: data.email, // Use email as username for login
+        password: data.password
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+    }
   });
 
   const onRegister = registerForm.handleSubmit(async (data) => {
@@ -67,7 +71,7 @@ export function AuthForm() {
           <form onSubmit={onLogin} className="space-y-4">
             <FormField
               control={loginForm.control}
-              name="username"
+              name="email"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Email</FormLabel>
