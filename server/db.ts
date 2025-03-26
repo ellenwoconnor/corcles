@@ -131,13 +131,15 @@ async function migrate() {
         u.id,
         false
       FROM users u
-      WHERE NOT EXISTS (
+      WHERE u.zip_code IS NOT NULL
+      AND NOT EXISTS (
         SELECT 1 FROM communities c 
         WHERE c.name = 'Community ' || u.zip_code
       )
       AND u.id IN (
         SELECT MIN(id) 
         FROM users 
+        WHERE zip_code IS NOT NULL
         GROUP BY zip_code
       );
 
