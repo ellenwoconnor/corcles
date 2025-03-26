@@ -26,6 +26,7 @@ type AuthContextType = {
     accessToken: string;
   } | null;
   completeGoogleSignup: (address: string, zipCode: string) => Promise<SelectUser | undefined>;
+  completeRegistration: (data: { address: string; zipCode: string }) => Promise<void>;
   isGoogleSignupLoading: boolean;
 };
 
@@ -135,6 +136,29 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       });
     },
   });
+
+  const completeRegistration = async (data: { address: string; zipCode: string }) => {
+    try {
+      const response = await apiRequest("POST", "/api/register/complete", data);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to complete registration");
+      }
+
+      const userData = await response.json();
+      queryClient.setQueryData(["/api/user"], userData);
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Error completing registration:", error);
+      toast({
+        title: "Registration completion failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
@@ -247,6 +271,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
         needsAddressInfo,
         pendingGoogleUser,
         completeGoogleSignup,
+        completeRegistration,
         isGoogleSignupLoading
       }}
     >
