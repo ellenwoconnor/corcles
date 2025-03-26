@@ -4,7 +4,7 @@ import {
   useMutation,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
+import { InsertUser, User as SelectUser } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useGoogleLogin } from '@react-oauth/google';
@@ -81,8 +81,20 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (credentials: InsertUser) => {
+    mutationFn: async (credentials: InsertUser & { needsAddressInfo?: boolean }) => {
       try {
+        if (credentials.needsAddressInfo) {
+          // Store initial registration data and indicate address info needed
+          setNeedsAddressInfo(true);
+          // Return partial registration data
+          return {
+            email: credentials.email,
+            username: credentials.username,
+            displayName: credentials.displayName,
+            needsAddressInfo: true
+          };
+        }
+
         const res = await apiRequest("POST", "/api/register", credentials);
         const data = await res.json();
 
@@ -100,10 +112,15 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
         throw error;
       }
     },
-    onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
-      // Redirect to welcome page instead of home
-      window.location.href = "/welcome";
+    onSuccess: (response: any) => {
+      if (response.needsAddressInfo) {
+        // Redirect to welcome page for address collection
+        window.location.href = "/welcome";
+      } else {
+        // Normal registration success
+        queryClient.setQueryData(["/api/user"], response);
+        window.location.href = "/";
+      }
     },
     onError: (error: Error) => {
       toast({
