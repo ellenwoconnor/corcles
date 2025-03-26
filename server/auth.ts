@@ -14,11 +14,23 @@ declare global {
   }
 }
 
+// Add session type declaration
+declare module 'express-session' {
+  interface SessionData {
+    pendingRegistration?: {
+      username: string;
+      email: string;
+      password: string;
+      displayName: string;
+    };
+  }
+}
+
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // Changed to true to ensure session is created
     store: storage.sessionStore,
     cookie: {
       secure: process.env.NODE_ENV === 'production',
@@ -91,6 +103,20 @@ export function setupAuth(app: Express) {
           password: req.body.password,
           displayName: req.body.displayName
         };
+
+        // Save session explicitly
+        await new Promise<void>((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+
+        logger.info('Stored pending registration in session:', {
+          username: req.body.username,
+          email: req.body.email
+        });
+
         return res.status(202).json({
           needsAddressInfo: true,
           email: req.body.email,
@@ -159,11 +185,21 @@ export function setupAuth(app: Express) {
   app.post("/api/register/complete", async (req, res, next) => {
     try {
       const { address, zipCode } = req.body;
-      const pendingRegistration = req.session.pendingRegistration;
 
-      if (!pendingRegistration) {
+      logger.info('Attempting to complete registration:', {
+        sessionId: req.sessionID,
+        hasPendingRegistration: !!req.session.pendingRegistration
+      });
+
+      if (!req.session.pendingRegistration) {
+        logger.error('No pending registration found in session:', {
+          sessionId: req.sessionID,
+          session: req.session
+        });
         return res.status(400).json({ error: "No pending registration found" });
       }
+
+      const pendingRegistration = req.session.pendingRegistration;
 
       if (!address || !zipCode) {
         return res.status(400).json({ error: "Address and zip code are required" });
@@ -185,6 +221,14 @@ export function setupAuth(app: Express) {
 
       // Clear the pending registration from session
       delete req.session.pendingRegistration;
+
+      // Save session explicitly after clearing pending registration
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
 
       // Log the user in
       req.login(user, (err) => {
@@ -282,11 +326,6 @@ export function setupAuth(app: Express) {
         });
       } else if (!user.zipCode && (address && zipCode)) {
         // Update existing user who didn't have address info
-        // await db
-        //   .update(schema.users)
-        //   .set({ address, zipCode })
-        //   .where(eq(schema.users.id, user.id));
-
         user.address = address;
         user.zipCode = zipCode;
 
