@@ -1,6 +1,5 @@
-
 import { useForm } from "react-hook-form";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,14 +19,16 @@ interface AddressData {
 }
 
 export default function WelcomePage() {
-  const { user, updateUserProfile } = useAuth();
-  const [, navigate] = useNavigate();
+  const { user, pendingGoogleUser, completeGoogleSignup } = useAuth();
+  const [, setLocation] = useLocation();
   const form = useForm<AddressData>();
 
   const onSubmit = form.handleSubmit(async (data) => {
     try {
-      await updateUserProfile(data);
-      navigate("/"); // Redirect to home after successful update
+      if (pendingGoogleUser) {
+        await completeGoogleSignup(data.address, data.zipCode);
+      }
+      setLocation("/"); // Redirect to home after successful update
     } catch (error) {
       console.error("Failed to update profile:", error);
     }
@@ -35,7 +36,7 @@ export default function WelcomePage() {
 
   // Redirect to home if user already has address info
   if (user?.address && user?.zipCode) {
-    navigate("/");
+    setLocation("/");
     return null;
   }
 
