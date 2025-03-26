@@ -42,13 +42,14 @@ export function AuthForm() {
 
   const onRegister = registerForm.handleSubmit(async (data) => {
     try {
+      // We will collect address and zip code on the welcome page
       await registerMutation.mutateAsync({
         username: data.email.split('@')[0],
         email: data.email,
         password: data.password,
         displayName: data.email.split('@')[0],
-        address: '', // Will be collected on welcome page
-        zipCode: '' // Will be collected on welcome page
+        // Remove empty address and zip - they will be collected later
+        needsAddressInfo: true
       });
     } catch (error) {
       console.error('Registration error:', error);
