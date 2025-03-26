@@ -119,14 +119,9 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
       }
     },
     onSuccess: (response: any) => {
-      if (response.needsAddressInfo) {
-        // Redirect to welcome page for address collection
-        window.location.href = "/welcome";
-      } else {
-        // Normal registration success
-        queryClient.setQueryData(["/api/user"], response);
-        window.location.href = "/";
-      }
+      // Always redirect to welcome for address collection after registration
+      queryClient.setQueryData(["/api/user"], response);
+      window.location.href = "/welcome";
     },
     onError: (error: Error) => {
       toast({
