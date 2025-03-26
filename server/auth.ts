@@ -113,6 +113,7 @@ export function setupAuth(app: Express) {
         });
 
         logger.info('Stored pending registration in session:', {
+          sessionId: req.sessionID,
           username: req.body.username,
           email: req.body.email
         });
@@ -188,7 +189,8 @@ export function setupAuth(app: Express) {
 
       logger.info('Attempting to complete registration:', {
         sessionId: req.sessionID,
-        hasPendingRegistration: !!req.session.pendingRegistration
+        hasPendingRegistration: !!req.session.pendingRegistration,
+        session: req.session
       });
 
       if (!req.session.pendingRegistration) {
@@ -199,8 +201,6 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ error: "No pending registration found" });
       }
 
-      const pendingRegistration = req.session.pendingRegistration;
-
       if (!address || !zipCode) {
         return res.status(400).json({ error: "Address and zip code are required" });
       }
@@ -210,10 +210,10 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ error: "Zip code must be exactly 5 digits" });
       }
 
-      const hashedPassword = await hashPassword(pendingRegistration.password);
+      const hashedPassword = await hashPassword(req.session.pendingRegistration.password);
 
       const user = await storage.createUser({
-        ...pendingRegistration,
+        ...req.session.pendingRegistration,
         password: hashedPassword,
         address,
         zipCode
