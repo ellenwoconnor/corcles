@@ -13,11 +13,7 @@ import {
 } from "@/components/ui/form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
-
-interface LoginData {
-  username: string;
-  password: string;
-}
+import type { LoginData } from "@/features/auth/hooks/use-auth";
 
 interface RegisterData {
   email: string;
@@ -31,7 +27,11 @@ export function AuthForm() {
   const registerForm = useForm<RegisterData>();
 
   const onLogin = loginForm.handleSubmit(async (data) => {
-    await loginMutation.mutateAsync(data);
+    await loginMutation.mutateAsync({
+      username: data.username,
+      password: data.password,
+      email: data.username // Add email since it's required by the API
+    });
   });
 
   const onRegister = registerForm.handleSubmit(async (data) => {
