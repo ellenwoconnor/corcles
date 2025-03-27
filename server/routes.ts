@@ -894,6 +894,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No valid fields to update" });
       }
 
+      // If zip code is provided, handle community assignment
+      if (zipCode) {
+        const zipCodeCommunityName = `Community ${zipCode}`;
+        let zipCommunity = await db
+          .select()
+          .from(schema.communities)
+          .where(eq(schema.communities.name, zipCodeCommunityName))
+          .limit(1);
+
+        if (zipCommunity.length === 0) {
+          [zipCommunity] = await db
+            .insert(schema.communities)
+            .values({
+              name: zipCodeCommunityName,
+              description: `Local community for ${zipCode}`,
+              createdBy: null,
+              isCustom: false,
+            })
+            .returning();
+        }
+
+        // Add user to zip code community
+        await db
+          .insert(schema.userCommunities)
+          .values({
+            userId: req.user.id,
+            communityId: zipCommunity[0].id,
+            role: "member",
+            joinedAt: new Date(),
+          })
+          .onConflictDoNothing();
+      }
+
       const [updatedUser] = await db.update(schema.users)
         .set(updates)
         .where(eq(schema.users.id, req.user.id))
