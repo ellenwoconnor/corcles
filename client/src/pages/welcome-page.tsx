@@ -20,7 +20,12 @@ interface AddressData {
 }
 
 export default function WelcomePage() {
-  const { user, pendingGoogleUser, completeGoogleSignup, completeRegistration } = useAuth();
+  const {
+    user,
+    pendingGoogleUser,
+    completeGoogleSignup,
+    completeRegistration,
+  } = useAuth();
   const [, setLocation] = useLocation();
   const form = useForm<AddressData>();
 
@@ -54,18 +59,22 @@ export default function WelcomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-10">
       <div className="max-w-[600px] w-full space-y-8">
         <div className="text-center space-y-4">
           <h1 className="text-4xl font-bold">
-            Welcome to <span className="uppercase tracking-wide">C<span className="text-[#B2B8A3]">O</span>RCLES</span>!
+            welcome to{" "}
+            <span className="uppercase tracking-wide">
+              C<span className="text-[#B2B8A3]">O</span>RCLES
+            </span>
           </h1>
-          <p className="text-lg text-muted-foreground">
-            Say goodbye to waste -- Corcles is a smarter way to share and shop
-            sustainably in your neighborhood.
+          <p className="text-muted-foreground">
+            Corcles is a smarter way to share and shop sustainably in your
+            neighborhood.
           </p>
-          <p className="text-lg text-muted-foreground">
-            To get started, please provide your address and zip code to join your local corcle.
+          <p className="text-muted-foreground">
+            Add your address and zip code and we'll connect you to your
+            community.
           </p>
         </div>
 
@@ -74,11 +83,11 @@ export default function WelcomePage() {
             <FormField
               control={form.control}
               name="address"
-              rules={{ 
+              rules={{
                 required: "Address is required",
                 minLength: {
                   value: 5,
-                  message: "Address must be at least 5 characters"
+                  message: "Address must be at least 5 characters",
                 },
                 validate: (value) => {
                   const hasNumberAndStreet = /\d+.*\s+.*/.test(value);
@@ -86,7 +95,7 @@ export default function WelcomePage() {
                     return "Address must contain both numbers and street name";
                   }
                   return true;
-                }
+                },
               }}
               render={({ field }) => (
                 <FormItem>
@@ -106,14 +115,14 @@ export default function WelcomePage() {
                 required: "Zip code is required",
                 minLength: {
                   value: 5,
-                  message: "Zip code must be 5 digits"
+                  message: "Zip code must be 5 digits",
                 },
                 validate: (value) => {
                   if (!/^\d{5}$/.test(value)) {
                     return "Zip code must be exactly 5 digits";
                   }
                   return true;
-                }
+                },
               }}
               render={({ field }) => (
                 <FormItem>
