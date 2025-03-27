@@ -320,8 +320,8 @@ export default function CommunitiesPage() {
                 <CardHeader className="py-3">
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <CardTitle className="text-base truncate flex items-center gap-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
+                        <CardTitle className="text-base truncate flex items-center gap-2 flex-grow">
                           <span className="text-xl">{community.mascot}</span>
                           {community.name}
                         </CardTitle>
@@ -329,6 +329,7 @@ export default function CommunitiesPage() {
                           variant={
                             community.role === "admin" ? "default" : "secondary"
                           }
+                          className="w-fit"
                         >
                           {community.role}
                         </Badge>
@@ -336,7 +337,7 @@ export default function CommunitiesPage() {
                       <CardDescription className="line-clamp-1">
                         {community.description}
                       </CardDescription>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-1 text-sm text-muted-foreground">
                         <div className="flex items-center">
                           <Users className="h-4 w-4 mr-1" />
                           <span>{community.memberCount} members</span>
