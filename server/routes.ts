@@ -881,19 +881,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(req.user);
   });
 
-  app.patch("/api/user/profile", requireAuth, async (req, res) => {
+  app.patch("/api/user", requireAuth, async (req, res) => {
     try {
-      const { displayName, address } = req.body;
+      const { displayName, address, zipCode } = req.body;
+      const updates: Partial<typeof schema.users.$inferInsert> = {};
 
-      if (!displayName || !address) {
-        return res.status(400).json({ error: "Display name and address are required" });
+      if (displayName !== undefined) updates.displayName = displayName;
+      if (address !== undefined) updates.address = address;
+      if (zipCode !== undefined) updates.zipCode = zipCode;
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ error: "No valid fields to update" });
       }
 
-      await db.update(schema.users)
-        .set({ displayName, address })
-        .where(eq(schema.users.id, req.user.id));
+      const [updatedUser] = await db.update(schema.users)
+        .set(updates)
+        .where(eq(schema.users.id, req.user.id))
+        .returning();
 
-      res.json({ success: true });
+      res.json(updatedUser);
     } catch (error) {
       logger.error("Error updating user profile:", error);
       res.status(500).json({ error: "Failed to update profile" });
