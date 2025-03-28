@@ -363,27 +363,39 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
-      if (err) {
-        logger.error('Error during login:', { error: err });
-        return next(err);
-      }
+  app.post("/api/login", async (req, res, next) => {
+    try {
+      const { username, password } = req.body;
+      logger.debug('Login attempt:', { username });
+
+      const user = await storage.getUserByUsername(username) || await storage.getUserByEmail(username);
+      
       if (!user) {
-        return res.status(401).json({ error: info?.message || "Authentication failed" });
+        logger.warn('Login failed - user not found:', { username });
+        return res.status(401).json({ error: "Invalid username or password" });
       }
+
+      const isValidPassword = await comparePasswords(password, user.password);
+      if (!isValidPassword) {
+        logger.warn('Login failed - invalid password:', { username });
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+
       req.login(user, (err) => {
         if (err) {
           logger.error('Error establishing session:', { error: err, userId: user.id });
           return next(err);
         }
-        logger.info('User logged in:', {
+        logger.info('User logged in successfully:', {
           userId: user.id,
           username: user.username
         });
         res.status(200).json(user);
       });
-    })(req, res, next);
+    } catch (error) {
+      logger.error('Error during login:', error);
+      next(error);
+    }
   });
 
   app.post("/api/logout", (req, res, next) => {
