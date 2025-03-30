@@ -22,20 +22,21 @@ function ConfigurationError({ message }: { message: string }) {
 }
 
 function AppContent() {
-  const { needsAddressInfo, pendingGoogleUser, completeGoogleSignup, redirectToWelcome } = useAuth(); // Added redirectToWelcome
+  const { user, needsAddressInfo } = useAuth();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (redirectToWelcome) {
-      // Redirect to welcome page after successful registration
-      window.location.href = '/welcome';
+    if (user && needsAddressInfo) {
+      setLocation('/welcome');
+    } else if (user) {
+      setLocation('/');
     }
-  }, [redirectToWelcome]);
+  }, [user, needsAddressInfo, setLocation]);
 
   return (
     <>
       <Router />
       <Toaster />
-      {/* Removed AddressCompletionDialog as it's replaced by the WelcomePage */}
     </>
   );
 }
