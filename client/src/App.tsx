@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider, useAuth } from "@/features/auth/hooks/use-auth";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { useLocation } from "wouter";
-import { AddressCompletionDialog } from "./components/address-completion-dialog";
+
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Router } from "@/components/router";
 import { queryClient } from "./lib/queryClient";
