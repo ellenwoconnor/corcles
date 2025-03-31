@@ -94,37 +94,8 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/register", async (req, res, next) => {
-    // try {
-    //   if (req.body.needsAddressInfo) {
-    //     // Store registration data in session
-    //     req.session.pendingRegistration = {
-    //       username: req.body.username,
-    //       email: req.body.email,
-    //       password: req.body.password,
-    //       displayName: req.body.displayName
-    //     };
-
-    //     // Save session explicitly
-    //     await new Promise<void>((resolve, reject) => {
-    //       req.session.save((err) => {
-    //         if (err) reject(err);
-    //         else resolve();
-    //       });
-    //     });
-
-    //     logger.info('Stored pending registration in session:', {
-    //       sessionId: req.sessionID,
-    //       username: req.body.username,
-    //       email: req.body.email
-    //     });
-
-    //     return res.status(202).json({
-    //       needsAddressInfo: true,
-    //       email: req.body.email,
-    //       username: req.body.username,
-    //       displayName: req.body.displayName
-    //     });
-    //   }
+    try {
+      const parseResult = insertUserSchema.safeParse(req.body);
 
       const parseResult = insertUserSchema.safeParse(req.body);
       if (!parseResult.success) {
