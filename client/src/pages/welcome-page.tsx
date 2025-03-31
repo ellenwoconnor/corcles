@@ -63,14 +63,10 @@ export default function WelcomePage() {
               C<span className="text-[#B2B8A3]">O</span>RCLES
             </span>
           </h1>
-          <p className="text-muted-foreground">
-            Corcles is a smarter way to share and shop sustainably in your
-            neighborhood.
+          <p className="text-muted-foreground py-6">
+            A smarter way to give, get & swap in your neighborhood.
           </p>
-          <p className="text-muted-foreground">
-            Add your address and zip code and we'll connect you to your
-            community.
-          </p>
+          <h1 className="text-muted-foreground">Let's find your community!</h1>
         </div>
 
         <Form {...form}>
