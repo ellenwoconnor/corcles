@@ -86,24 +86,26 @@ export default function ListingsPage() {
             userItems.map((item: any) => (
               <Card key={item.id}>
                 <CardHeader>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <img
                       src={item.imageUrl}
                       alt={item.title}
                       className="w-16 h-16 sm:w-20 sm:h-20 rounded object-cover flex-shrink-0"
                     />
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <CardTitle>
+                    <div className="flex-1 min-w-0 w-full">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <CardTitle className="mr-2">
                           <Link
                             href={`/item/${item.id}`}
-                            className="hover:underline truncate"
+                            className="hover:underline truncate block"
                           >
                             {item.title}
                           </Link>
                         </CardTitle>
-                        {getStatusBadge(item)}
+                        <div className="flex-shrink-0">
+                          {getStatusBadge(item)}
+                        </div>
                       </div>
                       <div className="flex items-center gap-4 mt-1">
                         {item.isGift ? (
