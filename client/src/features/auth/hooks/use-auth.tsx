@@ -87,20 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (credentials: InsertUser & { needsAddressInfo?: boolean }) => {
+    mutationFn: async (credentials: InsertUser) => {
       try {
-        if (credentials.needsAddressInfo) {
-          // Store initial registration data and indicate address info needed
-          setNeedsAddressInfo(true);
-          // Return partial registration data without making API call
-          return {
-            email: credentials.email,
-            username: credentials.username,
-            displayName: credentials.displayName,
-            needsAddressInfo: true
-          };
-        }
-
         const res = await apiRequest("POST", "/api/register", credentials);
         const data = await res.json();
 
