@@ -84,9 +84,10 @@ export default function ListingsPage() {
             </Card>
           ) : (
             userItems.map((item: any) => (
-              <Card key={item.id}>
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <Link href={`/item/${item.id}`} key={item.id} className="block">
+                <Card>
+                  <CardHeader>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <img
                       src={item.imageUrl}
                       alt={item.title}
@@ -140,7 +141,8 @@ export default function ListingsPage() {
                     </div>
                   </div>
                 </CardHeader>
-              </Card>
+                </Card>
+              </Link>
             ))
           )}
         </div>
