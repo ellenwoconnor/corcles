@@ -31,22 +31,17 @@ export default function WelcomePage() {
 
   const onSubmit = form.handleSubmit(async (data) => {
     try {
-      try {
-        if (pendingGoogleUser) {
-          await completeGoogleSignup(data.address, data.zipCode);
-        } else {
-          const response = await apiRequest("PATCH", "/api/user", data);
-          if (!response.ok) {
-            throw new Error("Failed to update profile");
-          }
-          const updatedUser = await response.json();
-          queryClient.setQueryData(["/api/user"], updatedUser);
+      if (pendingGoogleUser) {
+        await completeGoogleSignup(data.address, data.zipCode);
+      } else {
+        const response = await apiRequest("PATCH", "/api/user", data);
+        if (!response.ok) {
+          throw new Error("Failed to update profile");
         }
-        setLocation("/");
-      } catch (error) {
-        console.error("Failed to update profile:", error);
+        const updatedUser = await response.json();
+        queryClient.setQueryData(["/api/user"], updatedUser);
       }
-      setLocation("/"); // Redirect to home after successful update
+      setLocation("/"); // Only redirect on success
     } catch (error) {
       console.error("Failed to update profile:", error);
     }
