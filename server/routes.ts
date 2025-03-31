@@ -1882,7 +1882,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .values({
               name: zipCodeCommunityName,
               description: `Local community for ${parseResult.data.zipCode}`,
-              createdBy: null, // Set to null for default communities
+              createdBy: user.id, // Use the current user's ID instead of null
               isCustom: false,
             })
             .returning();
