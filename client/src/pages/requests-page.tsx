@@ -183,23 +183,25 @@ export default function RequestsPage() {
           </Card>
         ) : (
           <Tabs defaultValue="wishlists">
-            <TabsList className="mb-4">
-              <TabsTrigger
-                value="wishlists"
-                className="flex items-center gap-2"
-              >
-                <ListChecks className="h-4 w-4" />
-                Wishlists
-              </TabsTrigger>
-              <TabsTrigger value="requests" className="flex items-center gap-2">
-                <Gift className="h-4 w-4" />
-                My Requests
-              </TabsTrigger>
-              <TabsTrigger value="bids" className="flex items-center gap-2">
-                <Tag className="h-4 w-4" />
-                My Bids
-              </TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto pb-2">
+              <TabsList className="inline-flex min-w-fit">
+                <TabsTrigger
+                  value="wishlists"
+                  className="flex items-center gap-2"
+                >
+                  <ListChecks className="h-4 w-4" />
+                  Wishlists
+                </TabsTrigger>
+                <TabsTrigger value="requests" className="flex items-center gap-2">
+                  <Gift className="h-4 w-4" />
+                  My Requests
+                </TabsTrigger>
+                <TabsTrigger value="bids" className="flex items-center gap-2">
+                  <Tag className="h-4 w-4" />
+                  My Bids
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="wishlists">
               <div>
