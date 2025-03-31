@@ -96,8 +96,6 @@ export function setupAuth(app: Express) {
   app.post("/api/register", async (req, res, next) => {
     try {
       const parseResult = insertUserSchema.safeParse(req.body);
-
-      const parseResult = insertUserSchema.safeParse(req.body);
       if (!parseResult.success) {
         logger.warn('Registration validation failed:', {
           errors: parseResult.error.errors,
