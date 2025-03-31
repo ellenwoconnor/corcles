@@ -49,8 +49,8 @@ export default function WelcomePage() {
 
   // Redirect to home if user already has address info
   if (user?.address && user?.zipCode) {
-    setLocation("/");
     console.log("foo");
+    setLocation("/");
     return null;
   }
 
