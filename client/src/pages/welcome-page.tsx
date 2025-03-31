@@ -47,9 +47,8 @@ export default function WelcomePage() {
     }
   });
 
-  // Redirect to home if user already has address info
-  if (user?.address && user?.zipCode) {
-    console.log("foo");
+  // Only redirect if user has address and it wasn't just registered
+  if (user?.address && user?.zipCode && !form.formState.isSubmitting) {
     setLocation("/");
     return null;
   }
