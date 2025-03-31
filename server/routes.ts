@@ -909,7 +909,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .values({
               name: zipCodeCommunityName,
               description: `Local community for ${zipCode}`,
-              createdBy: null,
+              createdBy: req.user.id,
               isCustom: false,
             })
             .returning();
