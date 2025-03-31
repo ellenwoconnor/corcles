@@ -85,55 +85,57 @@ export default function ListingsPage() {
           ) : (
             userItems.map((item: any) => (
               <Card key={item.id}>
-                <CardHeader className="flex flex-col sm:flex-row items-center gap-4"> {/* Added flex-col and sm:flex-row */}
-                  <img
-                    src={item.imageUrl}
-                    alt={item.title}
-                    className="w-16 h-16 sm:w-20 sm:h-20 rounded object-cover flex-shrink-0"
-                  />
+                <CardHeader>
+                  <div className="flex items-center gap-4">
+                    <img
+                      src={item.imageUrl}
+                      alt={item.title}
+                      className="w-16 h-16 sm:w-20 sm:h-20 rounded object-cover flex-shrink-0"
+                    />
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <CardTitle>
-                        <Link
-                          href={`/item/${item.id}`}
-                          className="hover:underline truncate"
-                        >
-                          {item.title}
-                        </Link>
-                      </CardTitle>
-                      {getStatusBadge(item)}
-                    </div>
-                    <div className="flex items-center gap-4 mt-1">
-                      {item.isGift ? (
-                        <span className="text-sm font-medium text-primary">
-                          Free
-                        </span>
-                      ) : (
-                        <span className="text-sm font-medium">
-                          ${item.price}
-                        </span>
-                      )}
-                      <span className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(item.createdAt), {
-                          addSuffix: true,
-                        })}
-                      </span>
-                      {item.wishlistId && (
-                        <div className="flex items-center gap-1">
-                          <Tag className="h-3 w-3" />
-                          <span className="text-sm text-muted-foreground">
-                            Wishlist Offer
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <CardTitle>
+                          <Link
+                            href={`/item/${item.id}`}
+                            className="hover:underline truncate"
+                          >
+                            {item.title}
+                          </Link>
+                        </CardTitle>
+                        {getStatusBadge(item)}
+                      </div>
+                      <div className="flex items-center gap-4 mt-1">
+                        {item.isGift ? (
+                          <span className="text-sm font-medium text-primary">
+                            Free
                           </span>
+                        ) : (
+                          <span className="text-sm font-medium">
+                            ${item.price}
+                          </span>
+                        )}
+                        <span className="text-sm text-muted-foreground">
+                          {formatDistanceToNow(new Date(item.createdAt), {
+                            addSuffix: true,
+                          })}
+                        </span>
+                        {item.wishlistId && (
+                          <div className="flex items-center gap-1">
+                            <Tag className="h-3 w-3" />
+                            <span className="text-sm text-muted-foreground">
+                              Wishlist Offer
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      {item.pickupStart && (
+                        <div className="mt-2 text-sm text-muted-foreground">
+                          Pickup scheduled for{" "}
+                          {format(new Date(item.pickupStart), "PPP 'at' p")}
                         </div>
                       )}
                     </div>
-                    {item.pickupStart && (
-                      <div className="mt-2 text-sm text-muted-foreground">
-                        Pickup scheduled for{" "}
-                        {format(new Date(item.pickupStart), "PPP 'at' p")}
-                      </div>
-                    )}
                   </div>
                 </CardHeader>
               </Card>
