@@ -27,12 +27,12 @@ function AppContent() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (user && needsAddressInfo) {
+    if (user && (!user.address || !user.zipCode)) {
       setLocation('/welcome');
     } else if (user) {
       setLocation('/');
     }
-  }, [user, needsAddressInfo, setLocation]);
+  }, [user, setLocation]);
 
   return (
     <>
