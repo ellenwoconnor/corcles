@@ -1557,8 +1557,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const invites = await db
         .select()
-        .from(communityInvites)
-        .where(eq(communityInvites.invitedBy, req.user.id));
+        .from(schema.communityInvites)
+        .where(eq(schema.communityInvites.invitedBy, req.user.id));
 
       res.json({ count: invites.length });
     } catch (error) {
