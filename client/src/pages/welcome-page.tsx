@@ -38,10 +38,9 @@ export default function WelcomePage() {
         if (!response.ok) {
           throw new Error("Failed to update profile");
         }
-        const updatedUser = await response.json();
         await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        window.location.href = "/";
       }
-      setLocation("/");
     } catch (error) {
       console.error("Failed to update profile:", error);
     }
