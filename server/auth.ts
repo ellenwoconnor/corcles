@@ -126,11 +126,14 @@ export function setupAuth(app: Express) {
       const user = await storage.createUser({
         ...parseResult.data,
         password: hashedPassword,
+        address: null,
+        zipCode: null
       });
 
       logger.info('User registered successfully:', {
         userId: user.id,
-        username: user.username
+        username: user.username,
+        zipCode: null
       });
 
       req.login(user, (err) => {
