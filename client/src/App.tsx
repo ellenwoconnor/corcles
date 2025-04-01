@@ -23,17 +23,6 @@ function ConfigurationError({ message }: { message: string }) {
 }
 
 function AppContent() {
-  const { user, needsAddressInfo } = useAuth();
-  const [, setLocation] = useLocation();
-
-  useEffect(() => {
-    if (user && (!user.address || !user.zipCode)) {
-      setLocation('/welcome');
-    } else if (user) {
-      setLocation('/');
-    }
-  }, [user, setLocation]);
-
   return (
     <>
       <Router />
