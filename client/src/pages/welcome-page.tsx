@@ -23,7 +23,7 @@ export default function WelcomePage() {
   const {
     user,
     pendingGoogleUser,
-    completeGoogleSignup,
+    // completeGoogleSignup, // Removed
     completeRegistration,
   } = useAuth();
   const [, setLocation] = useLocation();
@@ -31,16 +31,12 @@ export default function WelcomePage() {
 
   const onSubmit = form.handleSubmit(async (data) => {
     try {
-      if (pendingGoogleUser) {
-        await completeGoogleSignup(data.address, data.zipCode);
-      } else {
-        const response = await apiRequest("PATCH", "/api/user", data);
-        if (!response.ok) {
-          throw new Error("Failed to update profile");
-        }
-        await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-        window.location.href = "/";
+      const response = await apiRequest("PATCH", "/api/user", data);
+      if (!response.ok) {
+        throw new Error("Failed to update profile");
       }
+      await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      window.location.href = "/";
     } catch (error) {
       console.error("Failed to update profile:", error);
     }
