@@ -248,26 +248,11 @@ export function setupAuth(app: Express) {
         name: googleUser.name
       });
 
-      // Find user by email
+      // Find or create user
       let user = await storage.getUserByEmail(googleUser.email);
 
       if (!user) {
-        // If no address/zipCode provided, return special response for client to collect info
-        if (!address || !zipCode) {
-          return res.status(202).json({
-            needsAddressInfo: true,
-            email: googleUser.email,
-            name: googleUser.name,
-            picture: googleUser.picture
-          });
-        }
-
-        // Validate zip code
-        if (!/^\d{5}$/.test(zipCode)) {
-          return res.status(400).json({ error: "Zip code must be exactly 5 digits" });
-        }
-
-        // Create new user with address info
+        // Create new user without address info
         const username = googleUser.email.split('@')[0];
         let uniqueUsername = username;
         let counter = 1;
@@ -283,34 +268,14 @@ export function setupAuth(app: Express) {
           displayName: googleUser.name,
           email: googleUser.email,
           password: await hashPassword(Math.random().toString(36)),
-          address: address,
-          zipCode: zipCode,
+          address: null,
+          zipCode: null,
           avatarUrl: googleUser.picture || null
         });
 
         logger.info('Created new user from Google auth:', {
           userId: user.id,
-          email: user.email,
-          zipCode: zipCode
-        });
-      } else if (!user.zipCode && (address && zipCode)) {
-        // Update existing user who didn't have address info
-        user.address = address;
-        user.zipCode = zipCode;
-
-        logger.info('Updated existing Google user with address info:', {
-          userId: user.id,
-          email: user.email,
-          zipCode
-        });
-      } else if (!user.zipCode) {
-        // Existing user without address info needs to provide it
-        return res.status(202).json({
-          needsAddressInfo: true,
-          email: googleUser.email,
-          name: googleUser.name,
-          picture: googleUser.picture,
-          userId: user.id
+          email: user.email
         });
       }
 
