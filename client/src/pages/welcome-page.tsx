@@ -38,12 +38,7 @@ export default function WelcomePage() {
     }
   });
 
-  // Only redirect if user has address and it wasn't just registered
-  if (user?.address && user?.zipCode && !form.formState.isSubmitting) {
-    console.log("in function 1");
-    setLocation("/");
-    return null;
-  }
+  
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-10">
