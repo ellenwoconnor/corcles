@@ -894,45 +894,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No valid fields to update" });
       }
 
-      // If zip code is provided, handle community assignment
-      if (zipCode) {
-        const zipCodeCommunityName = `Community ${zipCode}`;
-        let zipCommunity = await db
-          .select()
-          .from(schema.communities)
-          .where(eq(schema.communities.name, zipCodeCommunityName))
-          .limit(1);
-
-        if (zipCommunity.length === 0) {
-          [zipCommunity] = await db
-            .insert(schema.communities)
-            .values({
-              name: zipCodeCommunityName,
-              description: `Local community for ${zipCode}`,
-              createdBy: req.user.id,
-              isCustom: false,
-            })
-            .returning();
-        }
-
-        // Add user to zip code community
-        await db
-          .insert(schema.userCommunities)
-          .values({
-            userId: req.user.id,
-            communityId: zipCommunity[0].id,
-            role: "member",
-            joinedAt: new Date(),
-          })
-          .onConflictDoNothing();
+      // Validate zip code format if provided
+      if (zipCode && !/^\d{5}$/.test(zipCode)) {
+        return res.status(400).json({ error: "Zip code must be exactly 5 digits" });
       }
 
-      const [updatedUser] = await db.update(schema.users)
-        .set(updates)
-        .where(eq(schema.users.id, req.user.id))
-        .returning();
+      return await db.transaction(async (tx) => {
+        // Update user record
+        const [updatedUser] = await tx.update(schema.users)
+          .set(updates)
+          .where(eq(schema.users.id, req.user.id))
+          .returning();
 
-      res.json(updatedUser);
+        // Handle community assignment if zip code provided
+        if (zipCode) {
+          const zipCodeCommunityName = `Community ${zipCode}`;
+
+          // Get or create zip code community
+          let [community] = await tx
+            .select()
+            .from(schema.communities)
+            .where(eq(schema.communities.name, zipCodeCommunityName))
+            .limit(1);
+
+          if (!community) {
+            [community] = await tx
+              .insert(schema.communities)
+              .values({
+                name: zipCodeCommunityName,
+                description: `Local community for ${zipCode}`,
+                createdBy: req.user.id,
+                isCustom: false,
+              })
+              .returning();
+            
+            logger.info('Created new zip code community:', {
+              zipCode,
+              communityId: community.id,
+              userId: req.user.id
+            });
+          }
+
+          // Add user to zip code community
+          await tx
+            .insert(schema.userCommunities)
+            .values({
+              userId: req.user.id,
+              communityId: community.id,
+              role: community.createdBy === req.user.id ? 'admin' : 'member',
+              joinedAt: new Date(),
+            })
+            .onConflictDoNothing();
+
+          logger.info('Added user to zip code community:', {
+            userId: req.user.id,
+            communityId: community.id,
+            zipCode
+          });
+        }
+
+        res.json(updatedUser);
+      });
     } catch (error) {
       logger.error("Error updating user profile:", error);
       res.status(500).json({ error: "Failed to update profile" });
