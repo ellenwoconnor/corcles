@@ -20,12 +20,7 @@ interface AddressData {
 }
 
 export default function WelcomePage() {
-  const {
-    user,
-    pendingGoogleUser,
-    // completeGoogleSignup, // Removed
-    completeRegistration,
-  } = useAuth();
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
   const form = useForm<AddressData>();
 
@@ -35,6 +30,7 @@ export default function WelcomePage() {
       if (!response.ok) {
         throw new Error("Failed to update profile");
       }
+      console.log("in function 0");
       await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       window.location.href = "/";
     } catch (error) {
@@ -44,6 +40,7 @@ export default function WelcomePage() {
 
   // Only redirect if user has address and it wasn't just registered
   if (user?.address && user?.zipCode && !form.formState.isSubmitting) {
+    console.log("in function 1");
     setLocation("/");
     return null;
   }
