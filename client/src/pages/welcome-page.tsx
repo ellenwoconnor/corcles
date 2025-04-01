@@ -38,8 +38,6 @@ export default function WelcomePage() {
     }
   });
 
-  
-
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-10">
       <div className="max-w-[600px] w-full space-y-8">
