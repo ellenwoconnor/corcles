@@ -1755,7 +1755,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hashedPassword = await hashPassword(parseResult.data.password);
 
       const result = await db.transaction(async (tx) => {
-        logger.debug("Transaction step 1: Creating user");
         const [user] = await tx
           .insert(schema.users)
           .values({
@@ -1772,7 +1771,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email,
         });
 
-        logger.debug("Transaction step 2: Finding pending invites");
         const pendingInvites = await tx
           .select()
           .from(schema.communityInvites)
@@ -1794,7 +1792,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })),
         });
 
-        logger.debug("Transaction step 3: Processing invites");
         const processedInvites = [];
         for (const invite of pendingInvites) {
           try {
@@ -1862,61 +1859,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        logger.debug("Transaction step 4: Handling zip code community");
-        const zipCodeCommunityName = `Community ${parseResult.data.zipCode}`;
-        let zipCommunity = await tx
-          .select()
-          .from(schema.communities)
-          .where(eq(schema.communities.name, zipCodeCommunityName))
-          .limit(1);
-
-        if (zipCommunity.length === 0) {
-          logger.info("Creating new zip code community:", {
-            zipCode: parseResult.data.zipCode,
-            communityName: zipCodeCommunityName,
-          });
-
-          // For default communities, we set createdBy to null to indicate no admin
-          [zipCommunity] = await tx
-            .insert(schema.communities)
-            .values({
-              name: zipCodeCommunityName,
-              description: `Local community for ${parseResult.data.zipCode}`,
-              createdBy: user.id, // Use the current user's ID instead of null
-              isCustom: false,
-            })
-            .returning();
-
-          logger.info("Created zip code community:", {
-            communityId: zipCommunity.id,
-            zipCode: parseResult.data.zipCode,
-          });
-        } else {
-          logger.info("Found existing zip code community:", {
-            communityId: zipCommunity[0].id,
-            communityName: zipCodeCommunityName,
-          });
-        }
-
-        await tx
-          .insert(schema.userCommunities)
-          .values({
-            userId: user.id,
-            communityId: zipCommunity[0].id,
-            role: "member",
-            joinedAt: new Date(),
-          })
-          .onConflictDoNothing();
-
-        logger.info("Added user to zip code community:", {
-          userId: user.id,
-          communityId: zipCommunity[0].id,
-          zipCode: parseResult.data.zipCode,
-        });
-
         return {
           user,
-          enrolledCommunities: processedInvites.length + 1,
+          enrolledCommunities: processedInvites.length,
           processedInvites,
         };
       });
