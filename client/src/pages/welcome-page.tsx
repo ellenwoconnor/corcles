@@ -30,9 +30,13 @@ export default function WelcomePage() {
       if (!response.ok) {
         throw new Error("Failed to update profile");
       }
-      console.log("in function 0");
+      
+      // Wait for the query to be refetched before redirecting
       await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      window.location.href = "/";
+      await queryClient.refetchQueries({ queryKey: ["/api/user"] });
+      
+      // Use setLocation instead of window.location for smoother navigation
+      setLocation("/");
     } catch (error) {
       console.error("Failed to update profile:", error);
     }
