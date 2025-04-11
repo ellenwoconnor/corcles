@@ -425,6 +425,9 @@ export class DatabaseStorage implements IStorage {
           userDisplayName: sql<string>`(
             SELECT username FROM ${users} WHERE ${users.id} = ${items.userId}
           )`,
+          communityName: sql<string>`(
+            SELECT name FROM ${communities} WHERE ${communities.id} = ${items.communityId}
+          )`,
           userHasFavorited: sql<boolean>`false`,
         })
         .from(items)
