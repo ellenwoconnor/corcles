@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form";
-import { useLocation } from "wouter";
+import { useLocation, useRoute } from "wouter";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +12,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Loader2 } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient"; // Corrected import path
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 interface AddressData {
   address: string;
@@ -20,25 +22,56 @@ interface AddressData {
 }
 
 export default function WelcomePage() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
-  const form = useForm<AddressData>();
+  const { toast } = useToast();
+  
+  const form = useForm<AddressData>({
+    defaultValues: {
+      address: "",
+      zipCode: ""
+    }
+  });
+
+  // Redirect to home if user already has address info
+  useEffect(() => {
+    if (!isLoading && user && user.address && user.zipCode) {
+      setLocation("/");
+    }
+    // Redirect to auth if no user
+    if (!isLoading && !user) {
+      setLocation("/auth");
+    }
+  }, [user, isLoading, setLocation]);
 
   const onSubmit = form.handleSubmit(async (data) => {
     try {
       const response = await apiRequest("PATCH", "/api/user", data);
+      
       if (!response.ok) {
-        throw new Error("Failed to update profile");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to update profile");
       }
+      
+      toast({
+        title: "Profile updated",
+        description: "Your address information has been saved",
+        variant: "default",
+      });
       
       // Wait for the query to be refetched before redirecting
       await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       await queryClient.refetchQueries({ queryKey: ["/api/user"] });
       
-      // Use setLocation instead of window.location for smoother navigation
+      // Redirect to home page
       setLocation("/");
     } catch (error) {
       console.error("Failed to update profile:", error);
+      toast({
+        title: "Update failed",
+        description: error instanceof Error ? error.message : "Failed to update profile",
+        variant: "destructive",
+      });
     }
   });
 

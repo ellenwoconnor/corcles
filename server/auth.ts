@@ -14,15 +14,10 @@ declare global {
   }
 }
 
-// Add session type declaration
+// No need for pendingRegistration in session anymore
 declare module 'express-session' {
   interface SessionData {
-    pendingRegistration?: {
-      username: string;
-      email: string;
-      password: string;
-      displayName: string;
-    };
+    // Keep empty for now, might add other session data later if needed
   }
 }
 
@@ -155,24 +150,17 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/register/complete", async (req, res, next) => {
+  // New endpoint for updating user profile - handles address and zipCode
+  app.patch("/api/user", async (req, res, next) => {
     try {
-      const { address, zipCode } = req.body;
-
-      logger.info('Attempting to complete registration:', {
-        sessionId: req.sessionID,
-        hasPendingRegistration: !!req.session.pendingRegistration,
-        session: req.session
-      });
-
-      if (!req.session.pendingRegistration) {
-        logger.error('No pending registration found in session:', {
-          sessionId: req.sessionID,
-          session: req.session
-        });
-        return res.status(400).json({ error: "No pending registration found" });
+      // Ensure user is authenticated
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: "Authentication required" });
       }
 
+      const { address, zipCode } = req.body;
+
+      // Validate required fields
       if (!address || !zipCode) {
         return res.status(400).json({ error: "Address and zip code are required" });
       }
@@ -182,45 +170,63 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ error: "Zip code must be exactly 5 digits" });
       }
 
-      const hashedPassword = await hashPassword(req.session.pendingRegistration.password);
+      logger.info('Updating user profile with address information:', {
+        userId: req.user.id,
+        zipCode
+      });
 
-      const user = await storage.createUser({
-        ...req.session.pendingRegistration,
-        password: hashedPassword,
+      // Update the user record
+      const updatedUser = await storage.updateUser(req.user.id, {
         address,
         zipCode
       });
 
-      // Clear the pending registration from session
-      delete req.session.pendingRegistration;
-
-      // Save session explicitly after clearing pending registration
-      await new Promise<void>((resolve, reject) => {
-        req.session.save((err) => {
-          if (err) reject(err);
-          else resolve();
-        });
+      logger.info('User profile updated successfully:', {
+        userId: updatedUser.id,
+        zipCode: updatedUser.zipCode
       });
 
-      // Log the user in
-      req.login(user, (err) => {
-        if (err) {
-          logger.error('Error during login after registration completion:', {
-            error: err,
-            userId: user.id
+      // Add user to appropriate community based on zip code
+      try {
+        // First, check if community exists for this zip code
+        let community = await storage.getCommunityByZipCode(zipCode);
+        
+        // If no community exists, create one
+        if (!community) {
+          community = await storage.createCommunity({
+            name: `Community ${zipCode}`,
+            description: `Local community for ${zipCode}`,
+            createdBy: req.user.id,
+            isCustom: false
           });
-          return next(err);
+          
+          logger.info('Created new community for zip code:', {
+            zipCode,
+            communityId: community.id
+          });
         }
-
-        logger.info('User registration completed successfully:', {
-          userId: user.id,
-          username: user.username
+        
+        // Add user to community
+        const isUserInCommunity = await storage.isUserInCommunity(req.user.id, community.id);
+        if (!isUserInCommunity) {
+          await storage.addUserToCommunity(req.user.id, community.id, 'member');
+          logger.info('Added user to community:', {
+            userId: req.user.id,
+            communityId: community.id
+          });
+        }
+      } catch (communityError) {
+        logger.error('Error adding user to community:', {
+          error: communityError,
+          userId: req.user.id,
+          zipCode
         });
+        // Don't fail the whole request if community assignment fails
+      }
 
-        res.status(201).json(user);
-      });
+      res.status(200).json(updatedUser);
     } catch (error) {
-      logger.error('Error completing registration:', error);
+      logger.error('Error updating user profile:', error);
       next(error);
     }
   });
