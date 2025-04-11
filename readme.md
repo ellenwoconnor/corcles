@@ -58,9 +58,9 @@ To build images -- this passes in the value of the crt and logs detailed output:
 PG_CA_CERT=$PG_CA_CERT docker-compose build --no-cache --progress=plain  
 ```
 
-or alternatively this one which lets you pass platform 
+or alternatively this one which lets you pass platform for deployment
 ```sh
-docker build --no-cache --build-arg PG_CA_CERT=$PG_CA_CERT -t corcles-app:latest .
+docker build --no-cache --build-arg PG_CA_CERT=$PG_CA_CERT -t corcles-app:latest . --platform linux/amd64                                  
 ```
 
 Start containers and run the app: 
@@ -91,13 +91,13 @@ docker exec -it [container] sh
 
 First authenticate with fly.io: 
 ```sh
-fly auth docker-login
+fly auth docker
 ```
 
 Create an image with the right a
 
 ```sh
-docker build --no-cache --build-arg PG_CA_CERT=$PG_CA_CERT -t corcles-app:latest . 
+docker build --no-cache --build-arg PG_CA_CERT=$PG_CA_CERT -t corcles-app:latest . --platform linux/amd64
 ```
 
 
