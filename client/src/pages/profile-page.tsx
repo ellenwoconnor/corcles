@@ -107,10 +107,17 @@ export default function ProfilePage() {
                     <form
                       onSubmit={(e) => {
                         e.preventDefault();
+                        console.log("Form submitted", {
+                          formZipCode: formData.zipCode,
+                          userZipCode: user?.zipCode,
+                          isZipChanged: formData.zipCode !== user?.zipCode
+                        });
                         // Check if zip code was changed
                         if (formData.zipCode !== user?.zipCode) {
+                          console.log("Showing zip warning dialog");
                           setShowZipWarning(true);
                         } else {
+                          console.log("No zip change, updating profile directly");
                           // If no zip change, just update profile
                           updateMutation.mutate(formData);
                         }
@@ -215,7 +222,22 @@ export default function ProfilePage() {
                   )}
                   
                   {/* Zip code change warning alert dialog */}
-                  <AlertDialog open={showZipWarning} onOpenChange={setShowZipWarning}>
+                  <AlertDialog 
+                    open={showZipWarning} 
+                    onOpenChange={(open) => {
+                      console.log("Dialog open state changed:", { open });
+                      if (!open) {
+                        console.log("Dialog closing via onOpenChange");
+                        // User clicked outside or pressed escape
+                        // Reset the zip code to original
+                        setFormData({
+                          ...formData,
+                          zipCode: user?.zipCode || ""
+                        });
+                      }
+                      setShowZipWarning(open);
+                    }}
+                  >
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Community Reassignment</AlertDialogTitle>
@@ -227,15 +249,18 @@ export default function ProfilePage() {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel onClick={() => {
+                          console.log("Cancel button clicked");
                           // Reset zip code back to original
                           setFormData({
                             ...formData,
                             zipCode: user?.zipCode || ""
                           });
+                          setShowZipWarning(false);
                         }}>
                           Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction onClick={() => {
+                          console.log("Confirm button clicked, updating profile with new zip");
                           updateMutation.mutate(formData);
                           setShowZipWarning(false);
                         }}>
