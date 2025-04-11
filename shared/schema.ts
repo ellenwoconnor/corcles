@@ -143,6 +143,7 @@ export type User = typeof users.$inferSelect;
 export type InsertItem = z.infer<typeof insertItemSchema>;
 export type Item = typeof items.$inferSelect & {
   userDisplayName?: string;
+  communityName?: string;
   proposedPickupWindows?: PickupWindow[];
   pickupLocation?: string;
 };
