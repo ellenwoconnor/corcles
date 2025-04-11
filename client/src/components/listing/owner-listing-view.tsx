@@ -50,7 +50,12 @@ export default function OwnerListingView({
   const activeRequest = item.recipientId
     ? requests.find((r) => r.requesterId === item.recipientId)
     : requests.find((r) =>
-        ["pending", "accepted", "awaiting_pickup_confirmation", "scheduled"].includes(r.status),
+        [
+          "pending",
+          "accepted",
+          "awaiting_pickup_confirmation",
+          "scheduled",
+        ].includes(r.status),
       );
 
   const [messageDialogOpen, setMessageDialogOpen] = useState(
@@ -80,7 +85,7 @@ export default function OwnerListingView({
 
   async function handleDelist() {
     try {
-      await apiRequest(`/api/items/${item.id}/delist`, { method: "POST" });
+      await apiRequest("POST", `/api/items/${item.id}/delist`);
       queryClient.invalidateQueries([`/api/items/${item.id}`]);
       toast({
         title: "Item delisted",
