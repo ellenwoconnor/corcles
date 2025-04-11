@@ -909,8 +909,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Handle community assignment if zip code provided
         if (zipCode) {
           const zipCodeCommunityName = `Community ${zipCode}`;
+          const oldZipCode = req.user.zipCode;
+          
+          // First, get the previous zip code-based community
+          let oldZipCommunities = [];
+          if (oldZipCode && oldZipCode !== zipCode) {
+            oldZipCommunities = await tx
+              .select()
+              .from(schema.communities)
+              .where(eq(schema.communities.name, `Community ${oldZipCode}`));
+              
+            logger.info('Found previous zip code communities:', {
+              userId: req.user.id,
+              oldZipCode,
+              communitiesCount: oldZipCommunities.length
+            });
+          }
 
-          // Get or create zip code community
+          // Get or create the new zip code community
           let [community] = await tx
             .select()
             .from(schema.communities)
@@ -934,8 +950,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
               userId: req.user.id
             });
           }
+          
+          // If old zip code is different than new one, remove from old zip-based communities
+          if (oldZipCode && oldZipCode !== zipCode && oldZipCommunities.length > 0) {
+            for (const oldCommunity of oldZipCommunities) {
+              await tx
+                .delete(schema.userCommunities)
+                .where(
+                  and(
+                    eq(schema.userCommunities.userId, req.user.id),
+                    eq(schema.userCommunities.communityId, oldCommunity.id)
+                  )
+                );
+                
+              logger.info('Removed user from previous zip code community:', {
+                userId: req.user.id,
+                oldCommunityId: oldCommunity.id,
+                oldZipCode
+              });
+            }
+          }
 
-          // Add user to zip code community
+          // Add user to the new zip code community
           await tx
             .insert(schema.userCommunities)
             .values({
