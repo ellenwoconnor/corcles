@@ -80,13 +80,12 @@ export default function OwnerListingView({
 
   async function handleDelist() {
     try {
-      await apiRequest("POST", `/api/items/${item.id}/delist`);
+      await apiRequest(`/api/items/${item.id}/delist`, { method: "POST" });
       queryClient.invalidateQueries([`/api/items/${item.id}`]);
       toast({
         title: "Item delisted",
         description: "Your item has been delisted successfully.",
       });
-      navigate("/");
     } catch (error) {
       toast({
         title: "Error",
