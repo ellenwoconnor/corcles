@@ -14,7 +14,7 @@ export function DelistButton({ itemId, variant = "destructive" }: DelistButtonPr
 
   const delistMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", `/api/items/${itemId}/delist`);
+      const response = await apiRequest(`/api/items/${itemId}/delist`, "POST");
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || "Failed to delist item");
