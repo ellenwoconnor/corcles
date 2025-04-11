@@ -18,11 +18,17 @@ import type { LoginData } from "@/features/auth/hooks/use-auth";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
+const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+type LoginFormData = z.infer<typeof loginSchema>;
 type RegisterData = z.infer<typeof registerSchema>;
 
 export function AuthForm() {
@@ -35,9 +41,14 @@ export function AuthForm() {
 
   const onLogin = loginForm.handleSubmit(async (data) => {
     try {
+      // Extract username from email (part before @)
+      const username = data.email.split('@')[0];
+      console.log('Login attempt:', { username, email: data.email });
+      
       await loginMutation.mutateAsync({
-        username: data.email, // Use email as username for login
-        password: data.password
+        username: username,
+        password: data.password,
+        email: data.email
       });
     } catch (error) {
       console.error('Login error:', error);
@@ -46,14 +57,34 @@ export function AuthForm() {
 
   const onRegister = registerForm.handleSubmit(async (data) => {
     try {
+      console.log("Registration attempt with email:", data.email);
+      
+      // Create a username from email, ensuring it's at least 2 characters
+      let username = data.email.split('@')[0];
+      if (username.length < 2) {
+        username = username + username; // duplicate the character to make it at least 2 chars
+      }
+      
+      // Create a displayName (also min 2 chars)
+      let displayName = username;
+      
+      console.log("Sending registration data:", {
+        username,
+        email: data.email,
+        password: "[REDACTED]",
+        displayName,
+        address: null,
+        zipCode: null
+      });
+      
       // We will collect address and zip code on the welcome page
       await registerMutation.mutateAsync({
-        username: data.email.split('@')[0],
+        username,
         email: data.email,
         password: data.password,
-        displayName: data.email.split('@')[0],
+        displayName,
         address: null,
-        zipCode: null,
+        zipCode: null
       });
     } catch (error) {
       console.error('Registration error:', error);
