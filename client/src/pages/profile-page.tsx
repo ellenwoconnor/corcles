@@ -1,5 +1,5 @@
 import { useAuth } from "@/features/auth/hooks/use-auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Item } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,19 +7,66 @@ import { Loader2, Gift, Tag, Clock, Users } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export default function ProfilePage() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
+  const [showZipWarning, setShowZipWarning] = useState(false);
+  const [formData, setFormData] = useState<{
+    displayName: string;
+    address: string;
+    zipCode: string;
+  }>({
+    displayName: user?.displayName || "",
+    address: user?.address || "",
+    zipCode: user?.zipCode || ""
+  });
 
   const { data: userItems, isLoading: itemsLoading } = useQuery<Item[]>({
     queryKey: ["/api/user/items"],
     enabled: !!user,
   });
 
-  const { data: invitedUsers = [] } = useQuery<{ count: number }>({
+  const { data: inviteData } = useQuery<{ count: number }>({
     queryKey: ["/api/user/invites/count"],
     enabled: !!user,
+  });
+  
+  // Default to 0 for invite count if not available
+  const inviteCount = inviteData?.count || 0;
+  
+  const updateMutation = useMutation({
+    mutationFn: async (data: typeof formData) => {
+      const response = await apiRequest("PATCH", "/api/user", data);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to update profile");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully",
+        variant: "default",
+      });
+      setIsEditing(false);
+      // Wait for the query to be refetched before redirecting
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.refetchQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/communities"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   });
 
   if (!user) {
@@ -58,26 +105,14 @@ export default function ProfilePage() {
                 <div className="mt-8 pt-6">
                   {isEditing ? (
                     <form
-                      onSubmit={async (e) => {
+                      onSubmit={(e) => {
                         e.preventDefault();
-                        const formData = new FormData(e.currentTarget);
-                        try {
-                          const response = await fetch("/api/user", {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              displayName: formData.get("displayName"),
-                              address: formData.get("address"),
-                            }),
-                          });
-                          if (!response.ok)
-                            throw new Error("Failed to update profile");
-                          const result = await response.json();
-                          setIsEditing(false);
-                          window.location.reload();
-                        } catch (error) {
-                          console.error("Error updating profile:", error);
-                          alert("Failed to update profile. Please try again.");
+                        // Check if zip code was changed
+                        if (formData.zipCode !== user?.zipCode) {
+                          setShowZipWarning(true);
+                        } else {
+                          // If no zip change, just update profile
+                          updateMutation.mutate(formData);
                         }
                       }}
                       className="space-y-4"
@@ -88,7 +123,8 @@ export default function ProfilePage() {
                         </label>
                         <input
                           name="displayName"
-                          defaultValue={user.displayName}
+                          value={formData.displayName}
+                          onChange={(e) => setFormData({...formData, displayName: e.target.value})}
                           className="w-full p-2 border rounded-md"
                           required
                         />
@@ -99,19 +135,50 @@ export default function ProfilePage() {
                         </label>
                         <input
                           name="address"
-                          defaultValue={user.address}
+                          value={formData.address}
+                          onChange={(e) => setFormData({...formData, address: e.target.value})}
                           className="w-full p-2 border rounded-md"
                           required
                         />
                       </div>
+                      <div>
+                        <label className="text-sm font-medium block mb-2">
+                          Zip Code
+                        </label>
+                        <input
+                          name="zipCode"
+                          value={formData.zipCode}
+                          onChange={(e) => setFormData({...formData, zipCode: e.target.value})}
+                          className="w-full p-2 border rounded-md"
+                          required
+                          pattern="\d{5}"
+                          title="Zip code must be exactly 5 digits"
+                          maxLength={5}
+                        />
+                      </div>
                       <div className="flex gap-2 mt-4">
-                        <Button type="submit" variant="default">
+                        <Button 
+                          type="submit" 
+                          variant="default"
+                          disabled={updateMutation.isPending}
+                        >
+                          {updateMutation.isPending && (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          )}
                           Save Changes
                         </Button>
                         <Button
                           type="button"
                           variant="outline"
-                          onClick={() => setIsEditing(false)}
+                          onClick={() => {
+                            setIsEditing(false);
+                            // Reset form data to original values
+                            setFormData({
+                              displayName: user?.displayName || "",
+                              address: user?.address || "",
+                              zipCode: user?.zipCode || ""
+                            });
+                          }}
                         >
                           Cancel
                         </Button>
@@ -131,6 +198,12 @@ export default function ProfilePage() {
                         </p>
                         <p>{user.address}</p>
                       </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground mb-1">
+                          Zip Code
+                        </p>
+                        <p>{user.zipCode}</p>
+                      </div>
                       <Button
                         onClick={() => setIsEditing(true)}
                         variant="outline"
@@ -140,6 +213,37 @@ export default function ProfilePage() {
                       </Button>
                     </div>
                   )}
+                  
+                  {/* Zip code change warning alert dialog */}
+                  <AlertDialog open={showZipWarning} onOpenChange={setShowZipWarning}>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Community Reassignment</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Changing your zip code will remove you from your current community and reassign you to a new community based on your new zip code. This means you won't see listings from your old community anymore.
+                          <br /><br />
+                          Are you sure you want to proceed?
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => {
+                          // Reset zip code back to original
+                          setFormData({
+                            ...formData,
+                            zipCode: user?.zipCode || ""
+                          });
+                        }}>
+                          Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction onClick={() => {
+                          updateMutation.mutate(formData);
+                          setShowZipWarning(false);
+                        }}>
+                          Yes, Change My Community
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             </CardContent>
@@ -188,7 +292,7 @@ export default function ProfilePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl">{invitedUsers.count || 0}</div>
+              <div className="text-2xl">{inviteCount}</div>
             </CardContent>
           </Card>
 
