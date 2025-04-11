@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import * as schema from "@shared/schema";
 import { ITEM_STATUS, REQUEST_STATUS } from "@shared/constants";
 import { z } from "zod";
-import { eq, and, not, or, inArray, desc } from "drizzle-orm";
+import { eq, and, not, or, inArray, desc, sql } from "drizzle-orm";
 import { addDays, addHours, isBefore, isAfter } from "date-fns";
 import {
   insertItemBidSchema,
@@ -1406,36 +1406,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create database notification for the item owner
       if (item.userId) {
-        await db.insert(schema.notifications).values({
-          userId: item.userId,
-          type: "pickup_confirmation",
-          data: {
-            itemId,
-            itemTitle: item.title,
-            requestId: request.id,
-            confirmed,
-            userId: req.user?.id,
+        try {
+          // Check if a notification for this confirmation already exists within the last minute
+          const recentOwnerNotifications = await db
+            .select()
+            .from(schema.notifications)
+            .where(
+              and(
+                eq(schema.notifications.userId, item.userId),
+                eq(schema.notifications.type, "pickup_confirmation"),
+                sql`${schema.notifications.data}->>'itemId' = ${itemId.toString()}`,
+                sql`${schema.notifications.data}->>'requestId' = ${request.id.toString()}`
+              )
+            )
+            .orderBy(desc(schema.notifications.createdAt))
+            .limit(1);
+          
+          const shouldCreateOwnerNotification = recentOwnerNotifications.length === 0 || 
+            (Date.now() - new Date(recentOwnerNotifications[0].createdAt).getTime() > 60000);
+          
+          if (shouldCreateOwnerNotification) {
+            await db.insert(schema.notifications).values({
+              userId: item.userId,
+              type: "pickup_confirmation",
+              data: {
+                itemId,
+                itemTitle: item.title,
+                requestId: request.id,
+                confirmed,
+                userId: req.user?.id,
+              }
+            });
           }
-        });
-        // Send real-time notification
-        sendSSEMessage(item.userId, notificationPayload);
+          
+          // Always send real-time notification
+          sendSSEMessage(item.userId, notificationPayload);
+        } catch (notifyError) {
+          // Log but don't fail the entire transaction if notification creation fails
+          logger.error("Error creating owner pickup confirmation notification:", notifyError);
+        }
       }
 
       // Create database notification for the requester
       if (req.user?.id) {
-        await db.insert(schema.notifications).values({
-          userId: req.user.id,
-          type: "pickup_confirmation",
-          data: {
-            itemId,
-            itemTitle: item.title,
-            requestId: request.id,
-            confirmed,
-            userId: item.userId,
+        try {
+          // Check if a notification for this confirmation already exists within the last minute
+          const recentRequesterNotifications = await db
+            .select()
+            .from(schema.notifications)
+            .where(
+              and(
+                eq(schema.notifications.userId, req.user.id),
+                eq(schema.notifications.type, "pickup_confirmation"),
+                sql`${schema.notifications.data}->>'itemId' = ${itemId.toString()}`,
+                sql`${schema.notifications.data}->>'requestId' = ${request.id.toString()}`
+              )
+            )
+            .orderBy(desc(schema.notifications.createdAt))
+            .limit(1);
+          
+          const shouldCreateRequesterNotification = recentRequesterNotifications.length === 0 || 
+            (Date.now() - new Date(recentRequesterNotifications[0].createdAt).getTime() > 60000);
+          
+          if (shouldCreateRequesterNotification) {
+            await db.insert(schema.notifications).values({
+              userId: req.user.id,
+              type: "pickup_confirmation",
+              data: {
+                itemId,
+                itemTitle: item.title,
+                requestId: request.id,
+                confirmed,
+                userId: item.userId,
+              }
+            });
           }
-        });
-        // Send real-time notification
-        sendSSEMessage(req.user.id, notificationPayload);
+          
+          // Always send real-time notification
+          sendSSEMessage(req.user.id, notificationPayload);
+        } catch (notifyError) {
+          // Log but don't fail the entire transaction if notification creation fails
+          logger.error("Error creating requester pickup confirmation notification:", notifyError);
+        }
       }
 
       res.json({ success: true });
@@ -1506,20 +1558,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       if (recipientId) {
-        // Create database notification for the recipient
-        await db.insert(schema.notifications).values({
-          userId: recipientId,
-          type: "recipient_selected",
-          data: {
-            itemId,
-            itemTitle: item.title,
-            donorId: req.user.id,
-            donorName: req.user.displayName || req.user.username,
-            wishlistId: validWishlistId
+        try {
+          // Check if a notification for this selection already exists within the last minute
+          const recentNotifications = await db
+            .select()
+            .from(schema.notifications)
+            .where(
+              and(
+                eq(schema.notifications.userId, recipientId),
+                eq(schema.notifications.type, "recipient_selected"),
+                sql`${schema.notifications.data}->>'itemId' = ${itemId.toString()}`
+              )
+            )
+            .orderBy(desc(schema.notifications.createdAt))
+            .limit(1);
+          
+          const shouldCreateNotification = recentNotifications.length === 0 || 
+            (Date.now() - new Date(recentNotifications[0].createdAt).getTime() > 60000);
+          
+          if (shouldCreateNotification) {
+            // Create database notification for the recipient
+            await db.insert(schema.notifications).values({
+              userId: recipientId,
+              type: "recipient_selected",
+              data: {
+                itemId,
+                itemTitle: item.title,
+                donorId: req.user.id,
+                donorName: req.user.displayName || req.user.username,
+                wishlistId: validWishlistId
+              }
+            });
           }
-        });
-        // Send real-time notification
-        sendSSEMessage(recipientId, notificationPayload);
+          
+          // Always send real-time notification
+          sendSSEMessage(recipientId, notificationPayload);
+        } catch (notifyError) {
+          // Log but don't fail the entire transaction if notification creation fails
+          logger.error("Error creating recipient selection notification:", notifyError);
+        }
       }
 
       logger.info("Set recipient for item:", {
