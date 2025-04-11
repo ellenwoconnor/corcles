@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { apiRequest } from "@/lib/queryClient";
 import type { Community } from "@shared/schema";
 
@@ -19,23 +19,25 @@ interface CommunityInviteFormProps {
 
 const inviteSchema = z.object({
   invitedEmail: z.string().email("Please enter a valid email address"),
+  message: z.string().optional(),
 });
 
 type InviteFormValues = z.infer<typeof inviteSchema>;
 
 export function CommunityInviteForm({ community, onSuccess }: CommunityInviteFormProps) {
   const { toast } = useToast();
-  
+
   const form = useForm<InviteFormValues>({
     resolver: zodResolver(inviteSchema),
     defaultValues: {
       invitedEmail: "",
+      message: "",
     },
   });
 
   const inviteMutation = useMutation({
-    mutationFn: async ({ invitedEmail }: InviteFormValues) => {
-      const response = await apiRequest("POST", `/api/communities/${community.id}/invite`, { invitedEmail });
+    mutationFn: async ({ invitedEmail, message }: InviteFormValues) => {
+      const response = await apiRequest("POST", `/api/communities/${community.id}/invite`, { invitedEmail, message });
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to send invitation');
@@ -78,6 +80,24 @@ export function CommunityInviteForm({ community, onSuccess }: CommunityInviteFor
               <FormLabel>Email Address</FormLabel>
               <FormControl>
                 <Input {...field} type="email" placeholder="Enter email address" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="message"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Personal Message (optional)</FormLabel>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  placeholder="Add a personal message to your invitation..."
+                  className="resize-none"
+                  rows={3}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

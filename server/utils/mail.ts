@@ -47,6 +47,7 @@ export async function sendMail({
 interface InviteEmailParams {
   communityName: string;
   inviterName: string;
+  message?: string;
 }
 
 export function generateCommunityInviteEmail({
@@ -61,6 +62,11 @@ export function generateCommunityInviteEmail({
         <p style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 2rem;">
           <strong>${inviterName}</strong> has invited you to join the <strong>"${communityName}"</strong> community on Corcles.
         </p>
+        ${message ? `
+        <div style="background-color: #f8f9fc; padding: 1.5rem; border-radius: 6px; margin: 1rem 0;">
+          <p style="font-style: italic; color: #666;">"${message}"</p>
+        </div>
+        ` : ''}
       </div>
 
       <div style="background-color: #f8f9fc; padding: 1.5rem; border-radius: 6px; margin-bottom: 2rem;">
