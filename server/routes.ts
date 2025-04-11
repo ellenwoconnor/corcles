@@ -1292,29 +1292,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Create notification for recipient about pickup scheduling
-      await db.insert(schema.notifications).values({
-        userId: activeRequest.requesterId,
-        type: "pickup_scheduling",
-        data: {
-          itemId: itemId,
-          itemTitle: item.title,
-          windowsCount: proposedWindows.length,
-          isRescheduling: isRescheduling,
+      try {
+        // Check if a notification for this scheduling already exists within the last minute
+        const recentNotifications = await db
+          .select()
+          .from(schema.notifications)
+          .where(
+            and(
+              eq(schema.notifications.userId, activeRequest.requesterId),
+              eq(schema.notifications.type, "pickup_scheduling"),
+              sql`${schema.notifications.data}->>'itemId' = ${itemId.toString()}`
+            )
+          )
+          .orderBy(desc(schema.notifications.createdAt))
+          .limit(1);
+        
+        const shouldCreateNotification = recentNotifications.length === 0 || 
+          (Date.now() - new Date(recentNotifications[0].createdAt).getTime() > 60000);
+        
+        if (shouldCreateNotification) {
+          await db.insert(schema.notifications).values({
+            userId: activeRequest.requesterId,
+            type: "pickup_scheduling",
+            data: {
+              itemId: itemId,
+              itemTitle: item.title,
+              windowsCount: proposedWindows.length,
+              isRescheduling: isRescheduling,
+            }
+          });
         }
-      });
 
-      // Send SSE notification to recipient
-      const notificationPayload = {
-        type: "pickup_scheduling",
-        data: {
-          itemId: itemId,
-          title: item.title,
-          windowsCount: proposedWindows.length,
-          isRescheduling: isRescheduling,
-        }
-      };
-      
-      sendSSEMessage(activeRequest.requesterId, notificationPayload);
+        // Send SSE notification to recipient - always do this regardless of database notification
+        const notificationPayload = {
+          type: "pickup_scheduling",
+          data: {
+            itemId: itemId,
+            title: item.title,
+            windowsCount: proposedWindows.length,
+            isRescheduling: isRescheduling,
+          }
+        };
+        
+        sendSSEMessage(activeRequest.requesterId, notificationPayload);
+      } catch (notifyError) {
+        // Log but don't fail the entire transaction if notification creation fails
+        logger.error("Error creating pickup scheduling notification:", notifyError);
+      }
 
       res.json({ success: true });
     } catch (error) {
@@ -1686,31 +1710,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
         // Create notification for the item owner about pickup time selection
         if (item.userId) {
-          // Create database notification
-          await db.insert(schema.notifications).values({
-            userId: item.userId,
-            type: "pickup_time_selected",
-            data: {
-              itemId,
-              itemTitle: item.title,
-              recipientId: req.user.id,
-              recipientName: req.user.displayName || req.user.username,
-              pickupStart: pickupStart.toISOString(),
-              pickupEnd: pickupEnd.toISOString()
+          try {
+            // Check if a notification for this selection already exists within the last minute
+            const recentNotifications = await db
+              .select()
+              .from(schema.notifications)
+              .where(
+                and(
+                  eq(schema.notifications.userId, item.userId),
+                  eq(schema.notifications.type, "pickup_time_selected"),
+                  sql`${schema.notifications.data}->>'itemId' = ${itemId.toString()}`
+                )
+              )
+              .orderBy(desc(schema.notifications.createdAt))
+              .limit(1);
+            
+            const shouldCreateNotification = recentNotifications.length === 0 || 
+              (Date.now() - new Date(recentNotifications[0].createdAt).getTime() > 60000);
+            
+            if (shouldCreateNotification) {
+              // Create database notification
+              await db.insert(schema.notifications).values({
+                userId: item.userId,
+                type: "pickup_time_selected",
+                data: {
+                  itemId,
+                  itemTitle: item.title,
+                  recipientId: req.user.id,
+                  recipientName: req.user.displayName || req.user.username,
+                  pickupStart: pickupStart.toISOString(),
+                  pickupEnd: pickupEnd.toISOString()
+                }
+              });
             }
-          });
-          
-          // Send real-time notification
-          sendSSEMessage(item.userId, {
-            type: "pickup_time_selected",
-            data: {
-              itemId,
-              title: item.title,
-              recipientId: req.user.id,
-              pickupStart: pickupStart.toISOString(),
-              pickupEnd: pickupEnd.toISOString()
-            }
-          });
+            
+            // Always send real-time notification regardless
+            sendSSEMessage(item.userId, {
+              type: "pickup_time_selected",
+              data: {
+                itemId,
+                title: item.title,
+                recipientId: req.user.id,
+                pickupStart: pickupStart.toISOString(),
+                pickupEnd: pickupEnd.toISOString()
+              }
+            });
+          } catch (notifyError) {
+            // Log but don't fail the entire transaction if notification creation fails
+            logger.error("Error creating pickup time notification:", notifyError);
+          }
         }
 
         res.json({ success: true });
