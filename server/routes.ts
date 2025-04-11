@@ -1248,20 +1248,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .set(updates)
         .where(eq(schema.items.id, itemId));
 
+      // Update the active request first
       await db
         .update(schema.itemRequests)
         .set({ status: REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
         .where(eq(schema.itemRequests.id, activeRequest.id));
 
-      await db
-        .update(schema.itemRequests)
-        .set({ status: REQUEST_STATUS.REJECTED })
+      // Check if there are other requests to reject
+      const otherRequests = await db
+        .select()
+        .from(schema.itemRequests)
         .where(
           and(
             eq(schema.itemRequests.itemId, itemId),
             not(eq(schema.itemRequests.id, activeRequest.id)),
           ),
         );
+      
+      logger.debug("Found other requests to reject:", {
+        itemId,
+        activeRequestId: activeRequest.id,
+        otherRequestCount: otherRequests.length,
+      });
+
+      // Only update other requests if there are any
+      if (otherRequests.length > 0) {
+        await db
+          .update(schema.itemRequests)
+          .set({ status: REQUEST_STATUS.REJECTED })
+          .where(
+            and(
+              eq(schema.itemRequests.itemId, itemId),
+              not(eq(schema.itemRequests.id, activeRequest.id)),
+            ),
+          );
+      }
 
       logger.info("Updated item with pickup windows and recipient:", {
         itemId,
