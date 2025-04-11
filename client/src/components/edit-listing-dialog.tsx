@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 import { Pencil } from "lucide-react";
 import { useState } from "react";
@@ -15,7 +14,12 @@ import {
   DialogTrigger,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
 interface EditListingDialogProps {
   item: Item;
@@ -24,7 +28,7 @@ interface EditListingDialogProps {
 export function EditListingDialog({ item }: EditListingDialogProps) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
-
+  console.log("item", item);
   // Disable editing for delisted items
   if (item.status === "delisted") {
     return (
@@ -64,12 +68,12 @@ export function EditListingDialog({ item }: EditListingDialogProps) {
             Update the details of your listing.
           </DialogDescription>
         </DialogHeader>
-        <ListingForm 
+        <ListingForm
           mode="edit"
           itemId={item.id}
           defaultValues={{
             ...item,
-            communityName: item.communityName || `Community ${item.communityId}`
+            communityName: item.communityName || "Unknown Community",
           }}
           onSuccess={() => {
             setOpen(false);
