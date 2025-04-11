@@ -1204,10 +1204,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       logger.debug("Validated windows:", proposedWindows);
 
       const updates = {
-        proposedPickupWindows: proposedWindows,
+        proposedPickupWindows: JSON.parse(JSON.stringify(proposedWindows)), // Convert to proper JSON array format
         status: ITEM_STATUS.SCHEDULING,
         recipientId: activeRequest.requesterId,
       };
+      
+      // Log the actual data being saved
+      logger.debug("Updates for database:", {
+        itemId,
+        proposedPickupWindowsType: typeof updates.proposedPickupWindows,
+        isArray: Array.isArray(updates.proposedPickupWindows),
+        recipientId: updates.recipientId
+      });
 
       await db
         .update(schema.items)
