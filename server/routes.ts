@@ -1727,6 +1727,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const emailHtml = generateCommunityInviteEmail({
         communityName: community.name,
         inviterName: req.user.displayName,
+        message: req.body.message,
       });
 
       let emailSent = false;
