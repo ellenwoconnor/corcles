@@ -6,12 +6,15 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatDate(dateString: string | null | undefined) {
-  if (!dateString) return "Unknown date";
-  const date = new Date(dateString);
+export function formatDate(dateInput: string | Date | null | undefined) {
+  if (!dateInput) return "Unknown date";
+  
+  const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  
   if (isNaN(date.getTime())) {
     return "Invalid date";
   }
+  
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
