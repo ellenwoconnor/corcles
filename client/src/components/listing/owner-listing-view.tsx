@@ -173,7 +173,7 @@ export default function OwnerListingView({
           <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
             Schedule pickup
           </h2>
-          <p className="flex gap-1 mb-4">
+          <p className="flex flex-wrap gap-1 mb-4">
             This item is pending pickup at <MapPin className="h-4 w-4" />
             {item.pickupLocation}.
           </p>
@@ -185,7 +185,7 @@ export default function OwnerListingView({
               </h3>
               <div className="p-3 bg-secondary rounded-lg border border-border">
                 <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
+                  <Check className="h-4 w-4" />
                   <span>
                     {format(new Date(item.pickupStart), "EEE, MMM d")} at{" "}
                     {format(new Date(item.pickupStart), "h:mm a")} -{" "}
@@ -219,7 +219,7 @@ export default function OwnerListingView({
             </div>
           ) : null}
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <PickupScheduler
               itemId={item.id}
               itemStatus={item.status}

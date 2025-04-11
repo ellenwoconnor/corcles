@@ -81,7 +81,7 @@ export default function RecipientListingView({
           <h2 className="text-lg font-medium mb-2 flex items-center gap-2">
             Schedule pickup
           </h2>
-          <p className="flex gap-1">
+          <p className="flex flex-wrap gap-1">
             This item is pending pickup at <MapPin className="h-4 w-4" />
             {item.pickupLocation}.
           </p>
@@ -103,7 +103,7 @@ export default function RecipientListingView({
               <p className="mb-3">Pickup confirmed for:</p>
               <div className="p-3 bg-secondary rounded-lg border border-border">
                 <div className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
+                  <Check className="h-4 w-4" />
                   <span className="text-sm">
                     {format(new Date(item.pickupStart), "EEE, MMM d")} at{" "}
                     {format(new Date(item.pickupStart), "h:mm a")} -{" "}
@@ -114,7 +114,7 @@ export default function RecipientListingView({
             </div>
           )}
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <CancelButton
               itemId={item.id}
               requestId={request.id}
