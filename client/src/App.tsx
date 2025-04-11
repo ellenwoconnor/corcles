@@ -3,11 +3,13 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider, useAuth } from "@/features/auth/hooks/use-auth";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { AddressCompletionDialog } from "./components/address-completion-dialog";
+import { useLocation } from "wouter";
+
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Router } from "@/components/router";
 import { queryClient } from "./lib/queryClient";
 import { ThemeProvider } from "@/components/theme-provider";
+import WelcomePage from "@/pages/welcome-page"; // Added import for WelcomePage
 
 function ConfigurationError({ message }: { message: string }) {
   return (
@@ -21,20 +23,10 @@ function ConfigurationError({ message }: { message: string }) {
 }
 
 function AppContent() {
-  const { needsAddressInfo, pendingGoogleUser, completeGoogleSignup } =
-    useAuth();
-
   return (
     <>
       <Router />
       <Toaster />
-      {needsAddressInfo && pendingGoogleUser && (
-        <AddressCompletionDialog
-          open={needsAddressInfo}
-          onComplete={completeGoogleSignup}
-          email={pendingGoogleUser.email}
-        />
-      )}
     </>
   );
 }

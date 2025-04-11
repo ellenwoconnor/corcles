@@ -881,19 +881,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(req.user);
   });
 
-  app.patch("/api/user/profile", requireAuth, async (req, res) => {
+  app.patch("/api/user", requireAuth, async (req, res) => {
     try {
-      const { displayName, address } = req.body;
+      const { displayName, address, zipCode } = req.body;
+      const updates: Partial<typeof schema.users.$inferInsert> = {};
 
-      if (!displayName || !address) {
-        return res.status(400).json({ error: "Display name and address are required" });
+      if (displayName !== undefined) updates.displayName = displayName;
+      if (address !== undefined) updates.address = address;
+      if (zipCode !== undefined) updates.zipCode = zipCode;
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ error: "No valid fields to update" });
       }
 
-      await db.update(schema.users)
-        .set({ displayName, address })
-        .where(eq(schema.users.id, req.user.id));
+      // Validate zip code format if provided
+      if (zipCode && !/^\d{5}$/.test(zipCode)) {
+        return res.status(400).json({ error: "Zip code must be exactly 5 digits" });
+      }
 
-      res.json({ success: true });
+      return await db.transaction(async (tx) => {
+        // Update user record
+        const [updatedUser] = await tx.update(schema.users)
+          .set(updates)
+          .where(eq(schema.users.id, req.user.id))
+          .returning();
+
+        // Handle community assignment if zip code provided
+        if (zipCode) {
+          const zipCodeCommunityName = `Community ${zipCode}`;
+
+          // Get or create zip code community
+          let [community] = await tx
+            .select()
+            .from(schema.communities)
+            .where(eq(schema.communities.name, zipCodeCommunityName))
+            .limit(1);
+
+          if (!community) {
+            [community] = await tx
+              .insert(schema.communities)
+              .values({
+                name: zipCodeCommunityName,
+                description: `Local community for ${zipCode}`,
+                createdBy: req.user.id,
+                isCustom: false,
+              })
+              .returning();
+            
+            logger.info('Created new zip code community:', {
+              zipCode,
+              communityId: community.id,
+              userId: req.user.id
+            });
+          }
+
+          // Add user to zip code community
+          await tx
+            .insert(schema.userCommunities)
+            .values({
+              userId: req.user.id,
+              communityId: community.id,
+              role: community.createdBy === req.user.id ? 'admin' : 'member',
+              joinedAt: new Date(),
+            })
+            .onConflictDoNothing();
+
+          logger.info('Added user to zip code community:', {
+            userId: req.user.id,
+            communityId: community.id,
+            zipCode
+          });
+        }
+
+        res.json(updatedUser);
+      });
     } catch (error) {
       logger.error("Error updating user profile:", error);
       res.status(500).json({ error: "Failed to update profile" });
@@ -1518,8 +1579,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const invites = await db
         .select()
-        .from(communityInvites)
-        .where(eq(communityInvites.invitedBy, req.user.id));
+        .from(schema.communityInvites)
+        .where(eq(schema.communityInvites.invitedBy, req.user.id));
 
       res.json({ count: invites.length });
     } catch (error) {
@@ -1716,7 +1777,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hashedPassword = await hashPassword(parseResult.data.password);
 
       const result = await db.transaction(async (tx) => {
-        logger.debug("Transaction step 1: Creating user");
         const [user] = await tx
           .insert(schema.users)
           .values({
@@ -1733,7 +1793,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email,
         });
 
-        logger.debug("Transaction step 2: Finding pending invites");
         const pendingInvites = await tx
           .select()
           .from(schema.communityInvites)
@@ -1755,7 +1814,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })),
         });
 
-        logger.debug("Transaction step 3: Processing invites");
         const processedInvites = [];
         for (const invite of pendingInvites) {
           try {
@@ -1823,61 +1881,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        logger.debug("Transaction step 4: Handling zip code community");
-        const zipCodeCommunityName = `Community ${parseResult.data.zipCode}`;
-        let zipCommunity = await tx
-          .select()
-          .from(schema.communities)
-          .where(eq(schema.communities.name, zipCodeCommunityName))
-          .limit(1);
-
-        if (zipCommunity.length === 0) {
-          logger.info("Creating new zip code community:", {
-            zipCode: parseResult.data.zipCode,
-            communityName: zipCodeCommunityName,
-          });
-
-          // For default communities, we set createdBy to null to indicate no admin
-          [zipCommunity] = await tx
-            .insert(schema.communities)
-            .values({
-              name: zipCodeCommunityName,
-              description: `Local community for ${parseResult.data.zipCode}`,
-              createdBy: null, // Set to null for default communities
-              isCustom: false,
-            })
-            .returning();
-
-          logger.info("Created zip code community:", {
-            communityId: zipCommunity.id,
-            zipCode: parseResult.data.zipCode,
-          });
-        } else {
-          logger.info("Found existing zip code community:", {
-            communityId: zipCommunity[0].id,
-            communityName: zipCodeCommunityName,
-          });
-        }
-
-        await tx
-          .insert(schema.userCommunities)
-          .values({
-            userId: user.id,
-            communityId: zipCommunity[0].id,
-            role: "member",
-            joinedAt: new Date(),
-          })
-          .onConflictDoNothing();
-
-        logger.info("Added user to zip code community:", {
-          userId: user.id,
-          communityId: zipCommunity[0].id,
-          zipCode: parseResult.data.zipCode,
-        });
-
         return {
           user,
-          enrolledCommunities: processedInvites.length + 1,
+          enrolledCommunities: processedInvites.length,
           processedInvites,
         };
       });

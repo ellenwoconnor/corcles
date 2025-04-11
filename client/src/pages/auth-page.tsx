@@ -6,10 +6,12 @@ import { useAuth } from "@/features/auth/hooks/use-auth";
 export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
-
+  console.log("test", user);
   useEffect(() => {
-    if (user) {
+    if (user && user.address) {
       setLocation("/");
+    } else if (user && !user.address) {
+      setLocation("/welcome");
     }
   }, [user, setLocation]);
 

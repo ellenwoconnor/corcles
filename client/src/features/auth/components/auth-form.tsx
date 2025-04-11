@@ -1,9 +1,9 @@
+import React from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { insertUserSchema } from "@shared/schema";
-import { useAuth } from "../hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/features/auth/hooks/use-auth";
+import { GoogleLogin } from "@react-oauth/google";
 import {
   Form,
   FormControl,
@@ -12,268 +12,200 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SiGoogle } from "react-icons/si";
-import { useToast } from "@/components/ui/use-toast";
-import TermsDialog from "./terms-dialog";
+import { Loader2 } from "lucide-react";
+import type { LoginData } from "@/features/auth/hooks/use-auth";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
-const loginSchema = insertUserSchema.pick({
-  username: true,
-  password: true,
+const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-type AuthFormProps = {
-  onSuccess?: () => void;
-};
+const registerSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
 
-export function AuthForm({ onSuccess }: AuthFormProps) {
+type LoginFormData = z.infer<typeof loginSchema>;
+type RegisterData = z.infer<typeof registerSchema>;
+
+export function AuthForm() {
   const { loginMutation, registerMutation, googleLogin } = useAuth();
 
-  const loginForm = useForm<z.infer<typeof loginSchema>>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-    },
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema)
+  });
+  const registerForm = useForm<RegisterData>({
+    resolver: zodResolver(registerSchema)
   });
 
-  const registerForm = useForm<z.infer<typeof insertUserSchema>>({
-    resolver: zodResolver(insertUserSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-      displayName: "",
-      email: "",
-      address: "",
-      zipCode: "",
-    },
+  const onLogin = loginForm.handleSubmit(async (data) => {
+    try {
+      // Extract username from email (part before @)
+      if (!data.email) {
+        console.error('Missing email for login');
+        return;
+      }
+      
+      const username = data.email.split('@')[0];
+      console.log('Login attempt:', { username, email: data.email });
+      
+      await loginMutation.mutateAsync({
+        username: username,
+        password: data.password,
+        email: data.email
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+    }
   });
 
-  const handleGoogleLogin = () => {
-    googleLogin();
-  };
+  const onRegister = registerForm.handleSubmit(async (data) => {
+    try {
+      console.log("Registration attempt with email:", data.email);
+      
+      // Create a username from email, ensuring it's at least 2 characters
+      let username = data.email.split('@')[0];
+      if (username.length < 2) {
+        username = username + username; // duplicate the character to make it at least 2 chars
+      }
+      
+      // Create a displayName (also min 2 chars)
+      let displayName = username;
+      
+      console.log("Sending registration data:", {
+        username,
+        email: data.email,
+        password: "[REDACTED]",
+        displayName,
+        address: null,
+        zipCode: null
+      });
+      
+      // We will collect address and zip code on the welcome page
+      await registerMutation.mutateAsync({
+        username,
+        email: data.email,
+        password: data.password,
+        displayName,
+        address: null,
+        zipCode: null
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+    }
+  });
 
   return (
-    <Tabs defaultValue="login">
-      <TabsList className="grid w-full grid-cols-2 mb-6">
+    <Tabs defaultValue="login" className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="login">Login</TabsTrigger>
         <TabsTrigger value="register">Register</TabsTrigger>
       </TabsList>
-
       <TabsContent value="login">
-        <div className="space-y-4">
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={handleGoogleLogin}
-          >
-            <SiGoogle className="mr-2 h-4 w-4" />
-            Continue with Google
-          </Button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
-
-          <Form {...loginForm}>
-            <form
-              onSubmit={loginForm.handleSubmit(async (data) => {
-                try {
-                  await loginMutation.mutateAsync(data);
-                  onSuccess?.();
-                } catch (error) {
-                  // Login errors are already handled by the mutation
-                }
-              })}
-              className="space-y-4"
+        <Form {...loginForm}>
+          <form onSubmit={onLogin} className="space-y-4">
+            <FormField
+              control={loginForm.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={loginForm.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loginMutation.isPending}
             >
-              <FormField
-                control={loginForm.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Username</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={loginForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={loginMutation.isPending}
-              >
-                Login
-              </Button>
-            </form>
-          </Form>
-        </div>
+              {loginMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Login
+            </Button>
+          </form>
+        </Form>
       </TabsContent>
-
       <TabsContent value="register">
-        <div className="space-y-4">
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={handleGoogleLogin}
-          >
-            <SiGoogle className="mr-2 h-4 w-4" />
-            Continue with Google
-          </Button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                Or continue with
-              </span>
-            </div>
-          </div>
-
-          <Form {...registerForm}>
-            <form
-              onSubmit={registerForm.handleSubmit(async (data) => {
-                try {
-                  await registerMutation.mutateAsync(data);
-                  onSuccess?.();
-                } catch (error) {
-                  if ((error as Error).message.includes("address")) {
-                    registerForm.setError("address", {
-                      type: "manual",
-                      message:
-                        "This address is already registered in our system",
-                    });
-                  }
-                }
-              })}
-              className="space-y-4"
+        <Form {...registerForm}>
+          <form onSubmit={onRegister} className="space-y-4">
+            <FormField
+              control={registerForm.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={registerForm.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Password</FormLabel>
+                  <FormControl>
+                    <Input type="password" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={registerMutation.isPending}
             >
-              <FormField
-                control={registerForm.control}
-                name="username"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Username</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={registerForm.control}
-                name="displayName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Display Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={registerForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        {...field}
-                        placeholder="your@email.com"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={registerForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={registerForm.control}
-                name="address"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Address</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="123 Main St" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={registerForm.control}
-                name="zipCode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>ZIP Code</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="00000" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  By signing up, you agree to our{" "}
-                  <TermsDialog />
-                </p>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={registerMutation.isPending}
-                >
-                  Register
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </div>
+              {registerMutation.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Register
+            </Button>
+          </form>
+        </Form>
       </TabsContent>
+      <div className="mt-4 flex flex-col items-center">
+        <div className="relative mb-4 w-full">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Or continue with
+            </span>
+          </div>
+        </div>
+        <GoogleLogin
+          onSuccess={googleLogin}
+          shape="pill"
+          width="300"
+          useOneTap
+        />
+      </div>
     </Tabs>
   );
 }

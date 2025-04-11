@@ -70,9 +70,9 @@ export default function ListingsPage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="container py-12">
+      <main className="container py-12 px-4 sm:px-6">
         <h1 className="text-2xl mb-8">My Listings</h1>
-        <div className="grid gap-4">
+        <div className="grid gap-4 max-w-full">
           {!userItems || userItems.length === 0 ? (
             <Card>
               <CardHeader>
@@ -84,26 +84,29 @@ export default function ListingsPage() {
             </Card>
           ) : (
             userItems.map((item: any) => (
-              <Card key={item.id}>
-                <CardHeader>
-                  <div className="flex items-center gap-4">
+              <Link href={`/item/${item.id}`} key={item.id} className="block">
+                <Card>
+                  <CardHeader>
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <img
                       src={item.imageUrl}
                       alt={item.title}
-                      className="w-20 h-20 rounded object-cover"
+                      className="w-16 h-16 sm:w-20 sm:h-20 rounded object-cover flex-shrink-0"
                     />
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <CardTitle>
+                    <div className="flex-1 min-w-0 w-full">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <CardTitle className="mr-2">
                           <Link
                             href={`/item/${item.id}`}
-                            className="hover:underline truncate"
+                            className="hover:underline truncate block"
                           >
                             {item.title}
                           </Link>
                         </CardTitle>
-                        {getStatusBadge(item)}
+                        <div className="flex-shrink-0">
+                          {getStatusBadge(item)}
+                        </div>
                       </div>
                       <div className="flex items-center gap-4 mt-1">
                         {item.isGift ? (
@@ -138,7 +141,8 @@ export default function ListingsPage() {
                     </div>
                   </div>
                 </CardHeader>
-              </Card>
+                </Card>
+              </Link>
             ))
           )}
         </div>

@@ -14,11 +14,18 @@ declare global {
   }
 }
 
+// No need for pendingRegistration in session anymore
+declare module 'express-session' {
+  interface SessionData {
+    // Keep empty for now, might add other session data later if needed
+  }
+}
+
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true, // Changed to true to ensure session is created
     store: storage.sessionStore,
     cookie: {
       secure: process.env.NODE_ENV === 'production',
@@ -114,11 +121,14 @@ export function setupAuth(app: Express) {
       const user = await storage.createUser({
         ...parseResult.data,
         password: hashedPassword,
+        address: null,
+        zipCode: null
       });
 
       logger.info('User registered successfully:', {
         userId: user.id,
-        username: user.username
+        username: user.username,
+        zipCode: null
       });
 
       req.login(user, (err) => {
@@ -136,6 +146,88 @@ export function setupAuth(app: Express) {
         error,
         username: req.body.username
       });
+      next(error);
+    }
+  });
+
+  // New endpoint for updating user profile - handles address and zipCode
+  app.patch("/api/user", async (req, res, next) => {
+    try {
+      // Ensure user is authenticated
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const { address, zipCode } = req.body;
+
+      // Validate required fields
+      if (!address || !zipCode) {
+        return res.status(400).json({ error: "Address and zip code are required" });
+      }
+
+      // Validate zip code format
+      if (!/^\d{5}$/.test(zipCode)) {
+        return res.status(400).json({ error: "Zip code must be exactly 5 digits" });
+      }
+
+      logger.info('Updating user profile with address information:', {
+        userId: req.user.id,
+        zipCode
+      });
+
+      // Update the user record
+      const updatedUser = await storage.updateUser(req.user.id, {
+        address,
+        zipCode
+      });
+
+      logger.info('User profile updated successfully:', {
+        userId: updatedUser.id,
+        zipCode: updatedUser.zipCode
+      });
+
+      // Add user to appropriate community based on zip code
+      try {
+        // First, check if community exists for this zip code
+        let community = await storage.getCommunityByZipCode(zipCode);
+        
+        // If no community exists, create one
+        if (!community) {
+          community = await storage.createCommunity({
+            name: `Community ${zipCode}`,
+            description: `Local community for ${zipCode}`,
+            mascot: "🏠", // Default mascot for auto-created communities
+            createdBy: req.user.id,
+            isCustom: false
+          });
+          
+          logger.info('Created new community for zip code:', {
+            zipCode,
+            communityId: community.id
+          });
+        }
+        
+        // Add user to community
+        const isUserInCommunity = await storage.isUserInCommunity(req.user.id, community.id);
+        if (!isUserInCommunity) {
+          await storage.addUserToCommunity(req.user.id, community.id, 'member');
+          logger.info('Added user to community:', {
+            userId: req.user.id,
+            communityId: community.id
+          });
+        }
+      } catch (communityError) {
+        logger.error('Error adding user to community:', {
+          error: communityError,
+          userId: req.user.id,
+          zipCode
+        });
+        // Don't fail the whole request if community assignment fails
+      }
+
+      res.status(200).json(updatedUser);
+    } catch (error) {
+      logger.error('Error updating user profile:', error);
       next(error);
     }
   });
@@ -160,32 +252,17 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ error: "Invalid access token" });
       }
 
-      const googleUser = await response.json();
+      const googleUser = await response.json() as { email: string; name: string; picture?: string };
       logger.debug('Received Google user info:', { 
         email: googleUser.email,
         name: googleUser.name
       });
 
-      // Find user by email
+      // Find or create user
       let user = await storage.getUserByEmail(googleUser.email);
 
       if (!user) {
-        // If no address/zipCode provided, return special response for client to collect info
-        if (!address || !zipCode) {
-          return res.status(202).json({
-            needsAddressInfo: true,
-            email: googleUser.email,
-            name: googleUser.name,
-            picture: googleUser.picture
-          });
-        }
-
-        // Validate zip code
-        if (!/^\d{5}$/.test(zipCode)) {
-          return res.status(400).json({ error: "Zip code must be exactly 5 digits" });
-        }
-
-        // Create new user with address info
+        // Create new user without address info
         const username = googleUser.email.split('@')[0];
         let uniqueUsername = username;
         let counter = 1;
@@ -201,39 +278,14 @@ export function setupAuth(app: Express) {
           displayName: googleUser.name,
           email: googleUser.email,
           password: await hashPassword(Math.random().toString(36)),
-          address: address,
-          zipCode: zipCode,
+          address: null,
+          zipCode: null,
           avatarUrl: googleUser.picture || null
         });
 
         logger.info('Created new user from Google auth:', {
           userId: user.id,
-          email: user.email,
-          zipCode: zipCode
-        });
-      } else if (!user.zipCode && (address && zipCode)) {
-        // Update existing user who didn't have address info
-        await db
-          .update(schema.users)
-          .set({ address, zipCode })
-          .where(eq(schema.users.id, user.id));
-
-        user.address = address;
-        user.zipCode = zipCode;
-
-        logger.info('Updated existing Google user with address info:', {
-          userId: user.id,
-          email: user.email,
-          zipCode
-        });
-      } else if (!user.zipCode) {
-        // Existing user without address info needs to provide it
-        return res.status(202).json({
-          needsAddressInfo: true,
-          email: googleUser.email,
-          name: googleUser.name,
-          picture: googleUser.picture,
-          userId: user.id
+          email: user.email
         });
       }
 
@@ -255,27 +307,39 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
-      if (err) {
-        logger.error('Error during login:', { error: err });
-        return next(err);
-      }
+  app.post("/api/login", async (req, res, next) => {
+    try {
+      const { username, password } = req.body;
+      logger.debug('Login attempt:', { username });
+
+      const user = await storage.getUserByUsername(username) || await storage.getUserByEmail(username);
+      
       if (!user) {
-        return res.status(401).json({ error: info?.message || "Authentication failed" });
+        logger.warn('Login failed - user not found:', { username });
+        return res.status(401).json({ error: "Invalid username or password" });
       }
+
+      const isValidPassword = await comparePasswords(password, user.password);
+      if (!isValidPassword) {
+        logger.warn('Login failed - invalid password:', { username });
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+
       req.login(user, (err) => {
         if (err) {
           logger.error('Error establishing session:', { error: err, userId: user.id });
           return next(err);
         }
-        logger.info('User logged in:', {
+        logger.info('User logged in successfully:', {
           userId: user.id,
           username: user.username
         });
         res.status(200).json(user);
       });
-    })(req, res, next);
+    } catch (error) {
+      logger.error('Error during login:', error);
+      next(error);
+    }
   });
 
   app.post("/api/logout", (req, res, next) => {

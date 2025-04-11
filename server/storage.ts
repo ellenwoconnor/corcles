@@ -45,6 +45,8 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByAddress(address: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: number, updates: Partial<InsertUser>): Promise<User>;
+  getCommunityByZipCode(zipCode: string): Promise<Community | undefined>;
   getItems(
     communities: number[],
     userId?: number,
@@ -187,6 +189,29 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async updateUser(id: number, updates: Partial<InsertUser>): Promise<User> {
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set(updates)
+        .where(eq(users.id, id))
+        .returning();
+      
+      logger.debug('Updated user:', { 
+        userId: id, 
+        updates: { 
+          ...updates, 
+          password: updates.password ? '[REDACTED]' : undefined 
+        } 
+      });
+      
+      return updatedUser;
+    } catch (error) {
+      logger.error('Error updating user:', { error, userId: id });
+      throw error;
+    }
+  }
+
   async createUser(insertUser: InsertUser): Promise<User> {
     try {
       // Start a transaction
@@ -199,45 +224,49 @@ export class DatabaseStorage implements IStorage {
 
         logger.debug('Created new user:', { userId: user.id, username: user.username });
 
-        // Get or create their home community
-        const communityName = `Community ${insertUser.zipCode}`;
-        let [community] = await tx
-          .select()
-          .from(communities)
-          .where(eq(communities.name, communityName));
+        // If user has a zip code, add them to the appropriate community
+        if (insertUser.zipCode) {
+          // Get or create their home community
+          const communityName = `Community ${insertUser.zipCode}`;
+          let [community] = await tx
+            .select()
+            .from(communities)
+            .where(eq(communities.name, communityName));
 
-        if (!community) {
-          // Create new community if it doesn't exist
-          [community] = await tx
-            .insert(communities)
+          if (!community) {
+            // Create new community if it doesn't exist
+            [community] = await tx
+              .insert(communities)
+              .values({
+                name: communityName,
+                description: `Local community for ${insertUser.zipCode}`,
+                createdBy: user.id,
+                isCustom: false,
+                mascot: "🏠", // Default mascot for auto-created communities
+              })
+              .returning();
+
+            logger.debug('Created new community for zip code:', {
+              zipCode: insertUser.zipCode,
+              communityId: community.id
+            });
+          }
+
+          // Add user to their home community
+          await tx
+            .insert(userCommunities)
             .values({
-              name: communityName,
-              description: `Local community for ${insertUser.zipCode}`,
-              createdBy: user.id,
-              isCustom: false,
-            })
-            .returning();
+              userId: user.id,
+              communityId: community.id,
+              role: community.createdBy === user.id ? 'admin' : 'member'
+            });
 
-          logger.debug('Created new community for zip code:', {
-            zipCode: insertUser.zipCode,
-            communityId: community.id
-          });
-        }
-
-        // Add user to their home community
-        await tx
-          .insert(userCommunities)
-          .values({
+          logger.debug('Added user to home community:', {
             userId: user.id,
             communityId: community.id,
             role: community.createdBy === user.id ? 'admin' : 'member'
           });
-
-        logger.debug('Added user to home community:', {
-          userId: user.id,
-          communityId: community.id,
-          role: community.createdBy === user.id ? 'admin' : 'member'
-        });
+        }
 
         // Find and process any pending community invites for this user's email
         const pendingInvites = await tx

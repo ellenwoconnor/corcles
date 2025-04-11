@@ -4,7 +4,7 @@ import { Item, type Community } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import ItemGrid from "@/components/item-grid";
 import CreateListingDialog from "@/components/create-listing-dialog";
-import { WelcomeDialog } from "@/components/welcome-dialog";
+
 import { Loader2, Search, Gift } from "lucide-react";
 import React, { useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";

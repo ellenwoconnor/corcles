@@ -8,6 +8,7 @@ import ListingsPage from "@/pages/listings-page";
 import ProfilePage from "@/pages/profile-page";
 import CommunitiesPage from "@/pages/communities-page";
 import RequestsPage from "@/pages/requests-page";
+import WelcomePage from "@/pages/welcome-page";
 import S3TestComponent from "@/components/admin/s3-test";
 
 export function Router() {
@@ -20,6 +21,7 @@ export function Router() {
       <ProtectedRoute path="/communities" component={CommunitiesPage} />
       <ProtectedRoute path="/requests" component={RequestsPage} />
       <Route path="/auth" component={AuthPage} />
+      <Route path="/welcome" component={WelcomePage} /> {/* Unprotected welcome route */}
       <ProtectedRoute path="/admin/s3-test" component={S3TestComponent} />
       <Route component={NotFound} />
     </Switch>
