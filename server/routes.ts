@@ -1114,18 +1114,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: "Not authorized to schedule pickup for this item" });
       }
 
-      const [activeRequest] = await db
-        .select()
-        .from(schema.itemRequests)
-        .where(
-          and(
-            eq(schema.itemRequests.itemId, itemId),
-            or(
-              eq(schema.itemRequests.status, REQUEST_STATUS.PENDING),
-              eq(schema.itemRequests.status, REQUEST_STATUS.ACCEPTED),
+      // Check if the item is already in scheduling status
+      const isRescheduling = item.status === ITEM_STATUS.SCHEDULING;
+      let activeRequest;
+
+      if (isRescheduling) {
+        // If rescheduling, find the request that's already in AWAITING_PICKUP_CONFIRMATION status
+        [activeRequest] = await db
+          .select()
+          .from(schema.itemRequests)
+          .where(
+            and(
+              eq(schema.itemRequests.itemId, itemId),
+              eq(schema.itemRequests.status, REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION)
             ),
-          ),
-        );
+          );
+        
+        logger.debug("Rescheduling item with existing request:", {
+          itemId,
+          requestFound: Boolean(activeRequest),
+          status: item.status,
+        });
+      } 
+      
+      if (!activeRequest) {
+        // Otherwise, look for active pending/accepted requests
+        [activeRequest] = await db
+          .select()
+          .from(schema.itemRequests)
+          .where(
+            and(
+              eq(schema.itemRequests.itemId, itemId),
+              or(
+                eq(schema.itemRequests.status, REQUEST_STATUS.PENDING),
+                eq(schema.itemRequests.status, REQUEST_STATUS.ACCEPTED),
+              ),
+            ),
+          );
+      }
 
       if (!activeRequest) {
         return res
