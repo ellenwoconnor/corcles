@@ -53,6 +53,7 @@ interface InviteEmailParams {
 export function generateCommunityInviteEmail({
   communityName,
   inviterName,
+  message,
 }: InviteEmailParams): string {
   return `
     <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 2rem; background-color: #ffffff; border-radius: 8px; color: hsl(222.2 47.4% 11.2%);">
