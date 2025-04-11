@@ -1291,6 +1291,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         newStatus: ITEM_STATUS.SCHEDULING,
       });
 
+      // Create notification for recipient about pickup scheduling
+      await db.insert(schema.notifications).values({
+        userId: activeRequest.requesterId,
+        type: "pickup_scheduling",
+        data: {
+          itemId: itemId,
+          itemTitle: item.title,
+          windowsCount: proposedWindows.length,
+          isRescheduling: isRescheduling,
+        }
+      });
+
+      // Send SSE notification to recipient
+      const notificationPayload = {
+        type: "pickup_scheduling",
+        data: {
+          itemId: itemId,
+          title: item.title,
+          windowsCount: proposedWindows.length,
+          isRescheduling: isRescheduling,
+        }
+      };
+      
+      sendSSEMessage(activeRequest.requesterId, notificationPayload);
+
       res.json({ success: true });
     } catch (error) {
       logger.error("Error scheduling pickup:", error);
@@ -1349,14 +1374,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: "pickup_confirmation",
         data: {
           itemId,
+          itemTitle: item.title,
           requestId: request.id,
           confirmed,
         },
       };
 
-      // Notify both parties
-      if (item.userId) sendSSEMessage(item.userId, notificationPayload);
-      if (req.user?.id) sendSSEMessage(req.user.id, notificationPayload);
+      // Create database notification for the item owner
+      if (item.userId) {
+        await db.insert(schema.notifications).values({
+          userId: item.userId,
+          type: "pickup_confirmation",
+          data: {
+            itemId,
+            itemTitle: item.title,
+            requestId: request.id,
+            confirmed,
+            userId: req.user?.id,
+          }
+        });
+        // Send real-time notification
+        sendSSEMessage(item.userId, notificationPayload);
+      }
+
+      // Create database notification for the requester
+      if (req.user?.id) {
+        await db.insert(schema.notifications).values({
+          userId: req.user.id,
+          type: "pickup_confirmation",
+          data: {
+            itemId,
+            itemTitle: item.title,
+            requestId: request.id,
+            confirmed,
+            userId: item.userId,
+          }
+        });
+        // Send real-time notification
+        sendSSEMessage(req.user.id, notificationPayload);
+      }
 
       res.json({ success: true });
     } catch (error) {
@@ -1426,6 +1482,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       if (recipientId) {
+        // Create database notification for the recipient
+        await db.insert(schema.notifications).values({
+          userId: recipientId,
+          type: "recipient_selected",
+          data: {
+            itemId,
+            itemTitle: item.title,
+            donorId: req.user.id,
+            donorName: req.user.displayName || req.user.username,
+            wishlistId: validWishlistId
+          }
+        });
+        // Send real-time notification
         sendSSEMessage(recipientId, notificationPayload);
       }
 
@@ -1614,6 +1683,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
               not(eq(schema.itemRequests.requesterId, req.user.id)),
             ),
           );
+          
+        // Create notification for the item owner about pickup time selection
+        if (item.userId) {
+          // Create database notification
+          await db.insert(schema.notifications).values({
+            userId: item.userId,
+            type: "pickup_time_selected",
+            data: {
+              itemId,
+              itemTitle: item.title,
+              recipientId: req.user.id,
+              recipientName: req.user.displayName || req.user.username,
+              pickupStart: pickupStart.toISOString(),
+              pickupEnd: pickupEnd.toISOString()
+            }
+          });
+          
+          // Send real-time notification
+          sendSSEMessage(item.userId, {
+            type: "pickup_time_selected",
+            data: {
+              itemId,
+              title: item.title,
+              recipientId: req.user.id,
+              pickupStart: pickupStart.toISOString(),
+              pickupEnd: pickupEnd.toISOString()
+            }
+          });
+        }
 
         res.json({ success: true });
       } catch (error) {
