@@ -196,6 +196,7 @@ export function setupAuth(app: Express) {
           community = await storage.createCommunity({
             name: `Community ${zipCode}`,
             description: `Local community for ${zipCode}`,
+            mascot: "🏠", // Default mascot for auto-created communities
             createdBy: req.user.id,
             isCustom: false
           });
@@ -251,7 +252,7 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ error: "Invalid access token" });
       }
 
-      const googleUser = await response.json();
+      const googleUser = await response.json() as { email: string; name: string; picture?: string };
       logger.debug('Received Google user info:', { 
         email: googleUser.email,
         name: googleUser.name

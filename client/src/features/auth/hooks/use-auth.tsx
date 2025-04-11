@@ -23,6 +23,7 @@ type AuthContextType = {
 export interface LoginData {
   username: string;  // Keep username for backend compatibility
   password: string;
+  email?: string;    // Added for form compatibility
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
