@@ -28,6 +28,16 @@ export function ProtectedRoute({
       </Route>
     );
   }
+  
+  // If user has no address or zip code, redirect to welcome page to collect it
+  if (path !== '/welcome' && (!user.address || !user.zipCode)) {
+    console.log('User missing address info, redirecting to welcome page');
+    return (
+      <Route path={path}>
+        <Redirect to="/welcome" />
+      </Route>
+    );
+  }
 
   return <Route path={path} component={Component} />;
 }
