@@ -34,7 +34,9 @@ type RegisterData = z.infer<typeof registerSchema>;
 export function AuthForm() {
   const { loginMutation, registerMutation, googleLogin } = useAuth();
 
-  const loginForm = useForm<LoginData>();
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema)
+  });
   const registerForm = useForm<RegisterData>({
     resolver: zodResolver(registerSchema)
   });
@@ -42,6 +44,11 @@ export function AuthForm() {
   const onLogin = loginForm.handleSubmit(async (data) => {
     try {
       // Extract username from email (part before @)
+      if (!data.email) {
+        console.error('Missing email for login');
+        return;
+      }
+      
       const username = data.email.split('@')[0];
       console.log('Login attempt:', { username, email: data.email });
       
