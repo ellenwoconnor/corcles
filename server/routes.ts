@@ -1061,7 +1061,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const requests = await storage.getItemRequests(itemId);
       // Filter for only pending requests
-      const pendingRequests = requests.filter((r) => r.status === REQUEST_STATUS.PENDING);
+      const pendingRequests = requests.filter(
+        (r) => r.status === REQUEST_STATUS.PENDING,
+      );
 
       if (pendingRequests.length === 0) {
         return res
@@ -1167,7 +1169,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Randomly select one pending request
         if (pendingRequests.length > 0) {
-          const randomIndex = Math.floor(Math.random() * pendingRequests.length);
+          const randomIndex = Math.floor(
+            Math.random() * pendingRequests.length,
+          );
           activeRequest = pendingRequests[randomIndex];
         }
       }
@@ -2342,48 +2346,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             db
               .select({ id: schema.itemRequests.id })
               .from(schema.itemRequests)
-
-
-app.get("/api/user/invites", requireAuth, async (req, res) => {
-  try {
-    // Get invites sent by user
-    const sentInvites = await db
-      .select({
-        ...schema.communityInvites,
-        communityName: schema.communities.name,
-        communityMascot: schema.communities.mascot
-      })
-      .from(schema.communityInvites)
-      .leftJoin(schema.communities, eq(schema.communityInvites.communityId, schema.communities.id))
-      .where(eq(schema.communityInvites.invitedBy, req.user.id))
-      .orderBy(desc(schema.communityInvites.createdAt));
-
-    // Get invites received by user's email
-    const receivedInvites = await db
-      .select({
-        ...schema.communityInvites,
-        communityName: schema.communities.name,
-        communityMascot: schema.communities.mascot,
-        inviterName: schema.users.displayName
-      })
-      .from(schema.communityInvites)
-      .leftJoin(schema.communities, eq(schema.communityInvites.communityId, schema.communities.id))
-      .leftJoin(schema.users, eq(schema.communityInvites.invitedBy, schema.users.id))
-      .where(
-        and(
-          eq(schema.communityInvites.invitedEmail, req.user.email),
-          eq(schema.communityInvites.status, "pending")
-        )
-      )
-      .orderBy(desc(schema.communityInvites.createdAt));
-
-    res.json({ sent: sentInvites, received: receivedInvites });
-  } catch (error) {
-    logger.error("Error fetching user invites:", error);
-    res.status(500).json({ error: "Failed to fetch invites" });
-  }
-});
-
               .where(eq(schema.itemRequests.itemId, itemId)),
           ),
         );
@@ -2409,6 +2371,55 @@ app.get("/api/user/invites", requireAuth, async (req, res) => {
     } catch (error) {
       logger.error("Error deleting item:", error);
       res.status(500).json({ error: "Failed to delete item" });
+    }
+  });
+
+  app.get("/api/user/invites", requireAuth, async (req, res) => {
+    try {
+      // Get invites sent by user
+      const sentInvites = await db
+        .select({
+          ...schema.communityInvites,
+          communityName: schema.communities.name,
+          communityMascot: schema.communities.mascot,
+        })
+        .from(schema.communityInvites)
+        .leftJoin(
+          schema.communities,
+          eq(schema.communityInvites.communityId, schema.communities.id),
+        )
+        .where(eq(schema.communityInvites.invitedBy, req.user.id))
+        .orderBy(desc(schema.communityInvites.createdAt));
+
+      // Get invites received by user's email
+      const receivedInvites = await db
+        .select({
+          ...schema.communityInvites,
+          communityName: schema.communities.name,
+          communityMascot: schema.communities.mascot,
+          inviterName: schema.users.displayName,
+        })
+        .from(schema.communityInvites)
+        .leftJoin(
+          schema.communities,
+          eq(schema.communityInvites.communityId, schema.communities.id),
+        )
+        .leftJoin(
+          schema.users,
+          eq(schema.communityInvites.invitedBy, schema.users.id),
+        )
+        .where(
+          and(
+            eq(schema.communityInvites.invitedEmail, req.user.email),
+            eq(schema.communityInvites.status, "pending"),
+          ),
+        )
+        .orderBy(desc(schema.communityInvites.createdAt));
+
+      res.json({ sent: sentInvites, received: receivedInvites });
+    } catch (error) {
+      logger.error("Error fetching user invites:", error);
+      res.status(500).json({ error: "Failed to fetch invites" });
     }
   });
 
