@@ -70,16 +70,12 @@ export default function NotificationCenter() {
       // Invalidate queries to refetch the updated data
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
 
-      // Navigate to the related item and show message dialog
-      const notificationData = notification.data as {
-        itemId?: number;
-        itemTitle?: string;
-        requestId?: string;
-      };
-      console.log(notification.data);
-      if (notificationData.itemId) {
+      if (notification.type === "community_invite") {
+        setLocation("/communities");
+      } else if (notification.data.itemId) {
+        // Navigate to the related item and show message dialog
         setLocation(
-          `/item/${notificationData.itemId}?showMessages=true&requestId=${notificationData.requestId}`,
+          `/item/${notification.data.itemId}?showMessages=true&requestId=${notification.data.requestId}`,
         );
       }
     } catch (error) {
@@ -139,6 +135,10 @@ export default function NotificationCenter() {
                       </>
                     ) : notification.type === "new_message" ? (
                       <span>New message: {notification.data.content}</span>
+                    ) : notification.type === "community_invite" ? (
+                      <span>
+                        You've been invited to join {notification.data.communityName}
+                      </span>
                     ) : (
                       <span>
                         You've been selected for {notification.data.itemTitle}!

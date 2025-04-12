@@ -1061,7 +1061,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const requests = await storage.getItemRequests(itemId);
       // Filter for only pending requests
-      const pendingRequests = requests.filter((r) => r.status === REQUEST_STATUS.PENDING);
+      const pendingRequests = requests.filter(
+        (r) => r.status === REQUEST_STATUS.PENDING,
+      );
 
       if (pendingRequests.length === 0) {
         return res
@@ -1167,7 +1169,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Randomly select one pending request
         if (pendingRequests.length > 0) {
-          const randomIndex = Math.floor(Math.random() * pendingRequests.length);
+          const randomIndex = Math.floor(
+            Math.random() * pendingRequests.length,
+          );
           activeRequest = pendingRequests[randomIndex];
         }
       }
@@ -1272,36 +1276,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .update(schema.itemRequests)
         .set({ status: REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
         .where(eq(schema.itemRequests.id, activeRequest.id));
-
-      // Check if there are other requests to reject
-      const otherRequests = await db
-        .select()
-        .from(schema.itemRequests)
-        .where(
-          and(
-            eq(schema.itemRequests.itemId, itemId),
-            not(eq(schema.itemRequests.id, activeRequest.id)),
-          ),
-        );
-
-      logger.debug("Found other requests to reject:", {
-        itemId,
-        activeRequestId: activeRequest.id,
-        otherRequestCount: otherRequests.length,
-      });
-
-      // Only update other requests if there are any
-      if (otherRequests.length > 0) {
-        await db
-          .update(schema.itemRequests)
-          .set({ status: REQUEST_STATUS.REJECTED })
-          .where(
-            and(
-              eq(schema.itemRequests.itemId, itemId),
-              not(eq(schema.itemRequests.id, activeRequest.id)),
-            ),
-          );
-      }
 
       logger.info("Updated item with pickup windows and recipient:", {
         itemId,
@@ -2067,6 +2041,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue execution - we'll return the invite even if email fails
       }
 
+      // Check if invited user already exists
+      const existingUser = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.email, parseResult.data.invitedEmail))
+        .limit(1);
+
+      if (existingUser.length > 0) {
+        // Create notification for existing user
+        await db.insert(schema.notifications).values({
+          userId: existingUser[0].id,
+          type: "community_invite",
+          data: {
+            inviteId: invite.id,
+            communityId: invite.communityId,
+            communityName: community.name,
+            inviterId: req.user.id,
+            inviterName: req.user.displayName
+          },
+        });
+
+        // Send real-time notification
+        sendSSEMessage(existingUser[0].id, {
+          type: "community_invite",
+          data: {
+            inviteId: invite.id,
+            communityName: community.name,
+          },
+        });
+      }
+
       if (!emailSent) {
         logger.warn("Community invite created but email failed to send:", {
           communityId,
@@ -2397,6 +2402,164 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       logger.error("Error deleting item:", error);
       res.status(500).json({ error: "Failed to delete item" });
+    }
+  });
+
+  app.post("/api/community-invites/:id/accept", requireAuth, async (req, res) => {
+    try {
+      const inviteId = parseInt(req.params.id);
+      if (isNaN(inviteId)) {
+        return res.status(400).json({ error: "Invalid invitation ID" });
+      }
+
+      // Find the invitation
+      const [invite] = await db
+        .select()
+        .from(schema.communityInvites)
+        .where(
+          and(
+            eq(schema.communityInvites.id, inviteId),
+            eq(schema.communityInvites.invitedEmail, req.user.email),
+            eq(schema.communityInvites.status, "pending")
+          )
+        )
+        .limit(1);
+
+      if (!invite) {
+        return res.status(404).json({ error: "Invitation not found or already processed" });
+      }
+
+      // Get the community
+      const [community] = await db
+        .select()
+        .from(schema.communities)
+        .where(eq(schema.communities.id, invite.communityId))
+        .limit(1);
+
+      if (!community) {
+        return res.status(404).json({ error: "Community not found" });
+      }
+
+      // Check if user is already a member
+      const existingMembership = await db
+        .select()
+        .from(schema.userCommunities)
+        .where(
+          and(
+            eq(schema.userCommunities.userId, req.user.id),
+            eq(schema.userCommunities.communityId, community.id)
+          )
+        )
+        .limit(1);
+
+      if (existingMembership.length === 0) {
+        // Add user to community
+        await db.insert(schema.userCommunities).values({
+          userId: req.user.id,
+          communityId: community.id,
+          role: "member",
+        });
+      }
+
+      // Update invitation status
+      await db
+        .update(schema.communityInvites)
+        .set({ 
+          status: "accepted",
+          acceptedAt: new Date()
+        })
+        .where(eq(schema.communityInvites.id, inviteId));
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Error accepting invitation:", error);
+      res.status(500).json({ error: "Failed to accept invitation" });
+    }
+  });
+
+  app.post("/api/community-invites/:id/reject", requireAuth, async (req, res) => {
+    try {
+      const inviteId = parseInt(req.params.id);
+      if (isNaN(inviteId)) {
+        return res.status(400).json({ error: "Invalid invitation ID" });
+      }
+
+      // Find the invitation
+      const [invite] = await db
+        .select()
+        .from(schema.communityInvites)
+        .where(
+          and(
+            eq(schema.communityInvites.id, inviteId),
+            eq(schema.communityInvites.invitedEmail, req.user.email),
+            eq(schema.communityInvites.status, "pending")
+          )
+        )
+        .limit(1);
+
+      if (!invite) {
+        return res.status(404).json({ error: "Invitation not found or already processed" });
+      }
+
+      // Update invitation status
+      await db
+        .update(schema.communityInvites)
+        .set({ status: "rejected" })
+        .where(eq(schema.communityInvites.id, inviteId));
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Error rejecting invitation:", error);
+      res.status(500).json({ error: "Failed to reject invitation" });
+    }
+  });
+
+  app.get("/api/user/invites", requireAuth, async (req, res) => {
+    try {
+      // Get invites sent by user
+      const sentInvites = await db
+        .select({
+          ...schema.communityInvites,
+          communityName: schema.communities.name,
+          communityMascot: schema.communities.mascot,
+        })
+        .from(schema.communityInvites)
+        .leftJoin(
+          schema.communities,
+          eq(schema.communityInvites.communityId, schema.communities.id),
+        )
+        .where(eq(schema.communityInvites.invitedBy, req.user.id))
+        .orderBy(desc(schema.communityInvites.createdAt));
+
+      // Get invites received by user's email
+      const receivedInvites = await db
+        .select({
+          ...schema.communityInvites,
+          communityName: schema.communities.name,
+          communityMascot: schema.communities.mascot,
+          inviterName: schema.users.displayName,
+        })
+        .from(schema.communityInvites)
+        .leftJoin(
+          schema.communities,
+          eq(schema.communityInvites.communityId, schema.communities.id),
+        )
+        .leftJoin(
+          schema.users,
+          eq(schema.communityInvites.invitedBy, schema.users.id),
+        )
+        .where(
+          and(
+            eq(schema.communityInvites.invitedEmail, req.user.email),
+            eq(schema.communityInvites.status, "pending"),
+          ),
+        )
+        .orderBy(desc(schema.communityInvites.createdAt));
+
+      res.json({ sent: sentInvites, received: receivedInvites });
+    } catch (error) {
+      logger.error("Error fetching user invites:", error);
+      res.status(500).json({ error: "Failed to fetch invites" });
     }
   });
 

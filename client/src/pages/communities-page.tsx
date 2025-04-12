@@ -43,8 +43,9 @@ import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
 import { z } from "zod";
-// Import the new component
+import ReceivedInvitesSection from "@/components/received-invites-section";
 import CommunityInviteForm from "@/components/community-invite-form";
+import CommunityInvitesList from "@/components/community-invites-list";
 import Picker from "emoji-picker-react";
 
 export default function CommunitiesPage() {
@@ -177,7 +178,8 @@ export default function CommunitiesPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="container py-12">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+        <ReceivedInvitesSection />
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mt-8 mb-8">
           <div>
             <h1 className="text-2xl tracking-tight">Communities</h1>
             <p className="text-muted-foreground">
@@ -349,6 +351,10 @@ export default function CommunitiesPage() {
                     </div>
                   </div>
                 </CardHeader>
+                <CardContent className="pt-0 pb-0">
+                  {/* Add the CommunityInvitesList component for each community */}
+                  <CommunityInvitesList communityId={community.id} />
+                </CardContent>
                 <CardFooter>
                   <Dialog
                     open={inviteDialogOpen}
@@ -358,7 +364,7 @@ export default function CommunitiesPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="ml-2"
+                        className="mt-2"
                         onClick={() => {
                           setSelectedCommunity(community);
                           setInviteDialogOpen(true);
