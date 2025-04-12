@@ -1060,7 +1060,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const requests = await storage.getItemRequests(itemId);
-      const pendingRequests = requests.filter((r) => r.status === "pending");
+      // Filter for only pending requests
+      const pendingRequests = requests.filter((r) => r.status === REQUEST_STATUS.PENDING);
 
       if (pendingRequests.length === 0) {
         return res
@@ -1068,8 +1069,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: "No pending requests available for drawing" });
       }
 
-      const winningRequest =
-        pendingRequests[Math.floor(Math.random() * pendingRequests.length)];
+      // Randomly select one pending request
+      const randomIndex = Math.floor(Math.random() * pendingRequests.length);
+      const winningRequest = pendingRequests[randomIndex];
 
       await db
         .update(schema.items)
