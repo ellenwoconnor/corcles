@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Clock, ChevronDown, ChevronUp } from "lucide-react";
+import { Clock, ChevronDown, ChevronUp, CheckCircle2, CircleDot } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
-import { InviteStatusBadge } from "./invite-status-badge";
 
 interface CommunityInvite {
   id: number;
@@ -85,8 +84,12 @@ export default function CommunityInvitesList({
                         {format(new Date(invite.createdAt), "MMM d, yyyy")}
                       </div>
                     </div>
-                    <div className="ml-2">
-                      <InviteStatusBadge status={invite.status} />
+                    <div className="ml-2 text-muted-foreground">
+                      {invite.status === 'accepted' ? (
+                        <CheckCircle2 className="h-4 w-4" />
+                      ) : (
+                        <CircleDot className="h-4 w-4" />
+                      )}
                     </div>
                   </div>
                 </div>
