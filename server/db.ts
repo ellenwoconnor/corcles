@@ -36,7 +36,8 @@ async function migrate() {
       avatar_url TEXT,
       address TEXT,
       zip_code TEXT,
-      email TEXT NOT NULL UNIQUE
+      email TEXT NOT NULL UNIQUE,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
     )`,
     `CREATE TABLE IF NOT EXISTS communities (
       id SERIAL PRIMARY KEY,
