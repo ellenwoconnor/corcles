@@ -25,16 +25,19 @@ interface CommunityInvitesListProps {
   communityId: number;
 }
 
-export default function CommunityInvitesList({ communityId }: CommunityInvitesListProps) {
+export default function CommunityInvitesList({
+  communityId,
+}: CommunityInvitesListProps) {
   const [expanded, setExpanded] = useState(false);
-  
+
   // Use the existing /api/user/invites endpoint but filter by communityId on client side
   const { data, isLoading } = useQuery<InvitesData>({
-    queryKey: ["/api/user/invites"]
+    queryKey: ["/api/user/invites"],
   });
 
   // Filter invites by communityId
-  const invites = data?.sent?.filter(invite => invite.communityId === communityId) || [];
+  const invites =
+    data?.sent?.filter((invite) => invite.communityId === communityId) || [];
 
   // Don't render anything if there are no invites
   if (invites.length === 0 && !isLoading) {
@@ -68,8 +71,8 @@ export default function CommunityInvitesList({ communityId }: CommunityInvitesLi
           ) : (
             <>
               {invites.map((invite: CommunityInvite) => (
-                <div 
-                  key={invite.id} 
+                <div
+                  key={invite.id}
                   className="bg-muted/40 rounded-md p-2 border border-border"
                 >
                   <div className="flex justify-between items-start">
