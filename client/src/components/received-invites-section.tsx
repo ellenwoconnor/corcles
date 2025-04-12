@@ -2,12 +2,12 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Check, Clock, X, Loader2 } from "lucide-react";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "./ui/card";
 import { Button } from "./ui/button";
 import { InviteStatusBadge } from "./invite-status-badge";
@@ -33,22 +33,20 @@ interface InvitesData {
 
 export default function ReceivedInvitesSection() {
   const { toast } = useToast();
-  const [processingInviteId, setProcessingInviteId] = useState<number | null>(null);
+  const [processingInviteId, setProcessingInviteId] = useState<number | null>(
+    null,
+  );
 
-  const { 
-    data,
-    isLoading,
-    isError
-  } = useQuery<InvitesData>({
-    queryKey: ["/api/user/invites"]
+  const { data, isLoading, isError } = useQuery<InvitesData>({
+    queryKey: ["/api/user/invites"],
   });
 
   const acceptInviteMutation = useMutation({
     mutationFn: async (inviteId: number) => {
       const response = await apiRequest(
-        "POST", 
+        "POST",
         `/api/community-invites/${inviteId}/accept`,
-        {}
+        {},
       );
       if (!response.ok) {
         const error = await response.json();
@@ -75,15 +73,15 @@ export default function ReceivedInvitesSection() {
         variant: "destructive",
       });
       setProcessingInviteId(null);
-    }
+    },
   });
 
   const rejectInviteMutation = useMutation({
     mutationFn: async (inviteId: number) => {
       const response = await apiRequest(
-        "POST", 
+        "POST",
         `/api/community-invites/${inviteId}/reject`,
-        {}
+        {},
       );
       if (!response.ok) {
         const error = await response.json();
@@ -109,12 +107,15 @@ export default function ReceivedInvitesSection() {
         variant: "destructive",
       });
       setProcessingInviteId(null);
-    }
+    },
   });
 
   // Filter received invites that are pending
-  const pendingInvites = data?.received?.filter((invite: CommunityInvite) => invite.status === "pending") || [];
-  
+  const pendingInvites =
+    data?.received?.filter(
+      (invite: CommunityInvite) => invite.status === "pending",
+    ) || [];
+
   // If there are no pending invites, don't render the section
   if (pendingInvites.length === 0 && !isLoading) {
     return null;
@@ -128,7 +129,10 @@ export default function ReceivedInvitesSection() {
           <CardDescription>Error loading invitations</CardDescription>
         </CardHeader>
         <CardContent>
-          <p>There was a problem loading your invitations. Please try again later.</p>
+          <p>
+            There was a problem loading your invitations. Please try again
+            later.
+          </p>
         </CardContent>
       </Card>
     );
@@ -139,10 +143,13 @@ export default function ReceivedInvitesSection() {
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           Community Invitations
-          {isLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+          {isLoading && (
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          )}
         </CardTitle>
         <CardDescription>
-          You have {pendingInvites.length} pending invitation{pendingInvites.length !== 1 ? "s" : ""}
+          You have {pendingInvites.length} pending invitation
+          {pendingInvites.length !== 1 ? "s" : ""}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -153,14 +160,18 @@ export default function ReceivedInvitesSection() {
         ) : (
           <div className="space-y-4">
             {pendingInvites.map((invite: CommunityInvite) => (
-              <div key={invite.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
+              <div
+                key={invite.id}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4"
+              >
                 <div>
                   <div className="flex items-center gap-2 mb-1.5">
                     <span className="text-xl">{invite.communityMascot}</span>
                     <span className="font-medium">{invite.communityName}</span>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    Invited by <span className="font-medium">{invite.inviterName}</span>
+                    Invited by{" "}
+                    <span className="font-medium">{invite.inviterName}</span>
                   </div>
                   <div className="text-sm text-muted-foreground flex items-center mt-1">
                     <Clock className="h-3.5 w-3.5 mr-1.5" />
@@ -168,28 +179,28 @@ export default function ReceivedInvitesSection() {
                   </div>
                 </div>
                 <div className="flex gap-2 self-end sm:self-center mt-2 sm:mt-0">
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="border-green-200 bg-green-50 hover:bg-green-100 text-green-700"
+                  <Button
+                    size="sm"
+                    variant="outline"
                     onClick={() => acceptInviteMutation.mutate(invite.id)}
                     disabled={processingInviteId === invite.id}
                   >
-                    {processingInviteId === invite.id && acceptInviteMutation.isPending ? (
+                    {processingInviteId === invite.id &&
+                    acceptInviteMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-1" />
                     ) : (
                       <Check className="h-4 w-4 mr-1" />
                     )}
                     Accept
                   </Button>
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
-                    className="border-red-200 bg-red-50 hover:bg-red-100 text-red-700"
                     onClick={() => rejectInviteMutation.mutate(invite.id)}
                     disabled={processingInviteId === invite.id}
                   >
-                    {processingInviteId === invite.id && rejectInviteMutation.isPending ? (
+                    {processingInviteId === invite.id &&
+                    rejectInviteMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-1" />
                     ) : (
                       <X className="h-4 w-4 mr-1" />

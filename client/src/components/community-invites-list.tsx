@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Clock, ChevronDown, ChevronUp, CheckCircle2, CircleDot } from "lucide-react";
+import {
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle2,
+  CircleDot,
+} from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 
@@ -70,25 +76,19 @@ export default function CommunityInvitesList({
           ) : (
             <>
               {invites.map((invite: CommunityInvite) => (
-                <div
-                  key={invite.id}
-                  className="bg-muted/40 rounded-md p-2 border border-border"
-                >
+                <div key={invite.id} className=" py-2">
                   <div className="flex justify-between items-start">
                     <div className="overflow-hidden">
-                      <div className="font-medium truncate">
-                        {invite.invitedEmail}
-                      </div>
+                      <div className="truncate">{invite.invitedEmail}</div>
                       <div className="text-xs text-muted-foreground flex items-center">
-                        <Clock className="h-3 w-3 inline mr-1" />
                         {format(new Date(invite.createdAt), "MMM d, yyyy")}
                       </div>
                     </div>
                     <div className="ml-2 text-muted-foreground">
-                      {invite.status === 'accepted' ? (
+                      {invite.status === "accepted" ? (
                         <CheckCircle2 className="h-4 w-4" />
                       ) : (
-                        <CircleDot className="h-4 w-4" />
+                        <Clock className="h-4 w-4" />
                       )}
                     </div>
                   </div>
