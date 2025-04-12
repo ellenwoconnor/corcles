@@ -2041,6 +2041,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Continue execution - we'll return the invite even if email fails
       }
 
+      // Check if invited user already exists
+      const existingUser = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.email, parseResult.data.invitedEmail))
+        .limit(1);
+
+      if (existingUser.length > 0) {
+        // Create notification for existing user
+        await db.insert(schema.notifications).values({
+          userId: existingUser[0].id,
+          type: "community_invite",
+          data: {
+            inviteId: invite.id,
+            communityId: invite.communityId,
+            communityName: community.name,
+            inviterId: req.user.id,
+            inviterName: req.user.displayName
+          },
+        });
+
+        // Send real-time notification
+        sendSSEMessage(existingUser[0].id, {
+          type: "community_invite",
+          data: {
+            inviteId: invite.id,
+            communityName: community.name,
+          },
+        });
+      }
+
       if (!emailSent) {
         logger.warn("Community invite created but email failed to send:", {
           communityId,

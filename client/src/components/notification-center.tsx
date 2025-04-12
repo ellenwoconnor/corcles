@@ -139,6 +139,10 @@ export default function NotificationCenter() {
                       </>
                     ) : notification.type === "new_message" ? (
                       <span>New message: {notification.data.content}</span>
+                    ) : notification.type === "community_invite" ? (
+                      <span>
+                        You've been invited to join {notification.data.communityName}
+                      </span>
                     ) : (
                       <span>
                         You've been selected for {notification.data.itemTitle}!
