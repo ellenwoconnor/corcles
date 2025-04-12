@@ -1154,8 +1154,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (!activeRequest) {
-        // Otherwise, look for active pending requests
-        [activeRequest] = await db
+        // Get all pending requests
+        const pendingRequests = await db
           .select()
           .from(schema.itemRequests)
           .where(
@@ -1164,6 +1164,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               eq(schema.itemRequests.status, REQUEST_STATUS.PENDING),
             ),
           );
+
+        // Randomly select one pending request
+        if (pendingRequests.length > 0) {
+          const randomIndex = Math.floor(Math.random() * pendingRequests.length);
+          activeRequest = pendingRequests[randomIndex];
+        }
       }
 
       if (!activeRequest) {
