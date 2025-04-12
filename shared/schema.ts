@@ -143,6 +143,7 @@ export type User = typeof users.$inferSelect;
 export type InsertItem = z.infer<typeof insertItemSchema>;
 export type Item = typeof items.$inferSelect & {
   userDisplayName?: string;
+  communityName?: string;
   proposedPickupWindows?: PickupWindow[];
   pickupLocation?: string;
 };
@@ -258,6 +259,7 @@ export const insertCommunityInviteSchema = createInsertSchema(communityInvites).
   status: true,
 }).extend({
   invitedEmail: z.string().email("Invalid email address"),
+  message: z.string().optional(),
 });
 
 export type InsertCommunityInvite = z.infer<typeof insertCommunityInviteSchema>;

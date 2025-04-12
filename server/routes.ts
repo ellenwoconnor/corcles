@@ -6,7 +6,7 @@ import { storage } from "./storage";
 import * as schema from "@shared/schema";
 import { ITEM_STATUS, REQUEST_STATUS } from "@shared/constants";
 import { z } from "zod";
-import { eq, and, not, or, inArray, desc } from "drizzle-orm";
+import { eq, and, not, or, inArray, desc, sql } from "drizzle-orm";
 import { addDays, addHours, isBefore, isAfter } from "date-fns";
 import {
   insertItemBidSchema,
@@ -197,16 +197,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (wishlist.userId !== req.user.id) {
-        return res.status(403).json({ error: "Not authorized to delete this wishlist" });
+        return res
+          .status(403)
+          .json({ error: "Not authorized to delete this wishlist" });
       }
 
       // Update any items that were offered for this wishlist
-      await db.update(schema.items)
+      await db
+        .update(schema.items)
         .set({ wishlistId: null })
         .where(eq(schema.items.wishlistId, wishlistId));
 
       // Delete the wishlist
-      await db.delete(schema.wishlists)
+      await db
+        .delete(schema.wishlists)
         .where(eq(schema.wishlists.id, wishlistId));
 
       res.json({ success: true });
@@ -229,7 +233,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (wishlist.userId !== req.user.id) {
-        return res.status(403).json({ error: "Not authorized to edit this wishlist" });
+        return res
+          .status(403)
+          .json({ error: "Not authorized to edit this wishlist" });
       }
 
       const updates = {
@@ -243,7 +249,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json(parseResult.error);
       }
 
-      await db.update(schema.wishlists)
+      await db
+        .update(schema.wishlists)
         .set(parseResult.data)
         .where(eq(schema.wishlists.id, wishlistId));
 
@@ -315,7 +322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .leftJoin(schema.users, eq(schema.wishlists.userId, schema.users.id))
         .leftJoin(
           schema.communities,
-          eq(schema.wishlists.communityId, schema.communities.id)
+          eq(schema.wishlists.communityId, schema.communities.id),
         )
         .where(
           and(
@@ -380,7 +387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const [itemRequest] = await db
         .select({
           itemId: schema.itemRequests.itemId,
-          itemTitle: schema.items.title
+          itemTitle: schema.items.title,
         })
         .from(schema.itemRequests)
         .leftJoin(schema.items, eq(schema.itemRequests.itemId, schema.items.id))
@@ -397,17 +404,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           content: content.substring(0, 100), // First 100 chars of message
           requestId: requestId,
           itemId: itemRequest?.itemId,
-          itemTitle: itemRequest?.itemTitle
+          itemTitle: itemRequest?.itemTitle,
         },
         read: false,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
       // Update notification payload with item data
       notificationPayload.data = {
         ...notificationPayload.data,
         itemId: itemRequest?.itemId,
-        itemTitle: itemRequest?.itemTitle
+        itemTitle: itemRequest?.itemTitle,
       };
 
       // Notify recipient
@@ -512,7 +519,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/items", requireAuth, async (req, res) => {
     try {
-      const { search, communities: communityParam, freeOnly, includeWithRecipients } = req.query;
+      const {
+        search,
+        communities: communityParam,
+        freeOnly,
+        includeWithRecipients,
+      } = req.query;
       const searchTerm = typeof search === "string" ? search.trim() : undefined;
 
       let communities: number[] = [];
@@ -529,7 +541,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           term: searchTerm,
           communityIds: communities.join(","),
           freeOnly: freeOnly === "true" ? true : false,
-          includeWithRecipients: includeWithRecipients === "true"
+          includeWithRecipients: includeWithRecipients === "true",
         });
       }
 
@@ -552,7 +564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       logger.debug("Applying filters:", {
         communities,
         searchTerm,
-        freeOnly: isFreeOnly
+        freeOnly: isFreeOnly,
       });
 
       const items = await storage.getItems(
@@ -896,12 +908,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validate zip code format if provided
       if (zipCode && !/^\d{5}$/.test(zipCode)) {
-        return res.status(400).json({ error: "Zip code must be exactly 5 digits" });
+        return res
+          .status(400)
+          .json({ error: "Zip code must be exactly 5 digits" });
       }
 
       return await db.transaction(async (tx) => {
         // Update user record
-        const [updatedUser] = await tx.update(schema.users)
+        const [updatedUser] = await tx
+          .update(schema.users)
           .set(updates)
           .where(eq(schema.users.id, req.user.id))
           .returning();
@@ -910,7 +925,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (zipCode) {
           const zipCodeCommunityName = `Community ${zipCode}`;
           const oldZipCode = req.user.zipCode;
-          
+
           // First, get the previous zip code-based community
           let oldZipCommunities = [];
           if (oldZipCode && oldZipCode !== zipCode) {
@@ -918,11 +933,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               .select()
               .from(schema.communities)
               .where(eq(schema.communities.name, `Community ${oldZipCode}`));
-              
-            logger.info('Found previous zip code communities:', {
+
+            logger.info("Found previous zip code communities:", {
               userId: req.user.id,
               oldZipCode,
-              communitiesCount: oldZipCommunities.length
+              communitiesCount: oldZipCommunities.length,
             });
           }
 
@@ -943,30 +958,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 isCustom: false,
               })
               .returning();
-            
-            logger.info('Created new zip code community:', {
+
+            logger.info("Created new zip code community:", {
               zipCode,
               communityId: community.id,
-              userId: req.user.id
+              userId: req.user.id,
             });
           }
-          
+
           // If old zip code is different than new one, remove from old zip-based communities
-          if (oldZipCode && oldZipCode !== zipCode && oldZipCommunities.length > 0) {
+          if (
+            oldZipCode &&
+            oldZipCode !== zipCode &&
+            oldZipCommunities.length > 0
+          ) {
             for (const oldCommunity of oldZipCommunities) {
               await tx
                 .delete(schema.userCommunities)
                 .where(
                   and(
                     eq(schema.userCommunities.userId, req.user.id),
-                    eq(schema.userCommunities.communityId, oldCommunity.id)
-                  )
+                    eq(schema.userCommunities.communityId, oldCommunity.id),
+                  ),
                 );
-                
-              logger.info('Removed user from previous zip code community:', {
+
+              logger.info("Removed user from previous zip code community:", {
                 userId: req.user.id,
                 oldCommunityId: oldCommunity.id,
-                oldZipCode
+                oldZipCode,
               });
             }
           }
@@ -977,15 +996,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             .values({
               userId: req.user.id,
               communityId: community.id,
-              role: community.createdBy === req.user.id ? 'admin' : 'member',
+              role: community.createdBy === req.user.id ? "admin" : "member",
               joinedAt: new Date(),
             })
             .onConflictDoNothing();
 
-          logger.info('Added user to zip code community:', {
+          logger.info("Added user to zip code community:", {
             userId: req.user.id,
             communityId: community.id,
-            zipCode
+            zipCode,
           });
         }
 
@@ -1041,7 +1060,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const requests = await storage.getItemRequests(itemId);
-      const pendingRequests = requests.filter((r) => r.status === "pending");
+      // Filter for only pending requests
+      const pendingRequests = requests.filter((r) => r.status === REQUEST_STATUS.PENDING);
 
       if (pendingRequests.length === 0) {
         return res
@@ -1049,8 +1069,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: "No pending requests available for drawing" });
       }
 
-      const winningRequest =
-        pendingRequests[Math.floor(Math.random() * pendingRequests.length)];
+      // Randomly select one pending request
+      const randomIndex = Math.floor(Math.random() * pendingRequests.length);
+      const winningRequest = pendingRequests[randomIndex];
 
       await db
         .update(schema.items)
@@ -1066,7 +1087,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: "recipient_selected",
         data: {
           itemId: itemId,
-          itemTitle: item.title
+          itemTitle: item.title,
         },
       });
 
@@ -1075,10 +1096,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: "recipient_selected",
         data: {
           itemId: itemId,
-          title: item.title
-        }
+          title: item.title,
+        },
       });
-
 
       for (const request of requests) {
         await storage.updateItemRequestStatus(
@@ -1114,18 +1134,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .json({ error: "Not authorized to schedule pickup for this item" });
       }
 
-      const [activeRequest] = await db
-        .select()
-        .from(schema.itemRequests)
-        .where(
-          and(
-            eq(schema.itemRequests.itemId, itemId),
-            or(
+      // Check if the transaction is scheduling or scheduled
+      const isRescheduling =
+        item.status === ITEM_STATUS.SCHEDULING || ITEM_STATUS.SCHEDULED;
+      let activeRequest;
+
+      if (isRescheduling) {
+        // If rescheduling, find the active request
+        [activeRequest] = await db
+          .select()
+          .from(schema.itemRequests)
+          .where(eq(schema.itemRequests.itemId, itemId));
+
+        logger.debug("Rescheduling item with existing request:", {
+          itemId,
+          requestFound: Boolean(activeRequest),
+          status: item.status,
+        });
+      }
+
+      if (!activeRequest) {
+        // Get all pending requests
+        const pendingRequests = await db
+          .select()
+          .from(schema.itemRequests)
+          .where(
+            and(
+              eq(schema.itemRequests.itemId, itemId),
               eq(schema.itemRequests.status, REQUEST_STATUS.PENDING),
-              eq(schema.itemRequests.status, REQUEST_STATUS.ACCEPTED),
             ),
-          ),
-        );
+          );
+
+        // Randomly select one pending request
+        if (pendingRequests.length > 0) {
+          const randomIndex = Math.floor(Math.random() * pendingRequests.length);
+          activeRequest = pendingRequests[randomIndex];
+        }
+      }
 
       if (!activeRequest) {
         return res
@@ -1145,7 +1190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (
         !Array.isArray(proposedPickupWindows) ||
-        proposedPickupWindows.length ===0 ||
+        proposedPickupWindows.length === 0 ||
         proposedPickupWindows.length > 10
       ) {
         return res
@@ -1204,24 +1249,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       logger.debug("Validated windows:", proposedWindows);
 
       const updates = {
-        proposedPickupWindows: proposedWindows,
+        proposedPickupWindows: JSON.parse(JSON.stringify(proposedWindows)), // Convert to proper JSON array format
         status: ITEM_STATUS.SCHEDULING,
         recipientId: activeRequest.requesterId,
       };
+
+      // Log the actual data being saved
+      logger.debug("Updates for database:", {
+        itemId,
+        proposedPickupWindowsType: typeof updates.proposedPickupWindows,
+        isArray: Array.isArray(updates.proposedPickupWindows),
+        recipientId: updates.recipientId,
+      });
 
       await db
         .update(schema.items)
         .set(updates)
         .where(eq(schema.items.id, itemId));
 
+      // Update the active request first
       await db
         .update(schema.itemRequests)
         .set({ status: REQUEST_STATUS.AWAITING_PICKUP_CONFIRMATION })
         .where(eq(schema.itemRequests.id, activeRequest.id));
 
-      await db
-        .update(schema.itemRequests)
-        .set({ status: REQUEST_STATUS.REJECTED })
+      // Check if there are other requests to reject
+      const otherRequests = await db
+        .select()
+        .from(schema.itemRequests)
         .where(
           and(
             eq(schema.itemRequests.itemId, itemId),
@@ -1229,12 +1284,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ),
         );
 
+      logger.debug("Found other requests to reject:", {
+        itemId,
+        activeRequestId: activeRequest.id,
+        otherRequestCount: otherRequests.length,
+      });
+
+      // Only update other requests if there are any
+      if (otherRequests.length > 0) {
+        await db
+          .update(schema.itemRequests)
+          .set({ status: REQUEST_STATUS.REJECTED })
+          .where(
+            and(
+              eq(schema.itemRequests.itemId, itemId),
+              not(eq(schema.itemRequests.id, activeRequest.id)),
+            ),
+          );
+      }
+
       logger.info("Updated item with pickup windows and recipient:", {
         itemId,
         recipientId: activeRequest.requesterId,
         windowsCount: proposedWindows.length,
         newStatus: ITEM_STATUS.SCHEDULING,
       });
+
+      // Create notification for recipient about pickup scheduling
+      try {
+        // Check if a notification for this scheduling already exists within the last minute
+        const recentNotifications = await db
+          .select()
+          .from(schema.notifications)
+          .where(
+            and(
+              eq(schema.notifications.userId, activeRequest.requesterId),
+              eq(schema.notifications.type, "pickup_scheduling"),
+              sql`${schema.notifications.data}->>'itemId' = ${itemId.toString()}`,
+            ),
+          )
+          .orderBy(desc(schema.notifications.createdAt))
+          .limit(1);
+
+        const shouldCreateNotification =
+          recentNotifications.length === 0 ||
+          Date.now() - new Date(recentNotifications[0].createdAt).getTime() >
+            60000;
+
+        if (shouldCreateNotification) {
+          await db.insert(schema.notifications).values({
+            userId: activeRequest.requesterId,
+            type: "pickup_scheduling",
+            data: {
+              itemId: itemId,
+              itemTitle: item.title,
+              windowsCount: proposedWindows.length,
+              isRescheduling: isRescheduling,
+            },
+          });
+        }
+
+        // Send SSE notification to recipient - always do this regardless of database notification
+        const notificationPayload = {
+          type: "pickup_scheduling",
+          data: {
+            itemId: itemId,
+            title: item.title,
+            windowsCount: proposedWindows.length,
+            isRescheduling: isRescheduling,
+          },
+        };
+
+        sendSSEMessage(activeRequest.requesterId, notificationPayload);
+      } catch (notifyError) {
+        // Log but don't fail the entire transaction if notification creation fails
+        logger.error(
+          "Error creating pickup scheduling notification:",
+          notifyError,
+        );
+      }
 
       res.json({ success: true });
     } catch (error) {
@@ -1294,14 +1422,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: "pickup_confirmation",
         data: {
           itemId,
+          itemTitle: item.title,
           requestId: request.id,
           confirmed,
         },
       };
 
-      // Notify both parties
-      if (item.userId) sendSSEMessage(item.userId, notificationPayload);
-      if (req.user?.id) sendSSEMessage(req.user.id, notificationPayload);
+      // Create database notification for the item owner
+      if (item.userId) {
+        try {
+          // Check if a notification for this confirmation already exists within the last minute
+          const recentOwnerNotifications = await db
+            .select()
+            .from(schema.notifications)
+            .where(
+              and(
+                eq(schema.notifications.userId, item.userId),
+                eq(schema.notifications.type, "pickup_confirmation"),
+                sql`${schema.notifications.data}->>'itemId' = ${itemId.toString()}`,
+                sql`${schema.notifications.data}->>'requestId' = ${request.id.toString()}`,
+              ),
+            )
+            .orderBy(desc(schema.notifications.createdAt))
+            .limit(1);
+
+          const shouldCreateOwnerNotification =
+            recentOwnerNotifications.length === 0 ||
+            Date.now() -
+              new Date(recentOwnerNotifications[0].createdAt).getTime() >
+              60000;
+
+          if (shouldCreateOwnerNotification) {
+            await db.insert(schema.notifications).values({
+              userId: item.userId,
+              type: "pickup_confirmation",
+              data: {
+                itemId,
+                itemTitle: item.title,
+                requestId: request.id,
+                confirmed,
+                userId: req.user?.id,
+              },
+            });
+          }
+
+          // Always send real-time notification
+          sendSSEMessage(item.userId, notificationPayload);
+        } catch (notifyError) {
+          // Log but don't fail the entire transaction if notification creation fails
+          logger.error(
+            "Error creating owner pickup confirmation notification:",
+            notifyError,
+          );
+        }
+      }
+
+      // Create database notification for the requester
+      if (req.user?.id) {
+        try {
+          // Check if a notification for this confirmation already exists within the last minute
+          const recentRequesterNotifications = await db
+            .select()
+            .from(schema.notifications)
+            .where(
+              and(
+                eq(schema.notifications.userId, req.user.id),
+                eq(schema.notifications.type, "pickup_confirmation"),
+                sql`${schema.notifications.data}->>'itemId' = ${itemId.toString()}`,
+                sql`${schema.notifications.data}->>'requestId' = ${request.id.toString()}`,
+              ),
+            )
+            .orderBy(desc(schema.notifications.createdAt))
+            .limit(1);
+
+          const shouldCreateRequesterNotification =
+            recentRequesterNotifications.length === 0 ||
+            Date.now() -
+              new Date(recentRequesterNotifications[0].createdAt).getTime() >
+              60000;
+
+          if (shouldCreateRequesterNotification) {
+            await db.insert(schema.notifications).values({
+              userId: req.user.id,
+              type: "pickup_confirmation",
+              data: {
+                itemId,
+                itemTitle: item.title,
+                requestId: request.id,
+                confirmed,
+                userId: item.userId,
+              },
+            });
+          }
+
+          // Always send real-time notification
+          sendSSEMessage(req.user.id, notificationPayload);
+        } catch (notifyError) {
+          // Log but don't fail the entire transaction if notification creation fails
+          logger.error(
+            "Error creating requester pickup confirmation notification:",
+            notifyError,
+          );
+        }
+      }
 
       res.json({ success: true });
     } catch (error) {
@@ -1346,7 +1569,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .where(eq(schema.wishlists.id, parseInt(wishlistId.toString())))
           .limit(1);
 
-
         if (wishlist.length > 0) {
           validWishlistId = parseInt(wishlistId.toString());
         }
@@ -1366,12 +1588,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: "recipient_selected",
         data: {
           itemId,
-          title: item.title
+          title: item.title,
         },
       };
 
       if (recipientId) {
-        sendSSEMessage(recipientId, notificationPayload);
+        try {
+          // Check if a notification for this selection already exists within the last minute
+          const recentNotifications = await db
+            .select()
+            .from(schema.notifications)
+            .where(
+              and(
+                eq(schema.notifications.userId, recipientId),
+                eq(schema.notifications.type, "recipient_selected"),
+                sql`${schema.notifications.data}->>'itemId' = ${itemId.toString()}`,
+              ),
+            )
+            .orderBy(desc(schema.notifications.createdAt))
+            .limit(1);
+
+          const shouldCreateNotification =
+            recentNotifications.length === 0 ||
+            Date.now() - new Date(recentNotifications[0].createdAt).getTime() >
+              60000;
+
+          if (shouldCreateNotification) {
+            // Create database notification for the recipient
+            await db.insert(schema.notifications).values({
+              userId: recipientId,
+              type: "recipient_selected",
+              data: {
+                itemId,
+                itemTitle: item.title,
+                donorId: req.user.id,
+                donorName: req.user.displayName || req.user.username,
+                wishlistId: validWishlistId,
+              },
+            });
+          }
+
+          // Always send real-time notification
+          sendSSEMessage(recipientId, notificationPayload);
+        } catch (notifyError) {
+          // Log but don't fail the entire transaction if notification creation fails
+          logger.error(
+            "Error creating recipient selection notification:",
+            notifyError,
+          );
+        }
       }
 
       logger.info("Set recipient for item:", {
@@ -1560,6 +1825,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ),
           );
 
+        // Create notification for the item owner about pickup time selection
+        if (item.userId) {
+          try {
+            // Check if a notification for this selection already exists within the last minute
+            const recentNotifications = await db
+              .select()
+              .from(schema.notifications)
+              .where(
+                and(
+                  eq(schema.notifications.userId, item.userId),
+                  eq(schema.notifications.type, "pickup_time_selected"),
+                  sql`${schema.notifications.data}->>'itemId' = ${itemId.toString()}`,
+                ),
+              )
+              .orderBy(desc(schema.notifications.createdAt))
+              .limit(1);
+
+            const shouldCreateNotification =
+              recentNotifications.length === 0 ||
+              Date.now() -
+                new Date(recentNotifications[0].createdAt).getTime() >
+                60000;
+
+            if (shouldCreateNotification) {
+              // Create database notification
+              await db.insert(schema.notifications).values({
+                userId: item.userId,
+                type: "pickup_time_selected",
+                data: {
+                  itemId,
+                  itemTitle: item.title,
+                  recipientId: req.user.id,
+                  recipientName: req.user.displayName || req.user.username,
+                  pickupStart: pickupStart.toISOString(),
+                  pickupEnd: pickupEnd.toISOString(),
+                },
+              });
+            }
+
+            // Always send real-time notification regardless
+            sendSSEMessage(item.userId, {
+              type: "pickup_time_selected",
+              data: {
+                itemId,
+                title: item.title,
+                recipientId: req.user.id,
+                pickupStart: pickupStart.toISOString(),
+                pickupEnd: pickupEnd.toISOString(),
+              },
+            });
+          } catch (notifyError) {
+            // Log but don't fail the entire transaction if notification creation fails
+            logger.error(
+              "Error creating pickup time notification:",
+              notifyError,
+            );
+          }
+        }
+
         res.json({ success: true });
       } catch (error) {
         logger.error("Error selecting pickup time:", error);
@@ -1727,6 +2051,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const emailHtml = generateCommunityInviteEmail({
         communityName: community.name,
         inviterName: req.user.displayName,
+        message: req.body.message,
       });
 
       let emailSent = false;
@@ -1962,7 +2287,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user notifications
   app.get("/api/notifications", requireAuth, async (req, res) => {
     try {
-      logger.debug("Fetching notifications for user:", { userId: req.user?.id });
+      logger.debug("Fetching notifications for user:", {
+        userId: req.user?.id,
+      });
 
       const notifications = await db
         .select()
@@ -1972,13 +2299,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       logger.debug("Found notifications:", { count: notifications.length });
 
-      res.json(notifications.map(notification => ({
-        id: notification.id.toString(),
-        type: notification.type,
-        data: notification.data,
-        timestamp: new Date(notification.createdAt).getTime(),
-        read: notification.read
-      })));
+      res.json(
+        notifications.map((notification) => ({
+          id: notification.id.toString(),
+          type: notification.type,
+          data: notification.data,
+          timestamp: new Date(notification.createdAt).getTime(),
+          read: notification.read,
+        })),
+      );
     } catch (error) {
       logger.error("Error fetching notifications:", error);
       res.status(500).json({ error: "Failed to fetch notifications" });
@@ -1986,29 +2315,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Mark notification as read
-  app.post("/api/notifications/:id/acknowledge", requireAuth, async (req, res) => {
-    try {
-      const notificationId = parseInt(req.params.id);
-      if (isNaN(notificationId)) {
-        return res.status(400).json({ error: "Invalid notification ID" });
+  app.post(
+    "/api/notifications/:id/acknowledge",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const notificationId = parseInt(req.params.id);
+        if (isNaN(notificationId)) {
+          return res.status(400).json({ error: "Invalid notification ID" });
+        }
+
+        await db
+          .update(schema.notifications)
+          .set({ read: true })
+          .where(
+            and(
+              eq(schema.notifications.id, notificationId),
+              eq(schema.notifications.userId, req.user.id),
+            ),
+          );
+
+        res.json({ success: true });
+      } catch (error) {
+        logger.error("Error acknowledging notification:", error);
+        res.status(500).json({ error: "Failed to acknowledge notification" });
       }
-
-      await db
-        .update(schema.notifications)
-        .set({ read: true })
-        .where(
-          and(
-            eq(schema.notifications.id, notificationId),
-            eq(schema.notifications.userId, req.user.id)
-          )
-        );
-
-      res.json({ success: true });
-    } catch (error) {
-      logger.error("Error acknowledging notification:", error);
-      res.status(500).json({ error: "Failed to acknowledge notification" });
-    }
-  });
+    },
+  );
 
   app.delete("/api/items/:id", requireAuth, async (req, res) => {
     try {
@@ -2025,33 +2358,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Verify ownership
       if (item.userId !== req.user?.id) {
-        return res.status(403).json({ error: "Not authorized to delete this item" });
+        return res
+          .status(403)
+          .json({ error: "Not authorized to delete this item" });
       }
 
       // Delete related records first
-      await db.delete(schema.messages)
+      await db
+        .delete(schema.messages)
         .where(
           inArray(
             schema.messages.requestId,
-            db.select({ id: schema.itemRequests.id })
+            db
+              .select({ id: schema.itemRequests.id })
               .from(schema.itemRequests)
-              .where(eq(schema.itemRequests.itemId, itemId))
-          )
+              .where(eq(schema.itemRequests.itemId, itemId)),
+          ),
         );
 
       // Delete requests
-      await db.delete(schema.itemRequests)
+      await db
+        .delete(schema.itemRequests)
         .where(eq(schema.itemRequests.itemId, itemId));
 
       // Delete bids
-      await db.delete(schema.itemBids)
+      await db
+        .delete(schema.itemBids)
         .where(eq(schema.itemBids.itemId, itemId));
 
       // Finally delete the item
-      await db.delete(schema.items)
-        .where(eq(schema.items.id, itemId));
+      await db.delete(schema.items).where(eq(schema.items.id, itemId));
 
-      logger.info('Item deleted successfully:', { itemId, userId: req.user?.id });
+      logger.info("Item deleted successfully:", {
+        itemId,
+        userId: req.user?.id,
+      });
       res.json({ success: true });
     } catch (error) {
       logger.error("Error deleting item:", error);
@@ -2074,31 +2415,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Verify ownership
       if (item.userId !== req.user?.id) {
-        return res.status(403).json({ error: "Not authorized to delist this item" });
+        return res
+          .status(403)
+          .json({ error: "Not authorized to delist this item" });
       }
 
       // Update all associated item requests to canceled status
-      await db.update(schema.itemRequests)
-        .set({ 
+      await db
+        .update(schema.itemRequests)
+        .set({
           status: REQUEST_STATUS.CANCELED,
           cancellationInfo: JSON.stringify({
             canceledBy: req.user.id,
             canceledAt: new Date().toISOString(),
-            reason: "Item was delisted by owner"
-          })
+            reason: "Item was delisted by owner",
+          }),
         })
         .where(eq(schema.itemRequests.itemId, itemId));
 
       // Update item status to delisted
-      await db.update(schema.items)
+      await db
+        .update(schema.items)
         .set({ status: "delisted" })
         .where(eq(schema.items.id, itemId));
 
-      logger.info('Item delisted successfully and requests canceled:', { 
-        itemId, 
-        userId: req.user?.id 
+      logger.info("Item delisted successfully and requests canceled:", {
+        itemId,
+        userId: req.user?.id,
       });
-
 
       res.json({ success: true });
     } catch (error) {
