@@ -364,7 +364,7 @@ export default function CommunitiesPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="ml-2"
+                        className="mt-2"
                         onClick={() => {
                           setSelectedCommunity(community);
                           setInviteDialogOpen(true);
