@@ -2374,6 +2374,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/community-invites/:id/accept", requireAuth, async (req, res) => {
+    try {
+      const inviteId = parseInt(req.params.id);
+      if (isNaN(inviteId)) {
+        return res.status(400).json({ error: "Invalid invitation ID" });
+      }
+
+      // Find the invitation
+      const [invite] = await db
+        .select()
+        .from(schema.communityInvites)
+        .where(
+          and(
+            eq(schema.communityInvites.id, inviteId),
+            eq(schema.communityInvites.invitedEmail, req.user.email),
+            eq(schema.communityInvites.status, "pending")
+          )
+        )
+        .limit(1);
+
+      if (!invite) {
+        return res.status(404).json({ error: "Invitation not found or already processed" });
+      }
+
+      // Get the community
+      const [community] = await db
+        .select()
+        .from(schema.communities)
+        .where(eq(schema.communities.id, invite.communityId))
+        .limit(1);
+
+      if (!community) {
+        return res.status(404).json({ error: "Community not found" });
+      }
+
+      // Check if user is already a member
+      const existingMembership = await db
+        .select()
+        .from(schema.userCommunities)
+        .where(
+          and(
+            eq(schema.userCommunities.userId, req.user.id),
+            eq(schema.userCommunities.communityId, community.id)
+          )
+        )
+        .limit(1);
+
+      if (existingMembership.length === 0) {
+        // Add user to community
+        await db.insert(schema.userCommunities).values({
+          userId: req.user.id,
+          communityId: community.id,
+          role: "member",
+        });
+      }
+
+      // Update invitation status
+      await db
+        .update(schema.communityInvites)
+        .set({ 
+          status: "accepted",
+          acceptedAt: new Date()
+        })
+        .where(eq(schema.communityInvites.id, inviteId));
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Error accepting invitation:", error);
+      res.status(500).json({ error: "Failed to accept invitation" });
+    }
+  });
+
+  app.post("/api/community-invites/:id/reject", requireAuth, async (req, res) => {
+    try {
+      const inviteId = parseInt(req.params.id);
+      if (isNaN(inviteId)) {
+        return res.status(400).json({ error: "Invalid invitation ID" });
+      }
+
+      // Find the invitation
+      const [invite] = await db
+        .select()
+        .from(schema.communityInvites)
+        .where(
+          and(
+            eq(schema.communityInvites.id, inviteId),
+            eq(schema.communityInvites.invitedEmail, req.user.email),
+            eq(schema.communityInvites.status, "pending")
+          )
+        )
+        .limit(1);
+
+      if (!invite) {
+        return res.status(404).json({ error: "Invitation not found or already processed" });
+      }
+
+      // Update invitation status
+      await db
+        .update(schema.communityInvites)
+        .set({ status: "rejected" })
+        .where(eq(schema.communityInvites.id, inviteId));
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Error rejecting invitation:", error);
+      res.status(500).json({ error: "Failed to reject invitation" });
+    }
+  });
+
   app.get("/api/user/invites", requireAuth, async (req, res) => {
     try {
       // Get invites sent by user
