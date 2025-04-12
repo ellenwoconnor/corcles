@@ -44,8 +44,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
 import { z } from "zod";
 import CommunityInvites from "@/components/community-invites";
-// Import the new component
 import CommunityInviteForm from "@/components/community-invite-form";
+import CommunityInvitesList from "@/components/community-invites-list";
 import Picker from "emoji-picker-react";
 
 export default function CommunitiesPage() {
@@ -351,6 +351,10 @@ export default function CommunitiesPage() {
                     </div>
                   </div>
                 </CardHeader>
+                <CardContent className="pt-0 pb-0">
+                  {/* Add the CommunityInvitesList component for each community */}
+                  <CommunityInvitesList communityId={community.id} />
+                </CardContent>
                 <CardFooter>
                   <Dialog
                     open={inviteDialogOpen}
