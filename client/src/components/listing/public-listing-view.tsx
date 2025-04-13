@@ -41,7 +41,7 @@ export default function PublicListingView({
             <Button className="w-full" onClick={() => window.location.href = '/auth'}>
               Sign in to Request/Bid
             </Button>
-          ) : item.communityId !== user?.communityId ? (
+          ) : !user?.communityIds?.includes(item.communityId) ? (
             <Button className="w-full" disabled>
               Join community to request
             </Button>
