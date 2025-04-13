@@ -16,7 +16,7 @@ export function Router() {
     <Switch>
       <ProtectedRoute path="/" component={HomePage} />
       <ProtectedRoute path="/listings" component={ListingsPage} />
-      <ProtectedRoute path="/item/:id" component={ListingPage} />
+      <Route path="/item/:id" component={ListingPage} />
       <ProtectedRoute path="/profile" component={ProfilePage} />
       <ProtectedRoute path="/communities" component={CommunitiesPage} />
       <ProtectedRoute path="/requests" component={RequestsPage} />
