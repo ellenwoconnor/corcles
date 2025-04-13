@@ -64,7 +64,7 @@ export function CancelButton({ itemId, requestId, variant = "destructive", onCan
           <DialogHeader>
             <DialogTitle>Cancel Pickup</DialogTitle>
             <DialogDescription>
-              Are you sure you want to cancel this pickup? This action cannot be undone.
+              Are you sure you want to cancel this transaction? This will repost the listing so other users can claim the item.
             </DialogDescription>
           </DialogHeader>
 

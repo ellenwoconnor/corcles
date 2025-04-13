@@ -264,7 +264,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/user/wishlists", requireAuth, async (req, res) => {
     try {
-      const wishlists = await storage.getUserWishlists(req.user.id);
+      const wishlists = await db
+        .select({
+          ...schema.wishlists,
+          communityName: schema.communities.name,
+          communityMascot: schema.communities.mascot
+        })
+        .from(schema.wishlists)
+        .leftJoin(
+          schema.communities,
+          eq(schema.wishlists.communityId, schema.communities.id)
+        )
+        .where(eq(schema.wishlists.userId, req.user.id));
       res.json(wishlists);
     } catch (error) {
       logger.error("Error fetching user wishlists:", error);
@@ -495,6 +506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public endpoint for viewing individual items
   app.get("/api/items/:id([0-9]+)", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -507,8 +519,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Item not found" });
       }
 
+      // Get community name if not already included
+      let communityName = item.communityName;
+      if (!communityName && item.communityId) {
+        try {
+          const community = await storage.getCommunity(item.communityId);
+          communityName = community?.name || '';
+        } catch (communityError) {
+          logger.warn("Error fetching community name for item:", { 
+            error: communityError,
+            itemId: id,
+            communityId: item.communityId
+          });
+        }
+      }
+
       res.json({
         ...item,
+        communityName,
         createdAt: new Date(item.createdAt).toISOString(),
       });
     } catch (error) {
@@ -735,6 +763,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Item not found" });
       }
 
+      // Check if user is in the item's community
+      const isMember = await storage.isUserInCommunity(req.user.id, item.communityId);
+      if (!isMember) {
+        return res.status(403).json({ error: "Not a member of this community" });
+      }
+
       if (!item.isGift) {
         return res
           .status(400)
@@ -889,8 +923,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/user", requireAuth, (req, res) => {
-    res.json(req.user);
+  app.get("/api/user", requireAuth, async (req, res) => {
+    if (!req.user) {
+      return res.json(null);
+    }
+    const communities = await storage.getUserCommunities(req.user.id);
+    res.json({
+      ...req.user,
+      communityIds: communities.map((c) => c.id)
+    });
   });
 
   app.patch("/api/user", requireAuth, async (req, res) => {
@@ -1866,6 +1907,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  app.post("/api/items/:id/cancel-pickup", requireAuth, async (req, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      const { requestId } = req.body;
+
+      if (isNaN(itemId) || !requestId) {
+        return res.status(400).json({ error: "Invalid item ID or request ID" });
+      }
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      if (item.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized to cancel this pickup" });
+      }
+
+      // Update item status
+      await db
+        .update(schema.items)
+        .set({ 
+          status: "active",
+          recipientId: null,
+          pickupStart: null,
+          pickupEnd: null,
+          proposedPickupWindows: null
+        })
+        .where(eq(schema.items.id, itemId));
+
+      // Update request status
+      await db
+        .update(schema.itemRequests)
+        .set({ 
+          status: "canceled",
+          cancellationInfo: JSON.stringify({
+            canceledBy: req.user.id,
+            canceledAt: new Date().toISOString(),
+            reason: "Pickup canceled by owner"
+          })
+        })
+        .where(eq(schema.itemRequests.id, requestId));
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Error canceling pickup:", error);
+      res.status(500).json({ error: "Failed to cancel pickup" });
+    }
+  });
+
   app.get("/api/user/requests", requireAuth, async (req, res) => {
     try {
       const requests = await storage.getUserRequests(req.user.id);
@@ -1898,8 +1989,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const bids = await storage.getItemBids(itemId);
       logger.debug("Fetching item bids:", {
-        itemId,
-        bidCount: bids.length,
+        itemId,        bidCount: bids.length,
         ownerId: item.userId,
       });
       res.json(bids);

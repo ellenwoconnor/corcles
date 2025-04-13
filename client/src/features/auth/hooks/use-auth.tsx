@@ -9,8 +9,13 @@ import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useGoogleLogin } from '@react-oauth/google';
 
+// Extended user type that includes community IDs
+type AuthUser = SelectUser & {
+  communityIds?: number[];
+};
+
 type AuthContextType = {
-  user: SelectUser | null;
+  user: AuthUser | null;
   isLoading: boolean;
   error: Error | null;
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
@@ -35,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     data: user,
     error,
     isLoading,
-  } = useQuery<SelectUser | null, Error>({
+  } = useQuery<AuthUser | null, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
