@@ -1,6 +1,9 @@
 import { Item } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
+
+import { useAuth } from "@/features/auth/hooks/use-auth";
+
 import RequestForm from "@/components/request-form";
 import BidForm from "@/components/bid-form";
 import { useState } from "react";
@@ -20,8 +23,9 @@ export default function PublicListingView({
   currentUserId,
   hasRequested = false,
   hasBid = false,
-  isAuthenticated = false, // Added default value
+  isAuthenticated = false,
 }: PublicListingViewProps) {
+  const { user } = useAuth();
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
 
   // Don't show request/bid buttons if the user is the owner
@@ -37,7 +41,7 @@ export default function PublicListingView({
             <Button className="w-full" onClick={() => window.location.href = '/auth'}>
               Sign in to Request/Bid
             </Button>
-          ) : !item.userHasAccess ? (
+          ) : item.communityId !== user?.communityId ? (
             <Button className="w-full" disabled>
               Join community to request
             </Button>
