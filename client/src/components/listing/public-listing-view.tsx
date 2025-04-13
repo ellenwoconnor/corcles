@@ -56,7 +56,7 @@ export default function PublicListingView({
               isOpen={requestDialogOpen}
               onOpenChange={setRequestDialogOpen}
             />
-          ))}
+          )}
         </div>
       )}
       {isWishlistFulfillment && (
