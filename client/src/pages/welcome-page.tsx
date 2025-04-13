@@ -25,12 +25,12 @@ export default function WelcomePage() {
   const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  
+
   const form = useForm<AddressData>({
     defaultValues: {
       address: "",
-      zipCode: ""
-    }
+      zipCode: "",
+    },
   });
 
   // Redirect to home if user already has address info
@@ -47,29 +47,30 @@ export default function WelcomePage() {
   const onSubmit = form.handleSubmit(async (data) => {
     try {
       const response = await apiRequest("PATCH", "/api/user", data);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || "Failed to update profile");
       }
-      
+
       toast({
         title: "Profile updated",
         description: "Your address information has been saved",
         variant: "default",
       });
-      
+
       // Wait for the query to be refetched before redirecting
       await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       await queryClient.refetchQueries({ queryKey: ["/api/user"] });
-      
+
       // Redirect to home page
       setLocation("/");
     } catch (error) {
       console.error("Failed to update profile:", error);
       toast({
         title: "Update failed",
-        description: error instanceof Error ? error.message : "Failed to update profile",
+        description:
+          error instanceof Error ? error.message : "Failed to update profile",
         variant: "destructive",
       });
     }
@@ -88,7 +89,6 @@ export default function WelcomePage() {
           <p className="text-muted-foreground py-6">
             A smarter way to give, get & swap in your neighborhood.
           </p>
-          <h1 className="text-muted-foreground">Let's find your community!</h1>
         </div>
 
         <Form {...form}>
