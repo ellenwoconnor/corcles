@@ -123,16 +123,14 @@ const handleEdit = async (e: React.FormEvent) => {
       if (!response.ok) throw new Error("Failed to update wishlist");
 
       const updated = await response.json();
-      // Update wishlists cache
-      queryClient.setQueryData(["/api/communities/wishlists"], (old: any[]) =>
-        old.map((w) => (w.id === updated.id ? updated : w)),
-      );
-
-      // Invalidate requests cache to trigger refresh
+      
+      // Invalidate all relevant caches
+      queryClient.invalidateQueries({ queryKey: ["/api/communities/wishlists"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/requests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/wishlists"] });
 
       setIsEditing(false);
+      onOpenChange?.(false); // Close dialog after successful edit
     } catch (error) {
       console.error("Error updating wishlist:", error);
     }
