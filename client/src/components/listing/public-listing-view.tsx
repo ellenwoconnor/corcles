@@ -12,6 +12,7 @@ interface PublicListingViewProps {
   currentUserId: number;
   hasRequested?: boolean;
   hasBid?: boolean;
+  isAuthenticated: boolean; // Added authentication status
 }
 
 export default function PublicListingView({
@@ -19,6 +20,7 @@ export default function PublicListingView({
   currentUserId,
   hasRequested = false,
   hasBid = false,
+  isAuthenticated = false, // Added default value
 }: PublicListingViewProps) {
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
 
@@ -31,7 +33,11 @@ export default function PublicListingView({
       {/* Action Button */}
       {!isOwner && (
         <div className="flex gap-4">
-          {item.isGift ? (
+          {!isAuthenticated ? (
+            <Button className="w-full" onClick={() => window.location.href = '/auth'}>
+              Sign in to Request/Bid
+            </Button>
+          ) : item.isGift ? (
             <RequestForm
               itemId={item.id}
               itemOwnerId={item.userId}
