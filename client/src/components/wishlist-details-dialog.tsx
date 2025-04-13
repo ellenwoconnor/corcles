@@ -95,14 +95,14 @@ export default function WishlistDetailsDialog({
 
   const handleDelete = async () => {
   if (!wishlist) return;
-  
+
   try {
     const response = await fetch(`/api/wishlists/${wishlist.id}`, {
       method: "DELETE",
     });
-    
+
     if (!response.ok) throw new Error("Failed to delete wishlist");
-    
+
     onOpenChange(false);
     queryClient.invalidateQueries({ queryKey: ["/api/user/wishlists"] });
     queryClient.invalidateQueries({ queryKey: ["/api/communities/wishlists"] });
@@ -123,7 +123,16 @@ const handleEdit = async (e: React.FormEvent) => {
       if (!response.ok) throw new Error("Failed to update wishlist");
 
       const updated = await response.json();
-      
+
+      // Update state with new wishlist data
+      if (wishlist && updated) {
+        wishlist.title = updated.title;
+        wishlist.description = updated.description;
+        wishlist.budget = updated.budget;
+        wishlist.urgency = updated.urgency;
+        wishlist.isPrivate = updated.isPrivate;
+      }
+
       // Invalidate all relevant caches
       queryClient.invalidateQueries({ queryKey: ["/api/communities/wishlists"] });
       queryClient.invalidateQueries({ queryKey: ["/api/user/requests"] });
