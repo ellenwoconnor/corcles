@@ -24,7 +24,6 @@ import FulfillWishlistDialog from "./fulfill-wishlist-dialog";
 import { motion } from "framer-motion"; //Import Framer Motion
 import WishlistDetailsDialog from "./wishlist-details-dialog"; // Import the shared component
 
-
 const FadeIn = ({ children, delay }) => {
   return (
     <motion.div
@@ -59,7 +58,7 @@ export default function CommunityWishlists() {
     queryKey: ["/api/user/communities"],
     enabled: !!user,
   });
-
+  console.log("community wishlists", communityWishlists);
   // Get user items to check if they've already fulfilled wishlists
   const { data: userItems = [] } = useQuery<any[]>({
     queryKey: ["/api/user/items"],
@@ -176,7 +175,9 @@ export default function CommunityWishlists() {
             <Card
               className="overflow-hidden flex flex-col h-full cursor-pointer hover:ring-1 hover:ring-primary/20 hover:shadow-md transition-all p-1 focus:outline-none focus:ring-2 focus:ring-primary"
               onClick={() => viewWishlistDetails(wishlist)}
-              onKeyDown={(e) => e.key === 'Enter' && viewWishlistDetails(wishlist)}
+              onKeyDown={(e) =>
+                e.key === "Enter" && viewWishlistDetails(wishlist)
+              }
               role="button"
               tabIndex={0}
               aria-label={`View wishlist: ${wishlist.title}`}
@@ -215,7 +216,9 @@ export default function CommunityWishlists() {
         open={detailsDialogOpen}
         onOpenChange={setDetailsDialogOpen}
         showFulfillButton={true}
-        onFulfill={() => selectedWishlist && onFulfillWishlist(selectedWishlist)}
+        onFulfill={() =>
+          selectedWishlist && onFulfillWishlist(selectedWishlist)
+        }
         userHasOfferedToFulfill={userHasOfferedToFulfill}
         currentUserId={currentUserId}
       />
