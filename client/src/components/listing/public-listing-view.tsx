@@ -37,6 +37,10 @@ export default function PublicListingView({
             <Button className="w-full" onClick={() => window.location.href = '/auth'}>
               Sign in to Request/Bid
             </Button>
+          ) : !item.userHasAccess ? (
+            <Button className="w-full" disabled>
+              Join community to request
+            </Button>
           ) : item.isGift ? (
             <RequestForm
               itemId={item.id}
@@ -52,7 +56,7 @@ export default function PublicListingView({
               isOpen={requestDialogOpen}
               onOpenChange={setRequestDialogOpen}
             />
-          )}
+          ))}
         </div>
       )}
       {isWishlistFulfillment && (

@@ -747,6 +747,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Item not found" });
       }
 
+      // Check if user is in the item's community
+      const isMember = await storage.isUserInCommunity(req.user.id, item.communityId);
+      if (!isMember) {
+        return res.status(403).json({ error: "Not a member of this community" });
+      }
+
       if (!item.isGift) {
         return res
           .status(400)
@@ -1927,7 +1933,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to cancel pickup" });
     }
   });
-  
+
   app.get("/api/user/requests", requireAuth, async (req, res) => {
     try {
       const requests = await storage.getUserRequests(req.user.id);
