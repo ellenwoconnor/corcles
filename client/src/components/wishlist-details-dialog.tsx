@@ -273,7 +273,9 @@ export default function WishlistDetailsDialog({
                           wishlist?.communityName ||
                           "Unknown Community"}
                       </span>
-                      <span>{communityData?.mascot || "🏠"}</span>
+                      <span className="ml-2">
+                        {communityData?.mascot || "🏠"}
+                      </span>
                     </div>
                   </div>
                   <div>
