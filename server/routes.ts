@@ -506,6 +506,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public endpoint for viewing individual items
   app.get("/api/items/:id([0-9]+)", async (req, res) => {
     try {
       const id = parseInt(req.params.id);

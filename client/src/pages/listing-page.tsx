@@ -21,8 +21,9 @@ export type ExtendedItem = Item & {
 };
 
 export default function ListingPage() {
-  const [, params] = useRoute("/item/:id");
   const { user } = useAuth();
+  const [, params] = useRoute<{ id: string }>("/item/:id");
+  const isAuthenticated = !!user;
 
   const {
     data: item,
@@ -149,6 +150,7 @@ export default function ListingPage() {
             currentUserId={user?.id ?? 0}
             hasRequested={hasRequested}
             hasBid={hasBid}
+            isAuthenticated={isAuthenticated} // Added isAuthenticated prop
           />
         )}
       </main>
