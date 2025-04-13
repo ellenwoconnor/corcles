@@ -907,8 +907,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/user", requireAuth, (req, res) => {
-    res.json(req.user);
+  app.get("/api/user", requireAuth, async (req, res) => {
+    if (!req.user) {
+      return res.json(null);
+    }
+    const communities = await storage.getUserCommunities(req.user.id);
+    const userWithCommunities = {
+      ...req.user,
+      communityIds: communities.map((c) => c.id),
+    };
+    res.json(userWithCommunities);
   });
 
   app.patch("/api/user", requireAuth, async (req, res) => {
@@ -1966,8 +1974,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const bids = await storage.getItemBids(itemId);
       logger.debug("Fetching item bids:", {
-        itemId,
-        bidCount: bids.length,
+        itemId,        bidCount: bids.length,
         ownerId: item.userId,
       });
       res.json(bids);
