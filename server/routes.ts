@@ -1579,57 +1579,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 sql`${schema.notifications.data}->>'itemId' = ${itemId.toString()}`,
               ),
             )
-
-  app.post("/api/items/:id/cancel-pickup", requireAuth, async (req, res) => {
-    try {
-      const itemId = parseInt(req.params.id);
-      const { requestId } = req.body;
-      
-      if (isNaN(itemId) || !requestId) {
-        return res.status(400).json({ error: "Invalid item ID or request ID" });
-      }
-
-      const item = await storage.getItem(itemId);
-      if (!item) {
-        return res.status(404).json({ error: "Item not found" });
-      }
-
-      if (item.userId !== req.user.id) {
-        return res.status(403).json({ error: "Not authorized to cancel this pickup" });
-      }
-
-      // Update item status
-      await db
-        .update(schema.items)
-        .set({ 
-          status: "active",
-          recipientId: null,
-          pickupStart: null,
-          pickupEnd: null,
-          proposedPickupWindows: null
-        })
-        .where(eq(schema.items.id, itemId));
-
-      // Update request status
-      await db
-        .update(schema.itemRequests)
-        .set({ 
-          status: "canceled",
-          cancellationInfo: JSON.stringify({
-            canceledBy: req.user.id,
-            canceledAt: new Date().toISOString(),
-            reason: "Pickup canceled by owner"
-          })
-        })
-        .where(eq(schema.itemRequests.id, requestId));
-
-      res.json({ success: true });
-    } catch (error) {
-      logger.error("Error canceling pickup:", error);
-      res.status(500).json({ error: "Failed to cancel pickup" });
-    }
-  });
-
             .orderBy(desc(schema.notifications.createdAt))
             .limit(1);
 
@@ -1917,6 +1866,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   );
 
+  app.post("/api/items/:id/cancel-pickup", requireAuth, async (req, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      const { requestId } = req.body;
+
+      if (isNaN(itemId) || !requestId) {
+        return res.status(400).json({ error: "Invalid item ID or request ID" });
+      }
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      if (item.userId !== req.user.id) {
+        return res.status(403).json({ error: "Not authorized to cancel this pickup" });
+      }
+
+      // Update item status
+      await db
+        .update(schema.items)
+        .set({ 
+          status: "active",
+          recipientId: null,
+          pickupStart: null,
+          pickupEnd: null,
+          proposedPickupWindows: null
+        })
+        .where(eq(schema.items.id, itemId));
+
+      // Update request status
+      await db
+        .update(schema.itemRequests)
+        .set({ 
+          status: "canceled",
+          cancellationInfo: JSON.stringify({
+            canceledBy: req.user.id,
+            canceledAt: new Date().toISOString(),
+            reason: "Pickup canceled by owner"
+          })
+        })
+        .where(eq(schema.itemRequests.id, requestId));
+
+      res.json({ success: true });
+    } catch (error) {
+      logger.error("Error canceling pickup:", error);
+      res.status(500).json({ error: "Failed to cancel pickup" });
+    }
+  });
+  
   app.get("/api/user/requests", requireAuth, async (req, res) => {
     try {
       const requests = await storage.getUserRequests(req.user.id);
