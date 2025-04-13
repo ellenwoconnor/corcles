@@ -293,3 +293,14 @@ export const insertWishlistSchema = createInsertSchema(wishlists).omit({
 
 export type InsertWishlist = z.infer<typeof insertWishlistSchema>;
 export type Wishlist = typeof wishlists.$inferSelect;
+
+export interface User {
+  id: number;
+  displayName: string;
+  email: string;
+  address: string;
+  zipCode: string;
+  createdAt: Date;
+  profileImage?: string;
+  communityIds: number[];
+}
