@@ -912,11 +912,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.json(null);
     }
     const communities = await storage.getUserCommunities(req.user.id);
-    const userWithCommunities = {
+    res.json({
       ...req.user,
-      communityIds: communities.map((c) => c.id),
-    };
-    res.json(userWithCommunities);
+      communityIds: communities.map((c) => c.id)
+    });
   });
 
   app.patch("/api/user", requireAuth, async (req, res) => {
