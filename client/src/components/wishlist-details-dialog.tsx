@@ -130,7 +130,6 @@ const handleEdit = async (e: React.FormEvent) => {
       queryClient.invalidateQueries({ queryKey: ["/api/user/wishlists"] });
 
       setIsEditing(false);
-      onOpenChange?.(false); // Close dialog after successful edit
     } catch (error) {
       console.error("Error updating wishlist:", error);
     }
