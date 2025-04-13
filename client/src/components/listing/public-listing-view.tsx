@@ -31,14 +31,17 @@ export default function PublicListingView({
   // Don't show request/bid buttons if the user is the owner
   const isOwner = currentUserId === item.userId;
   const isWishlistFulfillment = item.wishlistId;
-
+  console.log(user);
   return (
     <BaseListingView item={item} isOwner={isOwner}>
       {/* Action Button */}
       {!isOwner && (
         <div className="flex gap-4">
           {!isAuthenticated ? (
-            <Button className="w-full" onClick={() => window.location.href = '/auth'}>
+            <Button
+              className="w-full"
+              onClick={() => (window.location.href = "/auth")}
+            >
               Sign in to Request/Bid
             </Button>
           ) : !user?.communityIds?.includes(item.communityId) ? (
