@@ -1,7 +1,7 @@
 import { Item } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
-
+import { useLocation } from "wouter";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 
 import RequestForm from "@/components/request-form";
@@ -27,11 +27,15 @@ export default function PublicListingView({
 }: PublicListingViewProps) {
   const { user } = useAuth();
   const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+  const [, navigate] = useLocation();
 
   // Don't show request/bid buttons if the user is the owner
   const isOwner = currentUserId === item.userId;
   const isWishlistFulfillment = item.wishlistId;
-  console.log(user);
+  
+  // Check if user is a member of the item's community
+  const isCommunityMember = user?.communityIds?.includes(item.communityId);
+  
   return (
     <BaseListingView item={item} isOwner={isOwner}>
       {/* Action Button */}
@@ -40,13 +44,13 @@ export default function PublicListingView({
           {!isAuthenticated ? (
             <Button
               className="w-full"
-              onClick={() => (window.location.href = "/auth")}
+              onClick={() => navigate("/auth")}
             >
               Sign in to Request/Bid
             </Button>
-          ) : !user?.communityIds?.includes(item.communityId) ? (
+          ) : !isCommunityMember ? (
             <Button className="w-full" disabled>
-              Join community to request
+              Join community {item.communityName || 'to request'}
             </Button>
           ) : item.isGift ? (
             <RequestForm
