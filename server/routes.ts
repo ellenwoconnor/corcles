@@ -264,7 +264,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/user/wishlists", requireAuth, async (req, res) => {
     try {
-      const wishlists = await storage.getUserWishlists(req.user.id);
+      const wishlists = await db
+        .select({
+          ...schema.wishlists,
+          communityName: schema.communities.name,
+          communityMascot: schema.communities.mascot
+        })
+        .from(schema.wishlists)
+        .leftJoin(
+          schema.communities,
+          eq(schema.wishlists.communityId, schema.communities.id)
+        )
+        .where(eq(schema.wishlists.userId, req.user.id));
       res.json(wishlists);
     } catch (error) {
       logger.error("Error fetching user wishlists:", error);
