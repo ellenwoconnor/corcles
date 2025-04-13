@@ -284,10 +284,10 @@ const handleEdit = async (e: React.FormEvent) => {
           )}
   </div>
         </DialogHeader>
-        <div className="space-y-6">
+        <div className="space-y-6 text-left">
           {/* Description */}
           <div className="bg-muted/50 rounded-lg p-4">
-            <p className="text-sm leading-relaxed">
+            <p className="text-sm leading-relaxed text-left">
               {wishlist.description || "No description provided"}
             </p>
           </div>
