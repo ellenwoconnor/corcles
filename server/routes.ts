@@ -2043,6 +2043,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const community = await storage.createCommunity({
         name,
         description,
+        mascot: req.body.mascot || "🏠",
         createdBy: req.user.id,
         isCustom: true,
       });
