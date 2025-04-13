@@ -360,8 +360,22 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.get("/api/user", (req, res) => {
+  app.get("/api/user", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    res.json(req.user);
+    
+    try {
+      // Get user communities
+      const userCommunities = await storage.getUserCommunities(req.user.id);
+      const communityIds = userCommunities.map(community => community.id);
+      
+      // Return user with community information
+      res.json({
+        ...req.user,
+        communityIds
+      });
+    } catch (error) {
+      logger.error('Error fetching user with communities:', { error, userId: req.user.id });
+      res.json(req.user);
+    }
   });
 }
