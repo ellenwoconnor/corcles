@@ -519,8 +519,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Item not found" });
       }
 
+      // Get community name if not already included
+      let communityName = item.communityName;
+      if (!communityName && item.communityId) {
+        try {
+          const community = await storage.getCommunity(item.communityId);
+          communityName = community?.name || '';
+        } catch (communityError) {
+          logger.warn("Error fetching community name for item:", { 
+            error: communityError,
+            itemId: id,
+            communityId: item.communityId
+          });
+        }
+      }
+
       res.json({
         ...item,
+        communityName,
         createdAt: new Date(item.createdAt).toISOString(),
       });
     } catch (error) {
