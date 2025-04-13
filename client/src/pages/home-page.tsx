@@ -40,11 +40,6 @@ export default function HomePage() {
     );
   }
   const [showFreeOnly, setShowFreeOnly] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(() => {
-    // Show welcome dialog if user hasn't seen it before
-    const hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
-    return !hasSeenWelcome;
-  });
   const [createWishlistDialogOpen, setCreateWishlistDialogOpen] =
     useState(false); // Added state
   const debouncedSearchValue = useDebounce(searchValue, 300);
@@ -83,7 +78,6 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      {showWelcome && <WelcomeDialog communities={userCommunities} />}
       <main className="container py-12 px-8">
         <FadeIn>
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
