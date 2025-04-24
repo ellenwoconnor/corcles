@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,8 +33,25 @@ export default function BidForm({ itemId, hasBid, isOpen, onOpenChange }: BidFor
     },
   });
 
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingBid, setPendingBid] = useState<z.infer<typeof bidSchema> | null>(null);
+
+  // Get user's previous bid
+  const { data: previousBid } = useQuery({
+    queryKey: [`/api/items/${itemId}/my-bids`],
+    enabled: hasBid,
+  });
+
   const bidMutation = useMutation({
     mutationFn: async (data: z.infer<typeof bidSchema>) => {
+      if (hasBid && !showConfirmDialog) {
+        setPendingBid(data);
+        setShowConfirmDialog(true);
+        return;
+      }
+      setPendingBid(null);
+      setShowConfirmDialog(false);
+      
       const response = await apiRequest("POST", `/api/items/${itemId}/bid`, data);
       if (!response.ok) {
         const error = await response.json();
@@ -62,7 +80,8 @@ export default function BidForm({ itemId, hasBid, isOpen, onOpenChange }: BidFor
   });
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <>
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         <Button className="flex-1" disabled={hasBid}>
           {hasBid ? "Bid Pending" : "Place Bid"}
@@ -133,5 +152,28 @@ export default function BidForm({ itemId, hasBid, isOpen, onOpenChange }: BidFor
         </Form>
       </DialogContent>
     </Dialog>
+    
+    <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Confirm New Bid</AlertDialogTitle>
+          <AlertDialogDescription>
+            You already have a pending bid of ${previousBid?.amount} on this item. 
+            Are you sure you want to place a new bid of ${pendingBid?.amount}?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setPendingBid(null)}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={() => {
+            if (pendingBid) {
+              bidMutation.mutate(pendingBid);
+            }
+          }}>
+            Confirm New Bid
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
