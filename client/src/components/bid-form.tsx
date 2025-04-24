@@ -70,12 +70,13 @@ export default function BidForm({
 
   // Get user's previous bid
   const { data: previousBid } = useQuery({
-    queryKey: [`/api/items/${itemId}/my-bids`],
+    queryKey: [`/api/user/bids`],
     enabled: hasBid,
     queryFn: async () => {
-      const response = await fetch(`/api/items/${itemId}/my-bids`);
+      const response = await fetch(`/api/user/bids`);
       if (!response.ok) return null;
-      return response.json();
+      const bids = await response.json();
+      return bids.find(bid => bid.itemId === itemId);
     }
   });
 
