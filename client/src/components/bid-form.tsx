@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import React from "react";
 import {
   Dialog,
   DialogContent,
@@ -72,6 +73,11 @@ export default function BidForm({
   const { data: previousBid } = useQuery({
     queryKey: [`/api/items/${itemId}/my-bids`],
     enabled: hasBid,
+    queryFn: async () => {
+      const response = await fetch(`/api/items/${itemId}/my-bids`);
+      if (!response.ok) return null;
+      return response.json();
+    }
   });
 
   const bidMutation = useMutation({
