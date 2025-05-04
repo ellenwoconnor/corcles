@@ -16,6 +16,12 @@ export default function AuthPage() {
       console.log("Found invite code in URL:", inviteCode);
       localStorage.setItem("pendingInviteCode", inviteCode);
     }
+    
+    // Log pending invite code for debugging
+    const storedCode = localStorage.getItem("pendingInviteCode");
+    if (storedCode) {
+      console.log("Using stored invite code:", storedCode);
+    }
   }, []);
   
   useEffect(() => {
