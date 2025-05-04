@@ -102,7 +102,7 @@ export default function JoinCommunityPage() {
             </Alert>
           </CardContent>
           <CardFooter className="flex justify-center">
-            <Button onClick={() => navigate(`/auth?redirect=${encodeURIComponent(location)}`)}>
+            <Button onClick={() => navigate(`/auth?code=${encodeURIComponent(inviteCode || '')}`)}>
               Log In or Register
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>

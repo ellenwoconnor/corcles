@@ -52,6 +52,13 @@ export default function WelcomePage() {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || "Failed to update profile");
       }
+      
+      // Clear any pending invite code from localStorage as it's no longer needed
+      // The invite code should have been processed during registration
+      if (localStorage.getItem("pendingInviteCode")) {
+        console.log("Clearing pending invite code from localStorage");
+        localStorage.removeItem("pendingInviteCode");
+      }
 
       toast({
         title: "Profile updated",

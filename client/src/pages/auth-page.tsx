@@ -4,8 +4,19 @@ import { AuthForm } from "@/features/auth/components/auth-form";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 
 export default function AuthPage() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user } = useAuth();
+  
+  useEffect(() => {
+    // Check for invite code in the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const inviteCode = urlParams.get('code');
+    
+    if (inviteCode) {
+      console.log("Found invite code in URL:", inviteCode);
+      localStorage.setItem("pendingInviteCode", inviteCode);
+    }
+  }, []);
   
   useEffect(() => {
     // Check if the user is authenticated
