@@ -2409,6 +2409,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         pendingInviteCode,
         isDefined: !!pendingInviteCode,
         type: typeof pendingInviteCode,
+        email: email,
+        username: parseResult.data.username,
         body: { ...req.body, password: '[REDACTED]' }
       });
       if (pendingInviteCode) {
