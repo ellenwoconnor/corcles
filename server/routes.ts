@@ -2355,9 +2355,24 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       if (pendingInviteCode) {
         logger.info("Invite code provided during registration", { 
           pendingInviteCode, 
-          email 
+          email,
+          body: { ...req.body, password: "[REDACTED]" } 
         });
+
+        // Verify if the invite code exists in any community
+        const allCommunities = await db.select().from(schema.communities);
+        const communityWithInviteCode = allCommunities.find(c => c.inviteCode === pendingInviteCode);
+        
+        logger.debug("Community lookup debug", {
+          totalCommunities: allCommunities.length,
+          communitiesWithInviteCodes: allCommunities.filter(c => c.inviteCode).length,
+          foundDirectly: !!communityWithInviteCode,
+          communityIdIfFound: communityWithInviteCode?.id,
+          inviteCode: pendingInviteCode
+        });
+        
         communityToJoin = await storage.getCommunityByInviteCode(pendingInviteCode);
+        
         if (communityToJoin) {
           logger.info("Found community for invite code", { 
             communityId: communityToJoin.id,
@@ -2365,7 +2380,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           });
         } else {
           logger.warn("Invalid invite code provided during registration", { 
-            pendingInviteCode 
+            pendingInviteCode,
+            communityWithInviteCode: communityWithInviteCode ? true : false
           });
         }
       }
