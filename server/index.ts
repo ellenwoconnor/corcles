@@ -6,6 +6,7 @@ import { db } from "./db";
 import { sql } from "drizzle-orm";
 import path from "path";
 import fs from "fs";
+import { createServer } from "http";
 
 const app = express();
 
@@ -57,10 +58,24 @@ async function startServer() {
       throw dbError;
     }
 
-    // Register routes
+    // Setup environment-specific middleware first for development
+    // This ensures Vite's middleware doesn't intercept API routes
+    let server: any;
+    if (process.env.NODE_ENV === "development") {
+      logger.info("Setting up development environment with Vite");
+      // First create a basic server to pass to registerRoutes
+      server = createServer(app);
+    }
+
+    // Register routes after all necessary middleware
     logger.info("Registering application routes...");
-    const server = await registerRoutes(app);
+    server = await registerRoutes(app, server);
     logger.info("Routes registered successfully");
+
+    // Setup Vite middleware AFTER routes (in development mode)
+    if (process.env.NODE_ENV === "development") {
+      await setupVite(app, server);
+    }
 
     // Global error handler - MUST be after routes
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -84,11 +99,8 @@ async function startServer() {
       res.status(status).json({ error: responseMessage });
     });
 
-    // Setup environment-specific middleware
-    if (process.env.NODE_ENV === "development") {
-      logger.info("Setting up development environment with Vite");
-      await setupVite(app, server);
-    } else {
+    // For production, setup static file serving
+    if (process.env.NODE_ENV !== "development") {
       logger.info("Setting up production environment");
       const staticDir = path.resolve(process.cwd(), "dist/public");
 

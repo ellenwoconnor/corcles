@@ -73,7 +73,7 @@ function sendSSEMessage(userId: number, data: any) {
   }
 }
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express, existingServer?: Server): Promise<Server> {
   app.use(cookieParser());
   app.use(sessionMiddleware);
   app.use(passport.initialize());
@@ -2819,6 +2819,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const server = createServer(app);
+  const server = existingServer || createServer(app);
   return server;
 }
