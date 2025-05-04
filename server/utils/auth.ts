@@ -16,22 +16,4 @@ export async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
-/**
- * Generates a cryptographically secure random invite code
- * @param length Length of the code to generate
- * @returns A string containing a random invite code
- */
-export function generateInviteCode(length: number = 12): string {
-  // Use a mix of characters (alphanumeric) but exclude easily confused characters
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
-  let result = '';
-  const randomBytesBuffer = randomBytes(length);
-  
-  for (let i = 0; i < length; i++) {
-    // Use modulo to get an index within the range of our charset
-    const randomIndex = randomBytesBuffer[i] % chars.length;
-    result += chars.charAt(randomIndex);
-  }
-  
-  return result;
-}
+
