@@ -2346,6 +2346,29 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
 
       logger.info("Starting user creation transaction");
       const hashedPassword = await hashPassword(parseResult.data.password);
+      
+      // Extract the pending invite code if it was provided
+      const pendingInviteCode = req.body.pendingInviteCode;
+      let communityToJoin = null;
+      
+      // If an invite code was provided, try to find the associated community
+      if (pendingInviteCode) {
+        logger.info("Invite code provided during registration", { 
+          pendingInviteCode, 
+          email 
+        });
+        communityToJoin = await storage.getCommunityByInviteCode(pendingInviteCode);
+        if (communityToJoin) {
+          logger.info("Found community for invite code", { 
+            communityId: communityToJoin.id,
+            communityName: communityToJoin.name
+          });
+        } else {
+          logger.warn("Invalid invite code provided during registration", { 
+            pendingInviteCode 
+          });
+        }
+      }
 
       const result = await db.transaction(async (tx) => {
         const [user] = await tx
@@ -2452,10 +2475,61 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           }
         }
 
+        // Add the user to the community from invite code if available
+        if (communityToJoin && communityToJoin.id) {
+          try {
+            logger.info("Adding user to community from invite code", {
+              userId: user.id,
+              communityId: communityToJoin.id,
+              communityName: communityToJoin.name,
+              inviteCode: pendingInviteCode
+            });
+            
+            // Add the user to the community
+            await tx.insert(schema.userCommunities)
+              .values({
+                userId: user.id,
+                communityId: communityToJoin.id,
+                role: "member",
+                joinedAt: new Date()
+              })
+              .onConflictDoNothing();
+            
+            // Create a notification for the community admin
+            if (communityToJoin.createdBy) {
+              await tx.insert(schema.notifications).values({
+                userId: communityToJoin.createdBy,
+                type: "community_member_joined",
+                data: {
+                  communityId: communityToJoin.id,
+                  communityName: communityToJoin.name,
+                  userId: user.id,
+                  userName: user.displayName || user.username
+                },
+              });
+            }
+            
+            logger.info("Successfully added user to community via invite code", {
+              userId: user.id,
+              communityId: communityToJoin.id
+            });
+          } catch (err) {
+            logger.error("Failed to add user to community via invite code", {
+              userId: user.id,
+              communityId: communityToJoin.id,
+              error: err
+            });
+            // Don't throw error, continue with registration process
+          }
+        }
+        
         return {
           user,
-          enrolledCommunities: processedInvites.length,
+          enrolledCommunities: processedInvites.length + (communityToJoin ? 1 : 0),
           processedInvites,
+          joinedViaCommunityInvite: communityToJoin ? true : false,
+          joinedCommunityId: communityToJoin?.id || null,
+          joinedCommunityName: communityToJoin?.name || null
         };
       });
 
