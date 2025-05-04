@@ -1127,20 +1127,43 @@ export class DatabaseStorage implements IStorage {
   
   async getCommunityByInviteCode(inviteCode: string): Promise<Community | undefined> {
     try {
-      const [community] = await db
+      // Detailed logging for invite code lookup
+      logger.info('Looking up community by invite code:', { inviteCode });
+      
+      // First check if the invite code exists at all
+      const allCommunities = await db.select().from(communities);
+      const matchingCommunity = allCommunities.find(c => c.inviteCode === inviteCode);
+      
+      if (matchingCommunity) {
+        logger.info('Found community by manual search:', {
+          communityId: matchingCommunity.id,
+          communityName: matchingCommunity.name,
+          inviteCode
+        });
+        return matchingCommunity;
+      }
+      
+      // If not found by direct match, try the query approach
+      const results = await db
         .select()
         .from(communities)
         .where(eq(communities.inviteCode, inviteCode));
       
-      logger.debug('Retrieved community by invite code:', { 
+      logger.info('Query result for community by invite code:', {
         inviteCode,
-        found: !!community,
-        communityId: community?.id
+        resultsCount: results.length,
+        hasResults: results.length > 0,
+        firstResultId: results[0]?.id
       });
       
-      return community;
+      return results[0];
     } catch (error) {
-      logger.error('Error retrieving community by invite code:', { error, inviteCode });
+      logger.error('Error retrieving community by invite code:', { 
+        error, 
+        errorMessage: error.message,
+        stack: error.stack,
+        inviteCode 
+      });
       throw error;
     }
   }
