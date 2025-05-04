@@ -2048,6 +2048,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isCustom: true,
       });
 
+      // Generate an invite code for the new community
+      await storage.generateCommunityInviteCode(community.id);
+
       logger.debug("Created new community:", {
         communityId: community.id,
         name: community.name,
