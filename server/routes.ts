@@ -2405,6 +2405,12 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       let communityToJoin = null;
       
       // If an invite code was provided, try to find the associated community
+      logger.info('Checking pendingInviteCode during registration:', {
+        pendingInviteCode,
+        isDefined: !!pendingInviteCode,
+        type: typeof pendingInviteCode,
+        body: { ...req.body, password: '[REDACTED]' }
+      });
       if (pendingInviteCode) {
         logger.info("Invite code provided during registration", { 
           pendingInviteCode, 
