@@ -46,17 +46,31 @@ export default function WelcomePage() {
 
   const onSubmit = form.handleSubmit(async (data) => {
     try {
-      const response = await apiRequest("PATCH", "/api/user", data);
+      // Get pendingInviteCode from localStorage for logging purposes
+      const pendingInviteCode = localStorage.getItem("pendingInviteCode");
+      if (pendingInviteCode) {
+        console.log("Found pending invite code during address update:", pendingInviteCode);
+      }
+      
+      // Send both address data and any pending invite code to ensure it's properly processed
+      const requestData = {
+        ...data,
+        pendingInviteCode: pendingInviteCode || undefined
+      };
+      
+      console.log("Submitting address data with invite code:", 
+        { ...requestData, pendingInviteCode: pendingInviteCode ? "present" : "none" });
+      
+      const response = await apiRequest("PATCH", "/api/user", requestData);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || "Failed to update profile");
       }
-      
-      // Clear any pending invite code from localStorage as it's no longer needed
-      // The invite code should have been processed during registration
-      if (localStorage.getItem("pendingInviteCode")) {
-        console.log("Clearing pending invite code from localStorage");
+
+      // Clear the invite code from localStorage as it's now been fully processed
+      if (pendingInviteCode) {
+        console.log("Successfully processed invite code, clearing from localStorage");
         localStorage.removeItem("pendingInviteCode");
       }
 
