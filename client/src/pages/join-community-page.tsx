@@ -20,6 +20,8 @@ export default function JoinCommunityPage() {
     const searchParams = new URLSearchParams(window.location.search);
     const code = searchParams.get("code");
     if (code) {
+      // Store the invite code in localStorage for use after registration
+      localStorage.setItem("pendingInviteCode", code);
       setInviteCode(code);
     }
   }, []);
