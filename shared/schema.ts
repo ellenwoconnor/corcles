@@ -131,6 +131,8 @@ export const insertUserSchema = createInsertSchema(users).extend({
     }, "Zip code must be exactly 5 digits")
     .nullable(),
   email: z.string().email("Invalid email format"),
+  // Add support for pendingInviteCode which is used during registration but not stored in DB
+  pendingInviteCode: z.string().optional(),
 });
 
 export const insertNotificationSchema = createInsertSchema(notifications).omit({
