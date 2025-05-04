@@ -936,7 +936,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
 
   app.patch("/api/user", requireAuth, async (req, res) => {
     try {
-      const { displayName, address, zipCode } = req.body;
+      const { displayName, address, zipCode, pendingInviteCode } = req.body;
       const updates: Partial<typeof schema.users.$inferInsert> = {};
 
       if (displayName !== undefined) updates.displayName = displayName;
@@ -953,6 +953,38 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           .status(400)
           .json({ error: "Zip code must be exactly 5 digits" });
       }
+      
+      // Check for pending invite code
+      let communityToJoin = null;
+      if (pendingInviteCode) {
+        logger.info("Processing invite code during address update", { 
+          pendingInviteCode, 
+          userId: req.user.id
+        });
+        
+        // Try to find the community using both direct lookup and storage method
+        const allCommunities = await db.select().from(schema.communities);
+        const communityWithInviteCode = allCommunities.find(c => c.inviteCode === pendingInviteCode);
+        
+        if (communityWithInviteCode) {
+          communityToJoin = communityWithInviteCode;
+          logger.info("Found community directly for invite code during address update", { 
+            communityId: communityToJoin.id,
+            communityName: communityToJoin.name,
+            inviteCode: pendingInviteCode
+          });
+        } else {
+          // Try storage method if direct lookup fails
+          communityToJoin = await storage.getCommunityByInviteCode(pendingInviteCode);
+        }
+        
+        if (!communityToJoin) {
+          logger.warn("Invalid invite code provided during address update", { 
+            pendingInviteCode,
+            userId: req.user.id
+          });
+        }
+      }
 
       return await db.transaction(async (tx) => {
         // Update user record
@@ -961,6 +993,25 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           .set(updates)
           .where(eq(schema.users.id, req.user.id))
           .returning();
+        
+        // Handle invite code community if found
+        if (communityToJoin) {
+          logger.info("Adding user to community from invite code during address update", {
+            userId: req.user.id,
+            communityId: communityToJoin.id,
+            communityName: communityToJoin.name
+          });
+          
+          await tx
+            .insert(schema.userCommunities)
+            .values({
+              userId: req.user.id,
+              communityId: communityToJoin.id,
+              role: "member",
+              joinedAt: new Date(),
+            })
+            .onConflictDoNothing();
+        }
 
         // Handle community assignment if zip code provided
         if (zipCode) {
