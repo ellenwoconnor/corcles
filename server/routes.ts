@@ -2031,6 +2031,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch user communities" });
     }
   });
+  
+  // Get a community's invite code
+  app.get("/api/communities/:id/invite-code", requireAuth, async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      if (isNaN(communityId)) {
+        return res.status(400).json({ error: "Invalid community ID" });
+      }
+      
+      // Check if user is a member of the community
+      const userRole = await storage.getUserRole(req.user.id, communityId);
+      if (!userRole) {
+        return res.status(403).json({ error: "Not a member of this community" });
+      }
+      
+      // Get the community to retrieve its invite code
+      const community = await storage.getCommunity(communityId);
+      if (!community) {
+        return res.status(404).json({ error: "Community not found" });
+      }
+      
+      // If community doesn't have an invite code yet, generate one for admins
+      if (!community.inviteCode && userRole === 'admin') {
+        const inviteCode = await storage.generateCommunityInviteCode(communityId);
+        return res.json({ inviteCode });
+      } else if (!community.inviteCode) {
+        return res.status(403).json({ error: "Community doesn't have an invite code. Ask an admin to generate one." });
+      }
+      
+      res.json({ inviteCode: community.inviteCode });
+    } catch (error) {
+      logger.error("Error getting community invite code:", error);
+      res.status(500).json({ error: "Failed to get community invite code" });
+    }
+  });
+  
+  // Generate a community invite code
+  app.post("/api/communities/:id/invite-code", requireAuth, async (req, res) => {
+    try {
+      const communityId = parseInt(req.params.id);
+      if (isNaN(communityId)) {
+        return res.status(400).json({ error: "Invalid community ID" });
+      }
+      
+      // Check if user is a member of the community
+      const userRole = await storage.getUserRole(req.user.id, communityId);
+      if (!userRole) {
+        return res.status(403).json({ error: "Not a member of this community" });
+      }
+      
+      // Only admins can generate invite codes
+      if (userRole !== 'admin') {
+        return res.status(403).json({ error: "Only community admins can generate invite codes" });
+      }
+      
+      // Generate the invite code
+      const inviteCode = await storage.generateCommunityInviteCode(communityId);
+      
+      res.json({ inviteCode });
+    } catch (error) {
+      logger.error("Error generating community invite code:", error);
+      res.status(500).json({ error: "Failed to generate community invite code" });
+    }
+  });
+  
+  // Join a community using an invite code
+  app.post("/api/communities/join", requireAuth, async (req, res) => {
+    try {
+      const { inviteCode } = req.body;
+      
+      if (!inviteCode) {
+        return res.status(400).json({ error: "Invite code is required" });
+      }
+      
+      // Find the community with this invite code
+      const community = await storage.getCommunityByInviteCode(inviteCode);
+      if (!community) {
+        return res.status(404).json({ error: "Invalid invite code or community not found" });
+      }
+      
+      // Check if the user is already a member
+      const isMember = await storage.isUserInCommunity(req.user.id, community.id);
+      if (isMember) {
+        return res.status(400).json({ error: "You are already a member of this community" });
+      }
+      
+      // Add the user to the community
+      await storage.addUserToCommunity(req.user.id, community.id, 'member');
+      
+      // Create a notification for the community admin
+      await db.insert(schema.notifications).values({
+        userId: community.createdBy,
+        type: "community_member_joined",
+        data: {
+          communityId: community.id,
+          communityName: community.name,
+          userId: req.user.id,
+          userName: req.user.displayName || req.user.username
+        },
+      });
+      
+      res.json({ 
+        success: true,
+        message: `You've successfully joined ${community.name}`,
+        community
+      });
+    } catch (error) {
+      logger.error("Error joining community with invite code:", error);
+      res.status(500).json({ error: "Failed to join community" });
+    }
+  });
 
   app.post("/api/communities", requireAuth, async (req, res) => {
     try {
