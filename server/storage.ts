@@ -98,6 +98,10 @@ export interface IStorage {
   rejectCommunityInvite(inviteId: number): Promise<CommunityInvite>;
   isUserInCommunity(userId: number, communityId: number): Promise<boolean>;
   getUserRole(userId: number, communityId: number): Promise<string | undefined>;
+  
+  // Community invite link methods
+  generateCommunityInviteCode(communityId: number): Promise<string>;
+  getCommunityByInviteCode(inviteCode: string): Promise<Community | undefined>;
 
   // Wishlist methods
   createWishlist(wishlist: InsertWishlist): Promise<Wishlist>;
