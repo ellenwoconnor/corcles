@@ -33,6 +33,7 @@ export const communities = pgTable("communities", {
   createdBy: integer("created_by"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   isCustom: boolean("is_custom").notNull().default(true),
+  inviteCode: text("invite_code"),
 });
 
 export const userCommunities = pgTable("user_communities", {
