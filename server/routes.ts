@@ -2345,6 +2345,8 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       }
 
       logger.info("Starting user creation transaction");
+      // Import hashPassword function from utils/auth
+      const { hashPassword } = await import('./utils/auth');
       const hashedPassword = await hashPassword(parseResult.data.password);
       
       // Extract the pending invite code if it was provided
@@ -2363,15 +2365,30 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         const allCommunities = await db.select().from(schema.communities);
         const communityWithInviteCode = allCommunities.find(c => c.inviteCode === pendingInviteCode);
         
-        logger.debug("Community lookup debug", {
-          totalCommunities: allCommunities.length,
-          communitiesWithInviteCodes: allCommunities.filter(c => c.inviteCode).length,
-          foundDirectly: !!communityWithInviteCode,
-          communityIdIfFound: communityWithInviteCode?.id,
-          inviteCode: pendingInviteCode
-        });
-        
-        communityToJoin = await storage.getCommunityByInviteCode(pendingInviteCode);
+        // If we found a community directly, use it
+        if (communityWithInviteCode) {
+          communityToJoin = communityWithInviteCode;
+          logger.info("Found community directly for invite code", { 
+            communityId: communityToJoin.id,
+            communityName: communityToJoin.name,
+            inviteCode: pendingInviteCode
+          });
+        } else {
+          // Log detailed information about our communities for debugging
+          logger.debug("Community lookup debug", {
+            totalCommunities: allCommunities.length,
+            communitiesWithInviteCodes: allCommunities.filter(c => c.inviteCode).length,
+            communitiesWithInviteCodesData: allCommunities.filter(c => c.inviteCode).map(c => ({
+              id: c.id,
+              name: c.name,
+              inviteCode: c.inviteCode
+            })),
+            searchingFor: pendingInviteCode
+          });
+          
+          // Try to find the community using the storage method
+          communityToJoin = await storage.getCommunityByInviteCode(pendingInviteCode);
+        }
         
         if (communityToJoin) {
           logger.info("Found community for invite code", { 
