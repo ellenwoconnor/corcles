@@ -51,6 +51,8 @@ export const communityInvites = pgTable("community_invites", {
   status: text("status").notNull().default('pending'),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   acceptedAt: timestamp("accepted_at"),
+  inviteCode: text("invite_code"),
+  isPublicLink: boolean("is_public_link").default(false),
 });
 
 export const items = pgTable("items", {
@@ -257,8 +259,15 @@ export const insertCommunityInviteSchema = createInsertSchema(communityInvites).
   createdAt: true,
   acceptedAt: true,
   status: true,
+  inviteCode: true,
+  isPublicLink: true,
 }).extend({
   invitedEmail: z.string().email("Invalid email address"),
+  message: z.string().optional(),
+});
+
+export const createPublicInviteLinkSchema = z.object({
+  communityId: z.number(),
   message: z.string().optional(),
 });
 
@@ -294,13 +303,7 @@ export const insertWishlistSchema = createInsertSchema(wishlists).omit({
 export type InsertWishlist = z.infer<typeof insertWishlistSchema>;
 export type Wishlist = typeof wishlists.$inferSelect;
 
-export interface User {
-  id: number;
-  displayName: string;
-  email: string;
-  address: string;
-  zipCode: string;
-  createdAt: Date;
-  profileImage?: string;
+// Extended user interface for frontend use
+export interface ExtendedUser extends User {
   communityIds: number[];
 }
