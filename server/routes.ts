@@ -936,7 +936,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
 
   app.patch("/api/user", requireAuth, async (req, res) => {
     try {
-      const { displayName, address, zipCode, pendingInviteCode } = req.body;
+      const { displayName, address, zipCode } = req.body;
       const updates: Partial<typeof schema.users.$inferInsert> = {};
 
       if (displayName !== undefined) updates.displayName = displayName;
@@ -953,37 +953,6 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           .status(400)
           .json({ error: "Zip code must be exactly 5 digits" });
       }
-      
-      // Check for pending invite code
-      let communityToJoin = null;
-      logger.info("Checking for invite code during address update", { 
-        pendingInviteCode, 
-        userId: req.user.id
-      });
-        
-        // Try to find the community using both direct lookup and storage method
-        const allCommunities = await db.select().from(schema.communities);
-        const communityWithInviteCode = allCommunities.find(c => c.inviteCode === pendingInviteCode);
-        
-        if (communityWithInviteCode) {
-          communityToJoin = communityWithInviteCode;
-          logger.info("Found community directly for invite code during address update", { 
-            communityId: communityToJoin.id,
-            communityName: communityToJoin.name,
-            inviteCode: pendingInviteCode
-          });
-        } else {
-          // Try storage method if direct lookup fails
-          communityToJoin = await storage.getCommunityByInviteCode(pendingInviteCode);
-        }
-        
-        if (!communityToJoin) {
-          logger.warn("Invalid invite code provided during address update", { 
-            pendingInviteCode,
-            userId: req.user.id
-          });
-        }
-      }
 
       return await db.transaction(async (tx) => {
         // Update user record
@@ -992,25 +961,6 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           .set(updates)
           .where(eq(schema.users.id, req.user.id))
           .returning();
-        
-        // Handle invite code community if found
-        if (communityToJoin) {
-          logger.info("Adding user to community from invite code during address update", {
-            userId: req.user.id,
-            communityId: communityToJoin.id,
-            communityName: communityToJoin.name
-          });
-          
-          await tx
-            .insert(schema.userCommunities)
-            .values({
-              userId: req.user.id,
-              communityId: communityToJoin.id,
-              role: "member",
-              joinedAt: new Date(),
-            })
-            .onConflictDoNothing();
-        }
 
         // Handle community assignment if zip code provided
         if (zipCode) {
@@ -2023,7 +1973,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
 
   app.get("/api/items/:id/bids", requireAuth, async (req, res) => {
     try {
-      const itemId = parseInt(req.params.id);
+      const itemId = parseInt(reqparams.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
       }
@@ -2081,7 +2031,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       res.status(500).json({ error: "Failed to fetch user communities" });
     }
   });
-  
+
   // Get a community's invite code
   app.get("/api/communities/:id/invite-code", requireAuth, async (req, res) => {
     try {
@@ -2089,19 +2039,19 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       if (isNaN(communityId)) {
         return res.status(400).json({ error: "Invalid community ID" });
       }
-      
+
       // Check if user is a member of the community
       const userRole = await storage.getUserRole(req.user.id, communityId);
       if (!userRole) {
         return res.status(403).json({ error: "Not a member of this community" });
       }
-      
+
       // Get the community to retrieve its invite code
       const community = await storage.getCommunity(communityId);
       if (!community) {
         return res.status(404).json({ error: "Community not found" });
       }
-      
+
       // If community doesn't have an invite code yet, generate one for admins
       if (!community.inviteCode && userRole === 'admin') {
         const inviteCode = await storage.generateCommunityInviteCode(communityId);
@@ -2109,14 +2059,14 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       } else if (!community.inviteCode) {
         return res.status(403).json({ error: "Community doesn't have an invite code. Ask an admin to generate one." });
       }
-      
+
       res.json({ inviteCode: community.inviteCode });
     } catch (error) {
       logger.error("Error getting community invite code:", error);
       res.status(500).json({ error: "Failed to get community invite code" });
     }
   });
-  
+
   // Generate a community invite code
   app.post("/api/communities/:id/invite-code", requireAuth, async (req, res) => {
     try {
@@ -2124,52 +2074,52 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       if (isNaN(communityId)) {
         return res.status(400).json({ error: "Invalid community ID" });
       }
-      
+
       // Check if user is a member of the community
       const userRole = await storage.getUserRole(req.user.id, communityId);
       if (!userRole) {
         return res.status(403).json({ error: "Not a member of this community" });
       }
-      
+
       // Only admins can generate invite codes
       if (userRole !== 'admin') {
         return res.status(403).json({ error: "Only community admins can generate invite codes" });
       }
-      
+
       // Generate the invite code
       const inviteCode = await storage.generateCommunityInviteCode(communityId);
-      
+
       res.json({ inviteCode });
     } catch (error) {
       logger.error("Error generating community invite code:", error);
       res.status(500).json({ error: "Failed to generate community invite code" });
     }
   });
-  
+
   // Join a community using an invite code
   app.post("/api/communities/join", requireAuth, async (req, res) => {
     try {
       const { inviteCode } = req.body;
-      
+
       if (!inviteCode) {
         return res.status(400).json({ error: "Invite code is required" });
       }
-      
+
       // Find the community with this invite code
       const community = await storage.getCommunityByInviteCode(inviteCode);
       if (!community) {
         return res.status(404).json({ error: "Invalid invite code or community not found" });
       }
-      
+
       // Check if the user is already a member
       const isMember = await storage.isUserInCommunity(req.user.id, community.id);
       if (isMember) {
         return res.status(400).json({ error: "You are already a member of this community" });
       }
-      
+
       // Add the user to the community
       await storage.addUserToCommunity(req.user.id, community.id, 'member');
-      
+
       // Create a notification for the community admin
       await db.insert(schema.notifications).values({
         userId: community.createdBy,
@@ -2181,7 +2131,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
           userName: req.user.displayName || req.user.username
         },
       });
-      
+
       res.json({ 
         success: true,
         message: `You've successfully joined ${community.name}`,
@@ -2398,11 +2348,11 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       // Import hashPassword function from utils/auth
       const { hashPassword } = await import('./utils/auth');
       const hashedPassword = await hashPassword(parseResult.data.password);
-      
+
       // Extract the pending invite code if it was provided
       const pendingInviteCode = req.body.pendingInviteCode;
       let communityToJoin = null;
-      
+
       // Log the full registration request data
       logger.info('Processing registration request:', {
         pendingInviteCode,
@@ -2425,7 +2375,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
         // Verify if the invite code exists in any community
         const allCommunities = await db.select().from(schema.communities);
         const communityWithInviteCode = allCommunities.find(c => c.inviteCode === pendingInviteCode);
-        
+
         // If we found a community directly, use it
         if (communityWithInviteCode) {
           communityToJoin = communityWithInviteCode;
@@ -2446,11 +2396,11 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
             })),
             searchingFor: pendingInviteCode
           });
-          
+
           // Try to find the community using the storage method
           communityToJoin = await storage.getCommunityByInviteCode(pendingInviteCode);
         }
-        
+
         if (communityToJoin) {
           logger.info("Found community for invite code", { 
             communityId: communityToJoin.id,
@@ -2578,7 +2528,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
               communityName: communityToJoin.name,
               inviteCode: pendingInviteCode
             });
-            
+
             // Add the user to the community
             await tx.insert(schema.userCommunities)
               .values({
@@ -2588,7 +2538,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
                 joinedAt: new Date()
               })
               .onConflictDoNothing();
-            
+
             // Create a notification for the community admin
             if (communityToJoin.createdBy) {
               await tx.insert(schema.notifications).values({
@@ -2602,7 +2552,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
                 },
               });
             }
-            
+
             logger.info("Successfully added user to community via invite code", {
               userId: user.id,
               communityId: communityToJoin.id
@@ -2616,7 +2566,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
             // Don't throw error, continue with registration process
           }
         }
-        
+
         return {
           user,
           enrolledCommunities: processedInvites.length + (communityToJoin ? 1 : 0),
