@@ -79,16 +79,6 @@ export function AuthForm() {
       // Check if there's a pending invite in localStorage
       const pendingInviteCode = localStorage.getItem("pendingInviteCode");
 
-      console.log("Sending registration data:", {
-        username,
-        email: data.email,
-        password: "[REDACTED]",
-        displayName,
-        address: null,
-        zipCode: null,
-        pendingInviteCode: pendingInviteCode ? "present" : "none"
-      });
-
       // We will collect address and zip code on the welcome page
       await registerMutation.mutateAsync({
         username,
@@ -97,7 +87,6 @@ export function AuthForm() {
         displayName,
         address: null,
         zipCode: null,
-        // Include the pendingInviteCode if it exists
         pendingInviteCode: pendingInviteCode || undefined
       });
     } catch (error) {
