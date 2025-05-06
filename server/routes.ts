@@ -2404,13 +2404,16 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const pendingInviteCode = req.body.pendingInviteCode;
       let communityToJoin = null;
       
-      // If an invite code was provided, try to find the associated community
-      logger.info('Checking pendingInviteCode during registration:', {
+      // Log the full registration request data
+      logger.info('Processing registration request:', {
         pendingInviteCode,
         isDefined: !!pendingInviteCode,
         type: typeof pendingInviteCode,
         email: email,
         username: parseResult.data.username,
+        hasInviteCode: !!pendingInviteCode,
+        rawInviteCode: pendingInviteCode || 'none',
+        bodyKeys: Object.keys(req.body),
         body: { ...req.body, password: '[REDACTED]' }
       });
       if (pendingInviteCode) {
