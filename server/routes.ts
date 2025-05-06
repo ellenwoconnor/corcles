@@ -2353,8 +2353,16 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       const pendingInviteCode = req.body.pendingInviteCode;
       let communityToJoin = null;
 
+      // Log invite code status regardless of whether it's provided
+      logger.info("Registration invite code status:", {
+        hasPendingInviteCode: !!pendingInviteCode,
+        pendingInviteCode: pendingInviteCode || 'none',
+        email,
+        rawBody: { ...req.body, password: '[REDACTED]' }
+      });
+
       if (pendingInviteCode) {
-        logger.info("Invite code provided during registration", { 
+        logger.info("Processing registration with invite code", { 
           pendingInviteCode, 
           email
         });
