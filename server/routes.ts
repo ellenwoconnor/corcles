@@ -956,11 +956,10 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
       
       // Check for pending invite code
       let communityToJoin = null;
-      if (pendingInviteCode) {
-        logger.info("Processing invite code during address update", { 
-          pendingInviteCode, 
-          userId: req.user.id
-        });
+      logger.info("Checking for invite code during address update", { 
+        pendingInviteCode, 
+        userId: req.user.id
+      });
         
         // Try to find the community using both direct lookup and storage method
         const allCommunities = await db.select().from(schema.communities);
