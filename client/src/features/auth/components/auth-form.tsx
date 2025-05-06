@@ -48,10 +48,10 @@ export function AuthForm() {
         console.error('Missing email for login');
         return;
       }
-      
+
       const username = data.email.split('@')[0];
       console.log('Login attempt:', { username, email: data.email });
-      
+
       await loginMutation.mutateAsync({
         username: username,
         password: data.password,
@@ -65,19 +65,19 @@ export function AuthForm() {
   const onRegister = registerForm.handleSubmit(async (data) => {
     try {
       console.log("Registration attempt with email:", data.email);
-      
+
       // Create a username from email, ensuring it's at least 2 characters
       let username = data.email.split('@')[0];
       if (username.length < 2) {
         username = username + username; // duplicate the character to make it at least 2 chars
       }
-      
+
       // Create a displayName (also min 2 chars)
       let displayName = username;
-      
+
       // Check if there's a pending invite in localStorage
       const pendingInviteCode = localStorage.getItem("pendingInviteCode");
-      
+
       console.log("Sending registration data:", {
         username,
         email: data.email,
@@ -87,7 +87,7 @@ export function AuthForm() {
         zipCode: null,
         pendingInviteCode: pendingInviteCode ? "present" : "none"
       });
-      
+
       // We will collect address and zip code on the welcome page
       await registerMutation.mutateAsync({
         username,
@@ -191,6 +191,9 @@ export function AuthForm() {
               )}
               Register
             </Button>
+            <div className="mt-2 text-sm text-center">
+              By registering, you agree to our <TermsDialog />
+            </div>
           </form>
         </Form>
       </TabsContent>
