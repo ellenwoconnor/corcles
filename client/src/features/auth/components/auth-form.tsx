@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { GoogleLogin } from "@react-oauth/google";
+import TermsDialog from "../components/terms-dialog";
 import {
   Form,
   FormControl,
