@@ -87,7 +87,6 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
           throw new Error("No user data returned from registration");
         }
 
-        // Return both the user data and whether we had an invite code
         return { userData: data };
       } catch (error) {
         console.error("Registration error:", error);

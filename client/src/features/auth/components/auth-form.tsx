@@ -89,7 +89,7 @@ export function AuthForm() {
         displayName,
         address: null,
         zipCode: null,
-        pendingInviteCode: pendingInviteCode || undefined,
+        pendingInviteCode: pendingInviteCode,
       });
     } catch (error) {
       console.error("Registration error:", error);
