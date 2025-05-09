@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { GoogleLogin } from "@react-oauth/google";
+import TermsDialog from "../components/terms-dialog";
 import {
   Form,
   FormControl,
@@ -35,55 +36,51 @@ export function AuthForm() {
   const { loginMutation, registerMutation, googleLogin } = useAuth();
 
   const loginForm = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema)
+    resolver: zodResolver(loginSchema),
   });
   const registerForm = useForm<RegisterData>({
-    resolver: zodResolver(registerSchema)
+    resolver: zodResolver(registerSchema),
   });
 
   const onLogin = loginForm.handleSubmit(async (data) => {
     try {
       // Extract username from email (part before @)
       if (!data.email) {
-        console.error('Missing email for login');
+        console.error("Missing email for login");
         return;
       }
-      
-      const username = data.email.split('@')[0];
-      console.log('Login attempt:', { username, email: data.email });
-      
+
+      const username = data.email.split("@")[0];
+      console.log("Login attempt:", { username, email: data.email });
+
       await loginMutation.mutateAsync({
         username: username,
         password: data.password,
-        email: data.email
+        email: data.email,
       });
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
     }
   });
 
   const onRegister = registerForm.handleSubmit(async (data) => {
     try {
       console.log("Registration attempt with email:", data.email);
-      
+
       // Create a username from email, ensuring it's at least 2 characters
-      let username = data.email.split('@')[0];
+      let username = data.email.split("@")[0];
       if (username.length < 2) {
         username = username + username; // duplicate the character to make it at least 2 chars
       }
-      
+
       // Create a displayName (also min 2 chars)
       let displayName = username;
-      
-      console.log("Sending registration data:", {
-        username,
-        email: data.email,
-        password: "[REDACTED]",
-        displayName,
-        address: null,
-        zipCode: null
-      });
-      
+
+      // Check if there's a pending invite in localStorage
+      const pendingInviteCode = localStorage.getItem("pendingInviteCode");
+      if (!pendingInviteCode) {
+        console.log("No pending invite code found in localStorage");
+      }
       // We will collect address and zip code on the welcome page
       await registerMutation.mutateAsync({
         username,
@@ -91,10 +88,11 @@ export function AuthForm() {
         password: data.password,
         displayName,
         address: null,
-        zipCode: null
+        zipCode: null,
+        pendingInviteCode: pendingInviteCode,
       });
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error("Registration error:", error);
     }
   });
 
@@ -185,6 +183,9 @@ export function AuthForm() {
               )}
               Register
             </Button>
+            <div className="mt-2 text-sm text-center">
+              By registering, you agree to our <TermsDialog />
+            </div>
           </form>
         </Form>
       </TabsContent>

@@ -98,6 +98,10 @@ export interface IStorage {
   rejectCommunityInvite(inviteId: number): Promise<CommunityInvite>;
   isUserInCommunity(userId: number, communityId: number): Promise<boolean>;
   getUserRole(userId: number, communityId: number): Promise<string | undefined>;
+  
+  // Community invite link methods
+  generateCommunityInviteCode(communityId: number): Promise<string>;
+  getCommunityByInviteCode(inviteCode: string): Promise<Community | undefined>;
 
   // Wishlist methods
   createWishlist(wishlist: InsertWishlist): Promise<Wishlist>;
@@ -1072,7 +1076,8 @@ export class DatabaseStorage implements IStorage {
   async getUserRole(userId: number, communityId: number): Promise<string | undefined> {
     try {
       const [membership] = await db
-        .select        .from(userCommunities)
+        .select()
+        .from(userCommunities)
         .where(
           and(
             eq(userCommunities.userId, userId),
@@ -1083,6 +1088,82 @@ export class DatabaseStorage implements IStorage {
       return membership?.role;
     } catch (error) {
       logger.error('Error getting user role:', { error, userId, communityId });
+      throw error;
+    }
+  }
+  
+  async generateCommunityInviteCode(communityId: number): Promise<string> {
+    try {
+      // Import the generateInviteCode function from auth utils
+      const { generateInviteCode } = await import('./utils/auth');
+      
+      // Get the community to ensure it exists
+      const community = await this.getCommunity(communityId);
+      if (!community) {
+        throw new Error(`Community with ID ${communityId} not found`);
+      }
+      
+      // Generate a unique invite code
+      const inviteCode = generateInviteCode();
+      
+      // Update the community with the new invite code
+      await db
+        .update(communities)
+        .set({ inviteCode })
+        .where(eq(communities.id, communityId));
+      
+      logger.debug('Generated community invite code:', { 
+        communityId, 
+        communityName: community.name,
+        inviteCode 
+      });
+      
+      return inviteCode;
+    } catch (error) {
+      logger.error('Error generating community invite code:', { error, communityId });
+      throw error;
+    }
+  }
+  
+  async getCommunityByInviteCode(inviteCode: string): Promise<Community | undefined> {
+    try {
+      // Detailed logging for invite code lookup
+      logger.info('Looking up community by invite code:', { inviteCode });
+      
+      // First check if the invite code exists at all
+      const allCommunities = await db.select().from(communities);
+      const matchingCommunity = allCommunities.find(c => c.inviteCode === inviteCode);
+      
+      if (matchingCommunity) {
+        logger.info('Found community by manual search:', {
+          communityId: matchingCommunity.id,
+          communityName: matchingCommunity.name,
+          inviteCode
+        });
+        return matchingCommunity;
+      }
+      
+      // If not found by direct match, try the query approach
+      const results = await db
+        .select()
+        .from(communities)
+        .where(eq(communities.inviteCode, inviteCode));
+      
+      logger.info('Query result for community by invite code:', {
+        inviteCode,
+        resultsCount: results.length,
+        hasResults: results.length > 0,
+        firstResultId: results[0]?.id
+      });
+      
+      return results[0];
+    } catch (error) {
+      logger.error('Error retrieving community by invite code:', { 
+        error, 
+        errorMessage: error.message,
+        stack: error.stack,
+        inviteCode 
+      });
       throw error;
     }
   }

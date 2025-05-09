@@ -33,6 +33,7 @@ export const communities = pgTable("communities", {
   createdBy: integer("created_by"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   isCustom: boolean("is_custom").notNull().default(true),
+  inviteCode: text("invite_code"),
 });
 
 export const userCommunities = pgTable("user_communities", {
@@ -130,6 +131,8 @@ export const insertUserSchema = createInsertSchema(users).extend({
     }, "Zip code must be exactly 5 digits")
     .nullable(),
   email: z.string().email("Invalid email format"),
+  // Add support for pendingInviteCode which is used during registration but not stored in DB
+  pendingInviteCode: z.string().optional(),
 });
 
 export const insertNotificationSchema = createInsertSchema(notifications).omit({
@@ -294,13 +297,7 @@ export const insertWishlistSchema = createInsertSchema(wishlists).omit({
 export type InsertWishlist = z.infer<typeof insertWishlistSchema>;
 export type Wishlist = typeof wishlists.$inferSelect;
 
-export interface User {
-  id: number;
-  displayName: string;
-  email: string;
-  address: string;
-  zipCode: string;
-  createdAt: Date;
-  profileImage?: string;
+// Extended user interface for frontend use
+export interface ExtendedUser extends User {
   communityIds: number[];
 }

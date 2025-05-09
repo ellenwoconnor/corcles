@@ -46,6 +46,7 @@ import { z } from "zod";
 import ReceivedInvitesSection from "@/components/received-invites-section";
 import CommunityInviteForm from "@/components/community-invite-form";
 import CommunityInvitesList from "@/components/community-invites-list";
+import CommunityInviteLink from "@/components/community-invite-link";
 import Picker from "emoji-picker-react";
 
 export default function CommunitiesPage() {
@@ -307,9 +308,22 @@ export default function CommunitiesPage() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-0 pb-0">
-                  {/* Add the CommunityInvitesList component for each community */}
-                  <CommunityInvitesList communityId={community.id} />
+                <CardContent className="pt-0 pb-3">
+                  {/* Community invite link component */}
+                  {community.isCustom && (
+                    <div className="mb-6">
+                      <CommunityInviteLink 
+                        communityId={community.id}
+                        communityName={community.name}
+                        userRole={community.role}
+                      />
+                    </div>
+                  )}
+                  
+                  {/* List of sent email invites */}
+                  <div className="mt-4">
+                    <CommunityInvitesList communityId={community.id} />
+                  </div>
                 </CardContent>
                 <CardFooter>
                   <Dialog
@@ -327,7 +341,7 @@ export default function CommunitiesPage() {
                         }}
                       >
                         <UserPlus className="h-4 w-4 mr-1" />
-                        Invite
+                        Email Invite
                       </Button>
                     </DialogTrigger>
                     <DialogContent>

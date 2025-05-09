@@ -4,14 +4,43 @@ import { AuthForm } from "@/features/auth/components/auth-form";
 import { useAuth } from "@/features/auth/hooks/use-auth";
 
 export default function AuthPage() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user } = useAuth();
-  console.log("test", user);
+  
   useEffect(() => {
-    if (user && user.address) {
-      setLocation("/");
-    } else if (user && !user.address) {
-      setLocation("/welcome");
+    // Check for invite code in the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const inviteCode = urlParams.get('code');
+    
+    if (inviteCode) {
+      console.log("Found invite code in URL:", inviteCode);
+      localStorage.setItem("pendingInviteCode", inviteCode);
+    }
+    
+    // Log pending invite code for debugging
+    const storedCode = localStorage.getItem("pendingInviteCode");
+    if (storedCode) {
+      console.log("Using stored invite code:", storedCode);
+    }
+  }, []);
+  
+  useEffect(() => {
+    // Check if the user is authenticated
+    if (user) {
+      if (user.address) {
+        // User is fully registered with address, check for pending invite
+        const pendingInviteCode = localStorage.getItem("pendingInviteCode");
+        if (pendingInviteCode) {
+          // If there's a pending invite, redirect to the join page
+          setLocation(`/communities/join?code=${pendingInviteCode}`);
+        } else {
+          // Otherwise go to home
+          setLocation("/");
+        }
+      } else {
+        // User registered but has no address yet, go to welcome page
+        setLocation("/welcome");
+      }
     }
   }, [user, setLocation]);
 

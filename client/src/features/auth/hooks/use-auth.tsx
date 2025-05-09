@@ -87,15 +87,18 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
           throw new Error("No user data returned from registration");
         }
 
-        return data;
+        return { userData: data };
       } catch (error) {
         console.error("Registration error:", error);
         throw error;
       }
     },
     onSuccess: (response: any) => {
+      // Extract user data and invite code flag
+      const userData = response.userData;
+      
       // Always redirect to welcome for address collection after registration
-      queryClient.setQueryData(["/api/user"], response);
+      queryClient.setQueryData(["/api/user"], userData);
       window.location.href = "/welcome";
     },
     onError: (error: Error) => {
