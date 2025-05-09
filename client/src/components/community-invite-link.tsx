@@ -176,7 +176,7 @@ export default function CommunityInviteLink({
             onClick={copyToClipboard}
             title="Copy link"
           >
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           </Button>
           <Button 
             variant="outline" 
