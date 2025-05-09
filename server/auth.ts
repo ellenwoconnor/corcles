@@ -215,6 +215,7 @@ export function setupAuth(app: Express) {
       });
 
       // Process invite code if it exists
+      // Is this code redundant? It's already processed during registration
       if (pendingInviteCode) {
         try {
           const inviteCommunity = await storage.getCommunityByInviteCode(pendingInviteCode);
