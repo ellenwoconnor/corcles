@@ -1973,7 +1973,7 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
 
   app.get("/api/items/:id/bids", requireAuth, async (req, res) => {
     try {
-      const itemId = parseInt(reqparams.id);
+      const itemId = parseInt(req.params.id);
       if (isNaN(itemId)) {
         return res.status(400).json({ error: "Invalid item ID" });
       }
