@@ -309,23 +309,62 @@ export default function CommunitiesPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0 pb-3">
-                  {/* Community invite link component */}
-                  {community.isCustom && (
-                    <div className="mb-6">
-                      <CommunityInviteLink 
-                        communityId={community.id}
-                        communityName={community.name}
-                        userRole={community.role}
-                      />
-                    </div>
-                  )}
+                  
                   
                   {/* List of sent email invites */}
                   <div className="mt-4">
                     <CommunityInvitesList communityId={community.id} />
                   </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex gap-2">
+                  {community.isCustom && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          const link = await CommunityInviteLink({ communityId: community.id });
+                          if (link) {
+                            navigator.clipboard.writeText(link);
+                            toast({
+                              title: "Link copied!",
+                              description: "Invite link copied to clipboard",
+                            });
+                          }
+                        }}
+                      >
+                        <Copy className="h-4 w-4 mr-1" />
+                        Copy Link
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          const link = await CommunityInviteLink({ communityId: community.id });
+                          if (link && navigator.share) {
+                            try {
+                              await navigator.share({
+                                title: `Join ${community.name} on Corcles`,
+                                text: `I'm inviting you to join ${community.name} on Corcles!`,
+                                url: link,
+                              });
+                            } catch (err) {
+                              if ((err as Error).name !== 'AbortError') {
+                                toast({
+                                  title: "Failed to share",
+                                  description: "Could not share the invite link",
+                                  variant: "destructive",
+                                });
+                              }
+                            }
+                          }
+                        }}
+                      >
+                        <Share className="h-4 w-4 mr-1" />
+                        Share
+                      </Button>
+                    </>
+                  )}
                   <Dialog
                     open={inviteDialogOpen}
                     onOpenChange={setInviteDialogOpen}
@@ -334,7 +373,6 @@ export default function CommunitiesPage() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="mt-2"
                         onClick={() => {
                           setSelectedCommunity(community);
                           setInviteDialogOpen(true);
