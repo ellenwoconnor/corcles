@@ -36,30 +36,30 @@ export function AuthForm() {
   const { loginMutation, registerMutation, googleLogin } = useAuth();
 
   const loginForm = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema)
+    resolver: zodResolver(loginSchema),
   });
   const registerForm = useForm<RegisterData>({
-    resolver: zodResolver(registerSchema)
+    resolver: zodResolver(registerSchema),
   });
 
   const onLogin = loginForm.handleSubmit(async (data) => {
     try {
       // Extract username from email (part before @)
       if (!data.email) {
-        console.error('Missing email for login');
+        console.error("Missing email for login");
         return;
       }
 
-      const username = data.email.split('@')[0];
-      console.log('Login attempt:', { username, email: data.email });
+      const username = data.email.split("@")[0];
+      console.log("Login attempt:", { username, email: data.email });
 
       await loginMutation.mutateAsync({
         username: username,
         password: data.password,
-        email: data.email
+        email: data.email,
       });
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
     }
   });
 
@@ -68,7 +68,7 @@ export function AuthForm() {
       console.log("Registration attempt with email:", data.email);
 
       // Create a username from email, ensuring it's at least 2 characters
-      let username = data.email.split('@')[0];
+      let username = data.email.split("@")[0];
       if (username.length < 2) {
         username = username + username; // duplicate the character to make it at least 2 chars
       }
@@ -78,7 +78,9 @@ export function AuthForm() {
 
       // Check if there's a pending invite in localStorage
       const pendingInviteCode = localStorage.getItem("pendingInviteCode");
-
+      if (!pendingInviteCode) {
+        console.log("No pending invite code found in localStorage");
+      }
       // We will collect address and zip code on the welcome page
       await registerMutation.mutateAsync({
         username,
@@ -87,10 +89,10 @@ export function AuthForm() {
         displayName,
         address: null,
         zipCode: null,
-        pendingInviteCode: pendingInviteCode || undefined
+        pendingInviteCode: pendingInviteCode || undefined,
       });
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error("Registration error:", error);
     }
   });
 

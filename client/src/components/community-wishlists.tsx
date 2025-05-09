@@ -58,7 +58,7 @@ export default function CommunityWishlists() {
     queryKey: ["/api/user/communities"],
     enabled: !!user,
   });
-  console.log("community wishlists", communityWishlists);
+
   // Get user items to check if they've already fulfilled wishlists
   const { data: userItems = [] } = useQuery<any[]>({
     queryKey: ["/api/user/items"],

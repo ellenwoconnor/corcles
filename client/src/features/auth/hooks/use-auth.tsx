@@ -76,9 +76,6 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const registerMutation = useMutation({
     mutationFn: async (credentials: InsertUser) => {
       try {
-        // Store if we had an invite code in the credentials
-        const hadInviteCode = !!credentials.pendingInviteCode;
-        
         const res = await apiRequest("POST", "/api/register", credentials);
         const data = await res.json();
 
@@ -91,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
         }
 
         // Return both the user data and whether we had an invite code
-        return { userData: data, hadInviteCode };
+        return { userData: data };
       } catch (error) {
         console.error("Registration error:", error);
         throw error;
@@ -100,12 +97,6 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     onSuccess: (response: any) => {
       // Extract user data and invite code flag
       const userData = response.userData;
-      const hadInviteCode = response.hadInviteCode;
-      
-      // Log if we're preserving invite code
-      if (hadInviteCode) {
-        console.log("Registration succeeded with invite code, preserving it for welcome page");
-      }
       
       // Always redirect to welcome for address collection after registration
       queryClient.setQueryData(["/api/user"], userData);
