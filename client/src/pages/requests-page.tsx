@@ -1,6 +1,6 @@
 import { useAuth } from "@/features/auth/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { type Wishlist, type ItemRequest } from "@shared/schema";
+import { type Wishlist, type ItemRequest, type Community } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import {
   getRequestStatusVariant,
@@ -86,7 +86,7 @@ export default function RequestsPage() {
   });
 
   // Get communities first to properly fetch items
-  const { data: userCommunities = [] } = useQuery({
+  const { data: userCommunities = [] } = useQuery<Community[]>({
     queryKey: ["/api/user/communities"],
     enabled: !!user,
   });
@@ -97,7 +97,7 @@ export default function RequestsPage() {
     enabled: !!user && userCommunities.length > 0,
     queryFn: async () => {
       if (!userCommunities.length) return [];
-      const communityIds = userCommunities.map((c) => c.id).join(",");
+      const communityIds = userCommunities.map((c: any) => c.id).join(",");
       // Add includeWithRecipients=true parameter to include items that have recipients
       const response = await fetch(
         `/api/items?communities=${communityIds}&includeWithRecipients=true`,
@@ -171,18 +171,8 @@ export default function RequestsPage() {
           <div className="flex items-center justify-center min-h-[200px]">
             <Loader2 className="h-8 w-8 animate-spin text-border" />
           </div>
-        ) : userWishlists.length === 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>No wishlists yet</CardTitle>
-              <CardDescription>
-                Create your first wishlist to keep track of items you're looking
-                for!
-              </CardDescription>
-            </CardHeader>
-          </Card>
         ) : (
-          <Tabs defaultValue="wishlists">
+          <Tabs defaultValue="requests">
             <div className="overflow-x-auto pb-2">
               <TabsList className="inline-flex min-w-fit">
                 <TabsTrigger
@@ -205,57 +195,58 @@ export default function RequestsPage() {
 
             <TabsContent value="wishlists">
               <div>
-                {userWishlists.map((wishlist) => (
-                  <Card
-                    key={wishlist.id}
-                    className="cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all mb-4"
-                    onClick={() => handleWishlistClick(wishlist)}
-                  >
-                    <CardHeader className="py-3">
-                      {" "}
-                      {/* Added padding */}
-                      <div className="flex items-center gap-3">
-                        {" "}
-                        {/* Adjusted gap */}
-                        <div className="flex-1">
-                          <h3 className="font-medium text-sm">
-                            {" "}
-                            {/* Matched text size */}
-                            {wishlist.title}
-                            {wishlist.isPrivate && (
-                              <Lock className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </h3>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            {" "}
-                            {/* Matched text size and added margin */}
-                            {wishlist.description}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {" "}
-                            {/* Smaller text for time */}
-                            Posted {formatTimeAgo(new Date(wishlist.createdAt))}
-                          </p>
-                        </div>
-                        {/* Badges remain unchanged */}
-                        {wishlist.budget && (
-                          <Badge variant="secondary">
-                            Budget: ${wishlist.budget}
-                          </Badge>
-                        )}
-                        {getFulfillmentItemsForWishlist(wishlist.id).length >
-                          0 && (
-                          <Badge
-                            variant="default"
-                            className="flex items-center gap-1"
-                          >
-                            Offers Available
-                          </Badge>
-                        )}
-                      </div>
+                {userWishlists.length === 0 ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">No wishlists yet</CardTitle>
+                      <CardDescription>
+                        Create your first wishlist to keep track of items you're looking
+                        for!
+                      </CardDescription>
                     </CardHeader>
                   </Card>
-                ))}
+                ) : (
+                  userWishlists.map((wishlist) => (
+                    <Card
+                      key={wishlist.id}
+                      className="cursor-pointer hover:ring-1 hover:ring-primary/20 transition-all mb-4"
+                      onClick={() => handleWishlistClick(wishlist)}
+                    >
+                      <CardHeader className="py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1">
+                            <h3 className="font-medium text-sm">
+                              {wishlist.title}
+                              {wishlist.isPrivate && (
+                                <Lock className="h-4 w-4 text-muted-foreground" />
+                              )}
+                            </h3>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              {wishlist.description}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Posted {formatTimeAgo(new Date(wishlist.createdAt))}
+                            </p>
+                          </div>
+                          {wishlist.budget && (
+                            <Badge variant="secondary">
+                              Budget: ${wishlist.budget}
+                            </Badge>
+                          )}
+                          {getFulfillmentItemsForWishlist(wishlist.id).length >
+                            0 && (
+                            <Badge
+                              variant="default"
+                              className="flex items-center gap-1"
+                            >
+                              Offers Available
+                            </Badge>
+                          )}
+                        </div>
+                      </CardHeader>
+                    </Card>
+                  ))
+                )}
               </div>
             </TabsContent>
 
@@ -346,10 +337,10 @@ export default function RequestsPage() {
                           <Badge
                             variant={
                               bid.status === "accepted"
-                                ? "success"
+                                ? "default"
                                 : "secondary"
                             }
-                            className="ml-auto"
+                            className={`ml-auto ${bid.status === "accepted" ? "bg-green-500 hover:bg-green-500/90" : ""}`}
                           >
                             {bid.status.charAt(0).toUpperCase() +
                               bid.status.slice(1)}
