@@ -131,6 +131,33 @@ export function setupAuth(app: Express) {
         zipCode: null
       });
 
+      // Process invite code if it exists
+      if (parseResult.data.pendingInviteCode) {
+        try {
+          const community = await storage.getCommunityByInviteCode(parseResult.data.pendingInviteCode);
+          if (community) {
+            await storage.addUserToCommunity(user.id, community.id);
+            logger.info('User added to community via invite code during registration:', {
+              userId: user.id,
+              communityId: community.id,
+              inviteCode: parseResult.data.pendingInviteCode
+            });
+          } else {
+            logger.warn('Invalid invite code used during registration:', {
+              userId: user.id,
+              inviteCode: parseResult.data.pendingInviteCode
+            });
+          }
+        } catch (inviteError) {
+          logger.error('Error processing invite code during registration:', {
+            error: inviteError,
+            userId: user.id,
+            inviteCode: parseResult.data.pendingInviteCode
+          });
+          // Continue with registration even if invite code processing fails
+        }
+      }
+
       req.login(user, (err) => {
         if (err) {
           logger.error('Error during login after registration:', {
@@ -158,7 +185,7 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ error: "Authentication required" });
       }
 
-      const { address, zipCode } = req.body;
+      const { address, zipCode, pendingInviteCode } = req.body;
 
       // Validate required fields
       if (!address || !zipCode) {
@@ -172,7 +199,8 @@ export function setupAuth(app: Express) {
 
       logger.info('Updating user profile with address information:', {
         userId: req.user.id,
-        zipCode
+        zipCode,
+        hasPendingInvite: !!pendingInviteCode
       });
 
       // Update the user record
@@ -185,6 +213,36 @@ export function setupAuth(app: Express) {
         userId: updatedUser.id,
         zipCode: updatedUser.zipCode
       });
+
+      // Process invite code if it exists
+      if (pendingInviteCode) {
+        try {
+          const inviteCommunity = await storage.getCommunityByInviteCode(pendingInviteCode);
+          if (inviteCommunity) {
+            const isUserInInviteCommunity = await storage.isUserInCommunity(req.user.id, inviteCommunity.id);
+            if (!isUserInInviteCommunity) {
+              await storage.addUserToCommunity(req.user.id, inviteCommunity.id, 'member');
+              logger.info('User added to community via invite code during profile update:', {
+                userId: req.user.id,
+                communityId: inviteCommunity.id,
+                inviteCode: pendingInviteCode
+              });
+            }
+          } else {
+            logger.warn('Invalid invite code used during profile update:', {
+              userId: req.user.id,
+              inviteCode: pendingInviteCode
+            });
+          }
+        } catch (inviteError) {
+          logger.error('Error processing invite code during profile update:', {
+            error: inviteError,
+            userId: req.user.id,
+            inviteCode: pendingInviteCode
+          });
+          // Continue with address update even if invite code processing fails
+        }
+      }
 
       // Add user to appropriate community based on zip code
       try {
