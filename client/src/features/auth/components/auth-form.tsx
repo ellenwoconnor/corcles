@@ -27,6 +27,7 @@ const loginSchema = z.object({
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  displayName: z.string().min(2, "Display name must be at least 2 characters"),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -73,8 +74,8 @@ export function AuthForm() {
         username = username + username; // duplicate the character to make it at least 2 chars
       }
 
-      // Create a displayName (also min 2 chars)
-      let displayName = username;
+      // Use form display name or fallback to username
+      const displayName = data.displayName || username;
 
       // Check if there's a pending invite in localStorage
       const pendingInviteCode = localStorage.getItem("pendingInviteCode");
