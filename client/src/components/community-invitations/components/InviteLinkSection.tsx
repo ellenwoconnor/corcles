@@ -155,52 +155,37 @@ export function InviteLinkSection({
       </CardHeader>
       <CardContent>
         <div className="flex flex-col space-y-4">
+          <p className="text-sm text-muted-foreground mb-1">
+            Share this link with others to let them join {communityName}:
+          </p>
           <div className="flex flex-col sm:flex-row gap-2">
-            <Input
-              value={inviteLink}
-              readOnly
-              className="font-mono text-sm flex-1"
-              onClick={(e) => (e.target as HTMLInputElement).select()}
-            />
+            <code className="font-mono text-sm flex-1 p-2 bg-muted rounded-md border overflow-hidden overflow-ellipsis whitespace-nowrap">
+              {inviteLink}
+            </code>
             <div className="flex gap-2">
               <Button
-                variant="outline"
-                size="icon"
+                variant="default"
+                size="sm"
                 onClick={copyToClipboard}
-                title="Copy link"
                 className="shrink-0"
               >
                 {copied ? (
-                  <Check className="h-4 w-4" />
+                  <Check className="h-4 w-4 mr-2" />
                 ) : (
-                  <Copy className="h-4 w-4" />
+                  <Copy className="h-4 w-4 mr-2" />
                 )}
+                Copy
               </Button>
               <Button
                 variant="outline"
-                size="icon"
+                size="sm"
                 onClick={handleShare}
-                title="Share link"
                 className="shrink-0"
               >
-                <Share className="h-4 w-4" />
+                <Share className="h-4 w-4 mr-2" />
+                Share
               </Button>
             </div>
-          </div>
-
-          <div className="flex gap-2 justify-start">
-            <Button variant="outline" size="sm" onClick={copyToClipboard}>
-              {copied ? (
-                <Check className="h-4 w-4 mr-2" />
-              ) : (
-                <Copy className="h-4 w-4 mr-2" />
-              )}
-              Copy Link
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleShare}>
-              <Share className="h-4 w-4 mr-2" />
-              Share Link
-            </Button>
           </div>
 
           {userRole === "admin" && (

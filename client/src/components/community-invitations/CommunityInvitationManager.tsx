@@ -38,14 +38,7 @@ export default function CommunityInvitationManager({
 
   return (
     <div className="space-y-4 my-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Invite Members</h3>
-        <EmailInviteDialog 
-          communityName={communityName}
-          isCustomCommunity={isCustomCommunity}
-          sendInvite={sendEmailInvite}
-        />
-      </div>
+      <h3 className="text-lg font-semibold">Invite Members</h3>
       
       <Tabs defaultValue="invite-link" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
@@ -67,6 +60,14 @@ export default function CommunityInvitationManager({
             isRegenerating={regenerateInviteCode.isPending}
             onRefetch={refetchInviteCode}
           />
+          
+          <div className="mt-4 flex justify-center">
+            <EmailInviteDialog 
+              communityName={communityName}
+              isCustomCommunity={isCustomCommunity}
+              sendInvite={sendEmailInvite}
+            />
+          </div>
         </TabsContent>
         
         <TabsContent value="sent-invites" className="mt-4">
@@ -76,6 +77,14 @@ export default function CommunityInvitationManager({
               <p className="text-sm mt-1">
                 Use the "Email Invite" button to invite new members
               </p>
+              
+              <div className="mt-4 flex justify-center">
+                <EmailInviteDialog 
+                  communityName={communityName}
+                  isCustomCommunity={isCustomCommunity}
+                  sendInvite={sendEmailInvite}
+                />
+              </div>
             </div>
           ) : (
             <div className="space-y-2">
@@ -110,6 +119,14 @@ export default function CommunityInvitationManager({
                   Loading invitations...
                 </div>
               )}
+              
+              <div className="mt-6 flex justify-center">
+                <EmailInviteDialog 
+                  communityName={communityName}
+                  isCustomCommunity={isCustomCommunity}
+                  sendInvite={sendEmailInvite}
+                />
+              </div>
             </div>
           )}
         </TabsContent>
