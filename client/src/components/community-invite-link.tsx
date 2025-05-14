@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Loader2, Share, Copy, Check, RefreshCcw } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -13,22 +20,17 @@ interface CommunityInviteLinkProps {
   userRole: string;
 }
 
-export default function CommunityInviteLink({ 
-  communityId, 
+export default function CommunityInviteLink({
+  communityId,
   communityName,
-  userRole
+  userRole,
 }: CommunityInviteLinkProps) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
 
   // Query to fetch the community's invite code
-  const { 
-    data, 
-    isLoading,
-    isError, 
-    error 
-  } = useQuery({
-    queryKey: ['/api/communities', communityId, 'invite-code'],
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["/api/communities", communityId, "invite-code"],
     queryFn: async () => {
       const res = await fetch(`/api/communities/${communityId}/invite-code`);
       if (!res.ok) {
@@ -42,7 +44,10 @@ export default function CommunityInviteLink({
   // Mutation to generate a new invite code
   const regenerateMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/communities/${communityId}/invite-code`);
+      const res = await apiRequest(
+        "POST",
+        `/api/communities/${communityId}/invite-code`,
+      );
       return res.json();
     },
     onSuccess: (data) => {
@@ -50,7 +55,9 @@ export default function CommunityInviteLink({
         title: "Invite code regenerated",
         description: "A new invite code has been generated for this community.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/communities', communityId, 'invite-code'] });
+      queryClient.invalidateQueries({
+        queryKey: ["/api/communities", communityId, "invite-code"],
+      });
     },
     onError: (err: Error) => {
       toast({
@@ -72,7 +79,7 @@ export default function CommunityInviteLink({
   const copyToClipboard = async () => {
     const link = getInviteLink();
     if (!link) return;
-    
+
     try {
       await navigator.clipboard.writeText(link);
       setCopied(true);
@@ -80,7 +87,7 @@ export default function CommunityInviteLink({
         title: "Link copied!",
         description: "Invite link copied to clipboard",
       });
-      
+
       // Reset the copied state after 2 seconds
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -96,7 +103,7 @@ export default function CommunityInviteLink({
   const handleShare = async () => {
     const link = getInviteLink();
     if (!link) return;
-    
+
     if (navigator.share) {
       try {
         await navigator.share({
@@ -109,7 +116,7 @@ export default function CommunityInviteLink({
           description: "Invite link has been shared",
         });
       } catch (err) {
-        if ((err as Error).name !== 'AbortError') {
+        if ((err as Error).name !== "AbortError") {
           toast({
             title: "Failed to share",
             description: "Could not share the invite link",
@@ -124,15 +131,10 @@ export default function CommunityInviteLink({
 
   if (isLoading) {
     return (
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Community Invite Link</CardTitle>
-          <CardDescription>Loading invite link...</CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-center py-6">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </CardContent>
-      </Card>
+      <div className="w-full">
+        Loading invite link...
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
 
@@ -147,7 +149,14 @@ export default function CommunityInviteLink({
           <p className="text-sm text-destructive">{(error as Error).message}</p>
         </CardContent>
         <CardFooter>
-          <Button variant="outline" onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/communities', communityId, 'invite-code'] })}>
+          <Button
+            variant="outline"
+            onClick={() =>
+              queryClient.invalidateQueries({
+                queryKey: ["/api/communities", communityId, "invite-code"],
+              })
+            }
+          >
             Try Again
           </Button>
         </CardFooter>
@@ -156,49 +165,45 @@ export default function CommunityInviteLink({
   }
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Community Invite Link</CardTitle>
-        <CardDescription>
-          Share this link with others to invite them to join {communityName}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="w-full">
         <div className="flex gap-2">
-          <Input 
-            value={getInviteLink()} 
-            readOnly 
-            className="font-mono text-sm"
-          />
-          <Button 
-            variant="outline" 
-            size="icon" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={copyToClipboard}
             title="Copy link"
           >
-           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copied ? (
+              <Check className="h-4 w-4" />
+            ) : (
+              <Copy className="h-4 w-4" />
+            )}{" "}
+            Copy Invite Link
           </Button>
-          <Button 
-            variant="outline" 
-            size="icon" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleShare}
             title="Share link"
           >
             <Share className="h-4 w-4" />
+            Share Invite Link
           </Button>
         </div>
-        
+
         {userRole === "admin" && (
           <div className="text-xs text-muted-foreground">
-            <p>As an admin, you can generate a new invite link if needed. This will invalidate the previous link.</p>
+            <p>
+              As an admin, you can generate a new invite link if needed. This
+              will invalidate the previous link.
+            </p>
           </div>
         )}
-      </CardContent>
-      
+
       {userRole === "admin" && (
         <CardFooter>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => regenerateMutation.mutate()}
             disabled={regenerateMutation.isPending}
@@ -217,6 +222,6 @@ export default function CommunityInviteLink({
           </Button>
         </CardFooter>
       )}
-    </Card>
+    </div>
   );
 }
