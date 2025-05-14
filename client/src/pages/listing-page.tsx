@@ -85,7 +85,13 @@ export default function ListingPage() {
 
   const { data: bids = [], isLoading: bidsLoading } = useQuery<ItemBid[]>({
     queryKey: [`/api/items/${params?.id}/bids`],
-    enabled: !!params?.id && !!user && !item?.isGift,
+    enabled: !!params?.id && !!user && !item?.isGift && isOwner,
+  });
+
+  // Query for the user's own bids on this item
+  const { data: myBids = [], isLoading: myBidsLoading } = useQuery<ItemBid[]>({
+    queryKey: [`/api/items/${params?.id}/my-bids`],
+    enabled: !!params?.id && !!user && !item?.isGift && !isOwner,
   });
 
   const activeRequest = hasAcceptedRequest
@@ -93,7 +99,7 @@ export default function ListingPage() {
     : undefined;
 
   const hasRequested = requests?.some((r) => r.status === "pending");
-  const hasBid = bids?.some((bid) => bid.status === "pending");
+  const hasBid = myBids.length > 0;
 
   if (itemLoading || requestsLoading || bidsLoading) {
     return (

@@ -923,6 +923,35 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
     }
   });
 
+  // Get user's bids for a specific item
+  app.get("/api/items/:id/my-bids", requireAuth, async (req, res) => {
+    try {
+      const itemId = parseInt(req.params.id);
+      if (isNaN(itemId)) {
+        return res.status(400).json({ error: "Invalid item ID" });
+      }
+
+      const item = await storage.getItem(itemId);
+      if (!item) {
+        return res.status(404).json({ error: "Item not found" });
+      }
+
+      const allUserBids = await storage.getUserBids(req.user.id);
+      const itemBids = allUserBids.filter(bid => bid.itemId === itemId);
+      
+      logger.debug("Fetching user's bids for item:", {
+        userId: req.user.id,
+        itemId,
+        bidCount: itemBids.length
+      });
+      
+      res.json(itemBids);
+    } catch (error) {
+      logger.error("Error fetching user's bids for item:", error);
+      res.status(500).json({ error: "Failed to fetch bids" });
+    }
+  });
+
   app.get("/api/user", requireAuth, async (req, res) => {
     if (!req.user) {
       return res.json(null);
