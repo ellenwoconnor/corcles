@@ -45,8 +45,7 @@ import { useState, useEffect } from "react";
 import { z } from "zod";
 import ReceivedInvitesSection from "@/components/received-invites-section";
 import CommunityInviteForm from "@/components/community-invite-form";
-import CommunityInvitesList from "@/components/community-invites-list";
-import CommunityInviteLink from "@/components/community-invite-link";
+import { CommunityInvitationManager } from "@/components/community-invitations";
 import Picker from "emoji-picker-react";
 
 export default function CommunitiesPage() {
@@ -305,74 +304,15 @@ export default function CommunitiesPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0 pb-3">
-                  {/* List of sent email invites */}
-                  <div className="mt-4">
-                    <CommunityInvitesList communityId={community.id} />
-                  </div>
-                  {/* Community invite link component */}
-                  {community.isCustom && (
-                    <CommunityInviteLink
-                      communityId={community.id}
-                      communityName={community.name}
-                      userRole={community.role}
-                    />
-                  )}
+                  <CommunityInvitationManager
+                    communityId={community.id}
+                    communityName={community.name}
+                    userRole={community.role}
+                    isCustomCommunity={community.isCustom}
+                  />
                 </CardContent>
                 <CardFooter>
-                  <Dialog
-                    open={inviteDialogOpen}
-                    onOpenChange={setInviteDialogOpen}
-                  >
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-2"
-                        onClick={() => {
-                          setSelectedCommunity(community);
-                          setInviteDialogOpen(true);
-                        }}
-                      >
-                        <UserPlus className="h-4 w-4 mr-1" />
-                        Email Invite
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>
-                          Invite to {selectedCommunity?.name}
-                        </DialogTitle>
-                        <DialogDescription className="mb-4">
-                          <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mt-3">
-                            <p className="font-medium text-foreground mb-2">
-                              {selectedCommunity?.isCustom
-                                ? "Share the community spirit!"
-                                : "Invite neighbors to your local circle!"}
-                            </p>
-                            <p className="text-muted-foreground">
-                              {selectedCommunity?.isCustom
-                                ? "Your friend will receive an email with instructions on how to join this custom community."
-                                : "Neighbors with matching zip codes can join this community. They'll receive an email with setup instructions."}
-                            </p>
-                            {!selectedCommunity?.isCustom && (
-                              <p className="mt-2 text-sm text-amber-600 flex items-center">
-                                <span className="mr-1">⚠️</span> This community
-                                is limited to addresses in your zip code area.
-                              </p>
-                            )}
-                          </div>
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="py-4">
-                        {selectedCommunity && (
-                          <CommunityInviteForm
-                            community={selectedCommunity}
-                            onSuccess={() => setInviteDialogOpen(false)}
-                          />
-                        )}
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                  {/* Any additional controls can go here */}
                 </CardFooter>
               </Card>
             ))}
