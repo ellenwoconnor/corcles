@@ -171,7 +171,7 @@ export default function CommunityInviteLink({
         <div className="flex gap-2">
           <Button
             variant="outline"
-            size="sm"
+            size="icon"
             onClick={copyToClipboard}
             title="Copy link"
           >
@@ -180,16 +180,14 @@ export default function CommunityInviteLink({
             ) : (
               <Copy className="h-4 w-4" />
             )}{" "}
-            Copy Invite Link
           </Button>
           <Button
             variant="outline"
-            size="sm"
+            size="icon"
             onClick={handleShare}
             title="Share link"
           >
             <Share className="h-4 w-4" />
-            Share Invite Link
           </Button>
         </div>
       </div>
