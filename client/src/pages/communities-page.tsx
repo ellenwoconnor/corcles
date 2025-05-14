@@ -59,8 +59,7 @@ export default function CommunitiesPage() {
   );
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  useEffect(() => {
-  }, [createDialogOpen]); // Added emoji picker state
+  useEffect(() => {}, [createDialogOpen]); // Added emoji picker state
 
   const { data: communities, isLoading } = useQuery<
     (Community & { role: string; memberCount: number })[]
@@ -165,10 +164,7 @@ export default function CommunitiesPage() {
                         <FormItem>
                           <FormLabel>Name</FormLabel>
                           <FormControl>
-                            <Input
-                              {...field}
-                              placeholder="Community name"
-                            />
+                            <Input {...field} placeholder="Community name" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -309,21 +305,18 @@ export default function CommunitiesPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0 pb-3">
-                  {/* Community invite link component */}
-                  {community.isCustom && (
-                    <div className="mb-6">
-                      <CommunityInviteLink 
-                        communityId={community.id}
-                        communityName={community.name}
-                        userRole={community.role}
-                      />
-                    </div>
-                  )}
-                  
                   {/* List of sent email invites */}
                   <div className="mt-4">
                     <CommunityInvitesList communityId={community.id} />
                   </div>
+                  {/* Community invite link component */}
+                  {community.isCustom && (
+                    <CommunityInviteLink
+                      communityId={community.id}
+                      communityName={community.name}
+                      userRole={community.role}
+                    />
+                  )}
                 </CardContent>
                 <CardFooter>
                   <Dialog
