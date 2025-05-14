@@ -166,62 +166,30 @@ export default function CommunityInviteLink({
 
   return (
     <div className="w-full">
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={copyToClipboard}
-            title="Copy link"
-          >
-            {copied ? (
-              <Check className="h-4 w-4" />
-            ) : (
-              <Copy className="h-4 w-4" />
-            )}{" "}
-            Copy Invite Link
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleShare}
-            title="Share link"
-          >
-            <Share className="h-4 w-4" />
-            Share Invite Link
-          </Button>
-        </div>
-
-        {userRole === "admin" && (
-          <div className="text-xs text-muted-foreground">
-            <p>
-              As an admin, you can generate a new invite link if needed. This
-              will invalidate the previous link.
-            </p>
-          </div>
-        )}
-
-      {userRole === "admin" && (
-        <CardFooter>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => regenerateMutation.mutate()}
-            disabled={regenerateMutation.isPending}
-          >
-            {regenerateMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <RefreshCcw className="mr-2 h-4 w-4" />
-                Generate New Link
-              </>
-            )}
-          </Button>
-        </CardFooter>
-      )}
+      <div className="flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={copyToClipboard}
+          title="Copy link"
+        >
+          {copied ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <Copy className="h-4 w-4" />
+          )}{" "}
+          Copy Invite Link
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleShare}
+          title="Share link"
+        >
+          <Share className="h-4 w-4" />
+          Share Invite Link
+        </Button>
+      </div>
     </div>
   );
 }

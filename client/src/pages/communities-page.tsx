@@ -306,7 +306,7 @@ export default function CommunitiesPage() {
                 </CardHeader>
                 <CardContent className="pt-0 pb-3">
                   {/* List of sent email invites */}
-                  <div className="mt-4">
+                  <div className="my-4">
                     <CommunityInvitesList communityId={community.id} />
                   </div>
                   {/* Community invite link component */}
