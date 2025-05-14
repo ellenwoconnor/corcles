@@ -162,29 +162,36 @@ export default function CommunityInviteLink({
 
   return (
     <div className="w-full">
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={copyToClipboard}
-          title="Copy link"
-        >
-          {copied ? (
-            <Check className="h-4 w-4" />
-          ) : (
-            <Copy className="h-4 w-4" />
-          )}{" "}
-          Copy Invite Link
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleShare}
-          title="Share link"
-        >
-          <Share className="h-4 w-4" />
-          Share Invite Link
-        </Button>
+      <div className="space-y-2">
+        <Input 
+          value={getInviteLink()}
+          readOnly
+          className="font-mono text-sm"
+        />
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={copyToClipboard}
+            title="Copy link"
+          >
+            {copied ? (
+              <Check className="h-4 w-4" />
+            ) : (
+              <Copy className="h-4 w-4" />
+            )}{" "}
+            Copy Invite Link
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleShare}
+            title="Share link"
+          >
+            <Share className="h-4 w-4" />
+            Share Invite Link
+          </Button>
+        </div>
       </div>
     </div>
   );
