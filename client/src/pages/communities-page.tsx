@@ -217,8 +217,6 @@ export default function CommunitiesPage() {
                                         setShowEmojiPicker(false);
                                       }}
                                       theme={Theme.LIGHT}
-                                      skinTonePosition="none"
-                                      previewPosition="none"
                                       height={300}
                                       width={280}
                                     />

@@ -70,9 +70,9 @@ export function EmailInviteDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button variant="secondary" size="sm" className="gap-2">
           <Mail className="h-4 w-4" />
-          <span>Email Invite</span>
+          <span>Invite by Email</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
