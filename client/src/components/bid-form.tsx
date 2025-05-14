@@ -56,7 +56,7 @@ export default function BidForm({
   });
 
   // Get user's bids for this item
-  const { data: userBids = [] } = useQuery<ItemBid[]>({
+  const { data: userBids = [], refetch: refetchBids } = useQuery<ItemBid[]>({
     queryKey: [`/api/items/${itemId}/my-bids`],
     enabled: isOpen,
   });
@@ -75,16 +75,22 @@ export default function BidForm({
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Immediately refetch to update the UI
+      await Promise.all([
+        refetchBids(),
+        queryClient.invalidateQueries({
+          queryKey: [`/api/items/${itemId}/my-bids`, "/api/user/bids"],
+        })
+      ]);
+      
       toast({
         title: "Bid placed!",
         description: "The owner will be notified of your bid.",
       });
+      
       form.reset();
       onOpenChange(false);
-      queryClient.invalidateQueries({
-        queryKey: [`/api/items/${itemId}/my-bids`, "/api/user/bids"],
-      });
     },
     onError: (error: Error) => {
       toast({

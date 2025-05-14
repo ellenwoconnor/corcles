@@ -101,7 +101,7 @@ export default function ListingPage() {
   const hasRequested = requests?.some((r) => r.status === "pending");
   const hasBid = myBids.length > 0;
 
-  if (itemLoading || requestsLoading || bidsLoading) {
+  if (itemLoading || requestsLoading || bidsLoading || myBidsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-border" />

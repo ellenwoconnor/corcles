@@ -52,9 +52,12 @@ export default function PublicListingView({
     user.communityIds.includes(item.communityId);
   
   // Fetch user's bids for this item
-  const { data: userBids = [] } = useQuery<ItemBid[]>({
+  const { data: userBids = [], refetch: refetchUserBids } = useQuery<ItemBid[]>({
     queryKey: [`/api/items/${item.id}/my-bids`],
     enabled: isAuthenticated && !isOwner && !item.isGift,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchInterval: 2000, // Refetch every 2 seconds while on page
   });
 
   // Always allow user to bid, but show their existing bids
