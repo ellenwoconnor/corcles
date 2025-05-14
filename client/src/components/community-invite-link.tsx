@@ -83,11 +83,7 @@ export default function CommunityInviteLink({
     try {
       await navigator.clipboard.writeText(link);
       setCopied(true);
-      toast({
-        title: "Link copied!",
-        description: "Invite link copied to clipboard",
-      });
-
+      
       // Reset the copied state after 2 seconds
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
