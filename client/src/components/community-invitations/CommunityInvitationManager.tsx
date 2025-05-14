@@ -38,11 +38,9 @@ export default function CommunityInvitationManager({
 
   return (
     <div className="space-y-4 my-4">
-      <h3 className="text-lg font-semibold">Invite Members</h3>
-      
       <Tabs defaultValue="invite-link" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="invite-link">Invite Link</TabsTrigger>
+          <TabsTrigger value="invite-link">Invite New Members</TabsTrigger>
           <TabsTrigger value="sent-invites">
             Sent Invites ({sentInvites.length})
           </TabsTrigger>
