@@ -46,16 +46,12 @@ import { z } from "zod";
 import ReceivedInvitesSection from "@/components/received-invites-section";
 import CommunityInviteForm from "@/components/community-invite-form";
 import { CommunityInvitationManager } from "@/components/community-invitations";
-import Picker from "emoji-picker-react";
+import Picker, { Theme } from "emoji-picker-react";
 
 export default function CommunitiesPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(
-    null,
-  );
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   useEffect(() => {}, [createDialogOpen]); // Added emoji picker state
@@ -220,7 +216,7 @@ export default function CommunitiesPage() {
                                         field.onChange(emojiData.emoji);
                                         setShowEmojiPicker(false);
                                       }}
-                                      theme="light"
+                                      theme={Theme.LIGHT}
                                       skinTonePosition="none"
                                       previewPosition="none"
                                       height={300}
