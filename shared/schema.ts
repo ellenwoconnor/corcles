@@ -132,7 +132,7 @@ export const insertUserSchema = createInsertSchema(users).extend({
     .nullable(),
   email: z.string().email("Invalid email format"),
   // Add support for pendingInviteCode which is used during registration but not stored in DB
-  pendingInviteCode: z.string().optional(),
+  pendingInviteCode: z.string().nullable().optional(),
 });
 
 export const insertNotificationSchema = createInsertSchema(notifications).omit({

@@ -73,8 +73,8 @@ export function AuthForm() {
         username = username + username; // duplicate the character to make it at least 2 chars
       }
 
-      // Create a displayName (also min 2 chars)
-      let displayName = username;
+      // Use form display name or fallback to username
+      const displayName = data.displayName || username;
 
       // Check if there's a pending invite in localStorage
       const pendingInviteCode = localStorage.getItem("pendingInviteCode");

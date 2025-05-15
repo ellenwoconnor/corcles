@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,17 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import {
   Form,
   FormControl,
@@ -35,6 +26,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ItemBid } from "@shared/schema";
 
 const bidSchema = z.object({
   amount: z.number().min(1, "Bid amount must be greater than 0"),
@@ -63,33 +55,15 @@ export default function BidForm({
     },
   });
 
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [pendingBid, setPendingBid] = useState<z.infer<
-    typeof bidSchema
-  > | null>(null);
-
-  // Get user's previous bid
-  const { data: previousBid } = useQuery({
-    queryKey: [`/api/user/bids`],
-    enabled: hasBid,
-    queryFn: async () => {
-      const response = await fetch(`/api/user/bids`);
-      if (!response.ok) return null;
-      const bids = await response.json();
-      return bids.find(bid => bid.itemId === itemId);
-    }
+  // Get user's bids for this item
+  const { data: userBids = [], refetch: refetchBids } = useQuery<ItemBid[]>({
+    queryKey: [`/api/items/${itemId}/my-bids`],
+    enabled: isOpen,
   });
 
+  // We don't need to check hasBid anymore since we allow multiple bids
   const bidMutation = useMutation({
     mutationFn: async (data: z.infer<typeof bidSchema>) => {
-      if (hasBid && !showConfirmDialog) {
-        setPendingBid(data);
-        setShowConfirmDialog(true);
-        return;
-      }
-      setPendingBid(null);
-      setShowConfirmDialog(false);
-
       const response = await apiRequest(
         "POST",
         `/api/items/${itemId}/bid`,
@@ -101,16 +75,22 @@ export default function BidForm({
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Immediately refetch to update the UI
+      await Promise.all([
+        refetchBids(),
+        queryClient.invalidateQueries({
+          queryKey: [`/api/items/${itemId}/my-bids`, "/api/user/bids"],
+        })
+      ]);
+      
       toast({
         title: "Bid placed!",
         description: "The owner will be notified of your bid.",
       });
+      
       form.reset();
       onOpenChange(false);
-      queryClient.invalidateQueries({
-        queryKey: [`/api/items/${itemId}/my-bids`, "/api/user/bids"],
-      });
     },
     onError: (error: Error) => {
       toast({
@@ -122,105 +102,84 @@ export default function BidForm({
   });
 
   return (
-    <>
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogTrigger asChild>
-          <Button className="flex-1" disabled={hasBid}>
-            {hasBid ? "Bid Pending" : "Place Bid"}
-          </Button>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Place a Bid</DialogTitle>
-            <DialogDescription>Make an offer for this item.</DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit((data) => {
-                bidMutation.mutate(data);
-              })}
-              className="space-y-4"
-            >
-              <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Bid Amount ($)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Enter bid amount"
-                        {...field}
-                        value={field.value || ""}
-                        onChange={(e) =>
-                          field.onChange(
-                            e.target.value ? Number(e.target.value) : "",
-                          )
-                        }
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Enter your bid amount in dollars.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="message"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Message</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Include any additional information about your bid.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
+        <Button className="flex-1">
+          {userBids.length > 0 ? "Place Another Bid" : "Place Bid"}
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Place a Bid</DialogTitle>
+          <DialogDescription>
+            {userBids.length > 0 
+              ? "You already have bids on this item. You can place additional bids if you'd like to change your offer."
+              : "Make an offer for this item."}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit((data) => {
+              bidMutation.mutate(data);
+            })}
+            className="space-y-4"
+          >
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Bid Amount ($)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="Enter bid amount"
+                      {...field}
+                      value={field.value || ""}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value ? Number(e.target.value) : "",
+                        )
+                      }
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Enter your bid amount in dollars.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="message"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Message</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Include any additional information about your bid.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <DialogFooter>
               <Button
                 type="submit"
                 className="w-full"
                 disabled={bidMutation.isPending}
               >
-                Place Bid
+                {bidMutation.isPending ? "Submitting..." : "Place Bid"}
               </Button>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm New Bid</AlertDialogTitle>
-            <AlertDialogDescription>
-              You already have a pending bid of ${previousBid?.amount} on this
-              item. Are you sure you want to place a new bid of $
-              {pendingBid?.amount}?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingBid(null)}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (pendingBid) {
-                  bidMutation.mutate(pendingBid);
-                }
-              }}
-            >
-              Confirm New Bid
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 }
