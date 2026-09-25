@@ -1,8 +1,8 @@
 # Corcles README
 
-AI wrote this code, don't blame me
+Corcles is a hyperlocal P2P marketplace for secondhand goods. You can view the white paper [here](https://docs.google.com/document/d/1g183XNNwKlkuuewT01cLr1ZrtDvk7mlwxYa8Y9S3970/edit?usp=sharing)
 
-How this bullshit works with DO
+How this  works with DO
 - if you have ca-certificate.crt locally, you can connect to the database
 - the file won't exist in fly.io, so we need to create it 
 
